@@ -1,0 +1,11 @@
+controllers_api:
+    resource: ../src/Controller/Api/
+    type: attribute
+
+controllers_app_evento:
+    resource: ../src/Controller/EventoController.php
+    type: attribute
+
+controllers_app_inscripcion:
+    resource: ../src/Controller/InscripcionController.php
+    type: attribute
