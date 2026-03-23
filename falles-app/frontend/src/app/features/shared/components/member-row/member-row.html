@@ -1,0 +1,37 @@
+<article class="member-row" [attr.aria-label]="member().name">
+  <div class="identity">
+    <span class="avatar" aria-hidden="true">{{ member().avatarInitial }}</span>
+    <div class="identity-copy">
+      <div class="title-row">
+        <h3>{{ member().name }}</h3>
+        <span class="role">{{ member().role }}</span>
+      </div>
+      @if (member().notes) {
+        <small class="notes">{{ member().notes }}</small>
+      }
+    </div>
+  </div>
+
+  @if (showSelect()) {
+    <label class="menu-selector" [attr.for]="'menu-' + member().id">
+      <span class="selector-label">Menú</span>
+      <select
+        [id]="'menu-' + member().id"
+        [value]="selectedMenuId() ?? ''"
+        [disabled]="disabled()"
+        (change)="onMenuChange($event)"
+      >
+        <option value="" disabled>Elegí menú</option>
+        @for (menu of menuOptions(); track menu.id) {
+          <option [value]="menu.id">{{ menu.label }} · {{ menu.price | currency: 'EUR' : 'symbol' : '1.0-0' }}</option>
+        }
+      </select>
+    </label>
+  }
+
+  @if (actionLabel()) {
+    <button type="button" class="row-action" (click)="onActionClick()" [disabled]="disabled()">
+      {{ actionLabel() }}
+    </button>
+  }
+</article>

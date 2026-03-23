@@ -1,0 +1,34 @@
+<header class="mobile-header" role="banner">
+  <div class="bar-actions">
+    @if (showBack()) {
+      <button
+        type="button"
+        class="icon-button"
+        aria-label="Volver"
+        (click)="onBack()"
+      >
+        ←
+      </button>
+    } @else {
+      <span class="icon-placeholder" aria-hidden="true"></span>
+    }
+
+    @if (actionLabel()) {
+      <button
+        type="button"
+        class="text-button"
+        [attr.aria-label]="actionAriaLabel()"
+        (click)="onAction()"
+      >
+        {{ actionLabel() }}
+      </button>
+    } @else {
+      <span class="icon-placeholder" aria-hidden="true"></span>
+    }
+  </div>
+
+  <h1>{{ title() }}</h1>
+  @if (subtitle()) {
+    <p>{{ subtitle() }}</p>
+  }
+</header>

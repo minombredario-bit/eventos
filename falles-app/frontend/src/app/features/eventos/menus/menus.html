@@ -1,0 +1,53 @@
+<section class="screen">
+  <app-mobile-header
+    title="Selección de menús"
+    subtitle="Elegí un menú por persona"
+    [showBack]="true"
+    actionLabel="Salir"
+    actionAriaLabel="Cerrar sesión"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    <article class="panel event-summary">
+      <p class="eyebrow">Evento y menús</p>
+      <h2>{{ event().title }}</h2>
+      <p>{{ event().location }}</p>
+    </article>
+
+    <article class="panel member-list" aria-label="Selector de menú por familiar">
+      <h2>Seleccioná un menú por persona</h2>
+      @for (member of members; track member.id) {
+        <app-member-row
+          [member]="member"
+          [showSelect]="true"
+          [menuOptions]="options"
+          [selectedMenuId]="selectedMenus()[member.id] ?? null"
+          (menuChanged)="updateMenu($event)"
+        />
+      }
+    </article>
+
+    <article class="panel total-card">
+      <h2>Total estimado</h2>
+      <p class="summary">Revisión rápida antes de confirmar.</p>
+      @for (item of selectionSummary(); track item.memberName) {
+        <p>
+          <span>{{ item.memberName }} · {{ item.menuLabel }}</span>
+          <strong>{{ item.price | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+        </p>
+      }
+      <p class="grand-total">
+        <span>Total</span>
+        <strong>{{ totalPrice() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+      </p>
+    </article>
+
+    <app-cta-button
+      [label]="'Confirmar menús · ' + (totalPrice() | currency: 'EUR' : 'symbol' : '1.0-0')"
+      [disabled]="!readyToConfirm()"
+      (pressed)="confirmSelection()"
+    />
+  </div>
+</section>

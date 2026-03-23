@@ -1,0 +1,38 @@
+# Dependencies
+/vendor/
+/node_modules/
+/.idea/
+/.vscode/
+
+# Build artifacts
+/public/bundles/
+/var/
+
+# Environment files (use .env.docker instead)
+.env.local
+.env.*.local
+
+# Git
+/.git/
+.gitignore
+
+# IDE
+*.swp
+*.swo
+.DS_Store
+
+# Docker (don't copy docker files into container)
+docker/
+docker-compose*.yml
+Dockerfile
+*.dockerfile
+
+# Documentation
+README.md
+docs/
+
+# Tests
+/tests/
+
+# Docker volumes (not needed inside container)
+*.sql

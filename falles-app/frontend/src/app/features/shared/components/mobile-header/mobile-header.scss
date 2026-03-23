@@ -1,0 +1,50 @@
+.mobile-header {
+  background: linear-gradient(155deg, var(--brand-orange), var(--brand-orange-strong));
+  color: #ffffff;
+  border-bottom-left-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
+  padding: 0.8rem 1rem 1.1rem;
+  box-shadow: 0 10px 22px rgba(154, 52, 18, 0.28);
+
+  h1 {
+    margin: 0.55rem 0 0;
+    font-size: 1.38rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  p {
+    margin: 0.3rem 0 0;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.9rem;
+  }
+}
+
+.bar-actions {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.icon-button,
+.text-button {
+  min-height: 44px;
+  min-width: 44px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0.9rem;
+}
+
+.icon-button {
+  font-size: 1.1rem;
+}
+
+.icon-placeholder {
+  display: inline-block;
+  width: 44px;
+}

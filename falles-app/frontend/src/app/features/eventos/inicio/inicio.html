@@ -1,0 +1,67 @@
+<section class="screen">
+  <app-mobile-header
+    title="Inicio"
+    subtitle="Calendario y próximos eventos"
+    actionLabel="Salir"
+    actionAriaLabel="Cerrar sesión"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    <article class="panel intro" aria-label="Resumen de inicio">
+      <p class="eyebrow">Agenda fallera</p>
+      <h2>Consultá próximos eventos y elegí un día para ver disponibilidad.</h2>
+    </article>
+
+    <article class="panel calendar" aria-label="Calendario de eventos">
+      <header class="calendar-header">
+        <button type="button" aria-label="Mes anterior" (click)="moveMonth(-1)">‹</button>
+        <h2>{{ monthTitle() }}</h2>
+        <button type="button" aria-label="Mes siguiente" (click)="moveMonth(1)">›</button>
+      </header>
+
+      <div class="week-days">
+        @for (day of weekDays; track day) {
+          <span>{{ day }}</span>
+        }
+      </div>
+
+      <div class="grid">
+        @for (cell of calendarCells(); track cell.key) {
+          <button
+            type="button"
+            [attr.aria-pressed]="isSelected(cell.key)"
+            [class.outside]="!cell.isCurrentMonth"
+            [class.has-event]="hasEvents(cell.key)"
+            [class.selected]="isSelected(cell.key)"
+            (click)="pickDate(cell)"
+          >
+            {{ cell.date | date: 'd' }}
+            <span class="dot" aria-hidden="true"></span>
+          </button>
+        }
+      </div>
+    </article>
+
+    <article class="panel upcoming">
+      <h2>Próximos eventos</h2>
+      @for (event of events; track event.id) {
+        <app-event-card [event]="event" />
+      }
+    </article>
+
+    <article class="panel selected-day">
+      <div class="selected-header">
+        <h2>{{ selectedDateLabel() }}</h2>
+        <span class="day-state" [class]="'day-state ' + selectedDayState()">{{ dayStateLabel(selectedDayState()) }}</span>
+      </div>
+      @if (selectedDayEvents().length) {
+        @for (event of selectedDayEvents(); track event.id) {
+          <app-event-card [event]="event" />
+        }
+      } @else {
+        <p>No hay eventos para esta fecha.</p>
+      }
+    </article>
+  </div>
+</section>

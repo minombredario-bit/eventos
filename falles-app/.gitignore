@@ -1,0 +1,19 @@
+# Backend
+backend/.env.local
+backend/.env.*.local
+backend/var/
+backend/vendor/
+backend/config/jwt/
+backend/public/bundles/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# General
+.DS_Store
+*.log
+*.swp
+.idea/
+.vscode/

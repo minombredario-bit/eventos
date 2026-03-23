@@ -1,0 +1,40 @@
+<section class="screen">
+  <app-mobile-header
+    title="Detalle del evento"
+    subtitle="Información e inscripción por familiar"
+    [showBack]="true"
+    actionLabel="Salir"
+    actionAriaLabel="Cerrar sesión"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    <article class="panel event-hero">
+      <p class="eyebrow">Evento seleccionado</p>
+      <h2>{{ event().title }}</h2>
+      <div class="meta-grid">
+        <p>{{ event().date | date: 'EEEE d MMMM' }} · {{ event().time }}</p>
+        <p>{{ event().location }}</p>
+      </div>
+      <p class="description">{{ event().description }}</p>
+      <span class="status-chip" [class]="'status-chip ' + event().status">{{ eventStatusLabel() }}</span>
+    </article>
+
+    <article class="panel family-list" aria-label="Listado de familiares">
+      <h2>Inscripciones y familiares</h2>
+      <p class="supporting-copy">Podés gestionar menú y asistencia de cada persona.</p>
+      @for (member of members; track member.id) {
+        <app-member-row
+          [member]="member"
+          actionLabel="Inscribir"
+          aria-label="Fila de persona para inscribir"
+        />
+      }
+    </article>
+
+    <div class="cta-wrap">
+      <app-cta-button label="Seleccionar menús" (pressed)="openMenus()" />
+    </div>
+  </div>
+</section>

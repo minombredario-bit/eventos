@@ -1,0 +1,171 @@
+.content {
+  padding: 1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.panel {
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  padding: 0.95rem;
+  border: 1px solid #ffedd5;
+
+  h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.02rem;
+  }
+}
+
+.intro {
+  background: linear-gradient(145deg, #fff7ed, #ffedd5);
+
+  .eyebrow {
+    margin: 0;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #9a3412;
+  }
+
+  h2 {
+    margin: 0.4rem 0 0;
+    font-size: 1rem;
+    line-height: 1.35;
+    color: var(--brand-ink);
+  }
+}
+
+.calendar {
+  .calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.65rem;
+  }
+
+  h2 {
+    text-transform: capitalize;
+    margin: 0;
+  }
+
+  button {
+    min-height: 44px;
+    min-width: 44px;
+    border: 1px solid #fed7aa;
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    color: var(--brand-ink);
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+}
+
+.week-days,
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+}
+
+.week-days span {
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.grid button {
+  position: relative;
+  min-height: 44px;
+  border-radius: 0.65rem;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-weight: 600;
+
+  .dot {
+    position: absolute;
+    left: 50%;
+    bottom: 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: transparent;
+    transform: translateX(-50%);
+  }
+}
+
+.grid button.outside {
+  color: #94a3b8;
+}
+
+.grid button.has-event {
+  border-color: #fdba74;
+
+  .dot {
+    background: var(--brand-orange);
+  }
+}
+
+.grid button.selected {
+  background: #ffedd5;
+  border-color: var(--brand-orange);
+  color: var(--brand-ink);
+}
+
+.upcoming,
+.selected-day {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.selected-day p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.selected-header {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.day-state {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.day-state.abierto {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.day-state.ultimas_plazas {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.day-state.cerrado {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.day-state.sin-eventos {
+  color: #6b7280;
+  background: #f1f5f9;
+}
+
+@media (min-width: 900px) {
+  .content {
+    max-width: 980px;
+    margin: 0 auto;
+    grid-template-columns: 1.1fr 1fr;
+  }
+
+  .selected-day {
+    grid-column: 1 / -1;
+  }
+}

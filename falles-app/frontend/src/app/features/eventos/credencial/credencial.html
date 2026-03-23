@@ -1,0 +1,50 @@
+<section class="screen">
+  <app-mobile-header
+    title="Mi credencial"
+    subtitle="Acceso rápido con QR"
+    [showBack]="true"
+    actionLabel="Salir"
+    actionAriaLabel="Cerrar sesión"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    <article class="ticket" aria-label="Credencial del evento">
+      <header class="ticket-header">
+        <div>
+          <p class="event-name">{{ credential().eventTitle }}</p>
+          <strong>{{ credential().eventDate | date: 'EEEE d MMM · HH:mm' }}</strong>
+        </div>
+        <span class="entry-pill">Acceso válido</span>
+      </header>
+
+      <section class="identity">
+        <p class="holder">Titular: {{ credential().holderName }}</p>
+        <p class="zone">{{ credential().eventZone }}</p>
+      </section>
+
+      <div class="divider" aria-hidden="true"></div>
+
+      <section class="lines">
+        @for (line of credential().lines; track line.id) {
+          <p>
+            <span>{{ line.personName }}</span>
+            <strong>{{ line.menuName }}</strong>
+          </p>
+        }
+      </section>
+
+      <section class="qr-block">
+        <section class="qr" aria-label="Código QR visual">
+          @for (row of qrRows(); track $index; let rowIndex = $index) {
+            @for (pixel of row; track $index; let pixelIndex = $index) {
+              <span [class.dark]="pixel" [style.grid-area]="(rowIndex + 1) + ' / ' + (pixelIndex + 1)"></span>
+            }
+          }
+        </section>
+        <p class="token" aria-live="polite">Token: {{ credential().qrToken }}</p>
+      </section>
+    </article>
+  </div>
+</section>

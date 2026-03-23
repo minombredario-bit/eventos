@@ -1,0 +1,37 @@
+api_platform:
+    title: Entidades Festivas API
+    description: API for managing festive entity events, registrations and payments
+    version: 1.0.0
+    
+    collection:
+        pagination:
+            enabled: true
+    
+    formats:
+        jsonld:
+            mime_types:
+                - application/ld+json
+        json:
+            mime_types:
+                - application/json
+        jsonhal:
+            mime_types:
+                - application/hal+json
+    
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization']
+    
+    exception_to_status:
+        ApiPlatform\Exception\InvalidArgumentException: 400
+        ApiPlatform\Exception\FilterValidationException: 400
+    
+    openapi:
+        contact:
+            name: Entidades Festivas Support
+            email: support@entidadesfestivas.es
+        termsOfService: ~
+    
+    # EnableMercure for real-time (optional)
+    # mercure: ~
