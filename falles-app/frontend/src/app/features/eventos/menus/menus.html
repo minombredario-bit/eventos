@@ -14,27 +14,35 @@
       <p class="eyebrow">Evento y menús</p>
       <h2>{{ event().title }}</h2>
       <p>{{ event().location }}</p>
+      <small>La selección se organiza por franja: almuerzo, comida, merienda y cena.</small>
     </article>
 
-    <article class="panel member-list" aria-label="Selector de menú por familiar">
-      <h2>Seleccioná un menú por persona</h2>
-      @for (member of members; track member.id) {
-        <app-member-row
-          [member]="member"
-          [showSelect]="true"
-          [menuOptions]="options"
-          [selectedMenuId]="selectedMenus()[member.id] ?? null"
-          (menuChanged)="updateMenu($event)"
-        />
+    @for (slot of slots; track slot) {
+      @if (hasSlotForAnyMember(slot)) {
+        <article class="panel member-list" [attr.aria-label]="'Selector de menú por familiar para ' + slotLabel(slot)">
+          <h2>{{ slotLabel(slot) }}</h2>
+          @for (member of members; track member.id) {
+            <app-member-row
+              [member]="member"
+              [showSelect]="true"
+              [selectorLabel]="'Menú ' + slotLabel(slot)"
+              [slot]="slot"
+              [menuOptions]="getMenusForSlotAndMember(slot, member)"
+              [selectedMenuId]="getSelectedMenu(member.id, slot)"
+              [emptyMessage]="'Sin menú compatible para esta franja'"
+              (menuChanged)="updateMenu($event)"
+            />
+          }
+        </article>
       }
-    </article>
+    }
 
     <article class="panel total-card">
       <h2>Total estimado</h2>
       <p class="summary">Revisión rápida antes de confirmar.</p>
-      @for (item of selectionSummary(); track item.memberName) {
+      @for (item of selectionSummary(); track item.memberName + '-' + item.slot) {
         <p>
-          <span>{{ item.memberName }} · {{ item.menuLabel }}</span>
+          <span>{{ item.memberName }} · {{ slotLabel(item.slot) }} · {{ item.menuLabel }}</span>
           <strong>{{ item.price | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
         </p>
       }

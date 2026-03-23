@@ -95,6 +95,7 @@ class InscripcionController extends AbstractController
                 'id' => $linea->getId(),
                 'nombrePersonaSnapshot' => $linea->getNombrePersonaSnapshot(),
                 'tipoPersonaSnapshot' => $linea->getTipoPersonaSnapshot(),
+                'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
                 'tipoRelacionEconomicaSnapshot' => $linea->getTipoRelacionEconomicaSnapshot(),
                 'nombreMenuSnapshot' => $linea->getNombreMenuSnapshot(),
                 'esDePagoSnapshot' => $linea->isEsDePagoSnapshot(),

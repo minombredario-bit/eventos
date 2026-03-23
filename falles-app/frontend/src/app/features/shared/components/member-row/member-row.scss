@@ -79,6 +79,16 @@ select,
   color: var(--text-muted);
 }
 
+.empty-message {
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.7rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed #d9dde4;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
 select {
   color: var(--text-primary);
 }

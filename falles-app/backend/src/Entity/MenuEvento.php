@@ -10,7 +10,10 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use App\Enum\CompatibilidadPersonaMenuEnum;
+use App\Enum\FranjaComidaEnum;
 use App\Enum\TipoMenuEnum;
+use App\Enum\TipoPersonaEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -54,6 +57,16 @@ class MenuEvento
     #[Groups(['menu-evento:read', 'menu-evento:write'])]
     #[Assert\NotNull]
     private TipoMenuEnum $tipoMenu;
+
+    #[ORM\Column(type: Types::STRING, length: 50, enumType: FranjaComidaEnum::class)]
+    #[Groups(['menu-evento:read', 'menu-evento:write'])]
+    #[Assert\NotNull]
+    private FranjaComidaEnum $franjaComida;
+
+    #[ORM\Column(type: Types::STRING, length: 50, enumType: CompatibilidadPersonaMenuEnum::class)]
+    #[Groups(['menu-evento:read', 'menu-evento:write'])]
+    #[Assert\NotNull]
+    private CompatibilidadPersonaMenuEnum $compatibilidadPersona;
 
     #[ORM\Column(type: Types::BOOLEAN)]
     #[Groups(['menu-evento:read', 'menu-evento:write'])]
@@ -107,6 +120,8 @@ class MenuEvento
         $this->id = Uuid::uuid4();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->franjaComida = FranjaComidaEnum::COMIDA;
+        $this->compatibilidadPersona = CompatibilidadPersonaMenuEnum::AMBOS;
     }
 
     #[ORM\PreUpdate]
@@ -162,6 +177,37 @@ class MenuEvento
     {
         $this->tipoMenu = $tipoMenu;
         return $this;
+    }
+
+    public function getFranjaComida(): FranjaComidaEnum
+    {
+        return $this->franjaComida;
+    }
+
+    public function setFranjaComida(FranjaComidaEnum $franjaComida): static
+    {
+        $this->franjaComida = $franjaComida;
+        return $this;
+    }
+
+    public function getCompatibilidadPersona(): CompatibilidadPersonaMenuEnum
+    {
+        return $this->compatibilidadPersona;
+    }
+
+    public function setCompatibilidadPersona(CompatibilidadPersonaMenuEnum $compatibilidadPersona): static
+    {
+        $this->compatibilidadPersona = $compatibilidadPersona;
+        return $this;
+    }
+
+    public function esCompatibleConTipoPersona(TipoPersonaEnum $tipoPersona): bool
+    {
+        return match ($this->compatibilidadPersona) {
+            CompatibilidadPersonaMenuEnum::AMBOS => true,
+            CompatibilidadPersonaMenuEnum::ADULTO => $tipoPersona === TipoPersonaEnum::ADULTO,
+            CompatibilidadPersonaMenuEnum::INFANTIL => $tipoPersona === TipoPersonaEnum::INFANTIL,
+        };
     }
 
     public function isEsDePago(): bool

@@ -14,6 +14,8 @@ use App\Enum\CensadoViaEnum;
 use App\Enum\EstadoValidacionEnum;
 use App\Enum\TipoEventoEnum;
 use App\Enum\EstadoEventoEnum;
+use App\Enum\FranjaComidaEnum;
+use App\Enum\CompatibilidadPersonaMenuEnum;
 use App\Enum\TipoMenuEnum;
 use App\Enum\TipoPersonaEnum;
 use Doctrine\Bundle\FixturesBundle\Fixture;
@@ -273,6 +275,8 @@ class AppFixtures extends Fixture
         $menuGala1->setNombre('Menu Adulto Interno');
         $menuGala1->setDescripcion('Menu degustación 5 pasos para socios internos');
         $menuGala1->setTipoMenu(TipoMenuEnum::ADULTO);
+        $menuGala1->setFranjaComida(FranjaComidaEnum::CENA);
+        $menuGala1->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::ADULTO);
         $menuGala1->setEsDePago(true);
         $menuGala1->setPrecioBase(35.00);
         $menuGala1->setPrecioAdultoInterno(25.00);
@@ -289,6 +293,8 @@ class AppFixtures extends Fixture
         $menuGala2->setNombre('Bebidas Adultas');
         $menuGala2->setDescripcion('Copa de cava y bebidas durante la cena');
         $menuGala2->setTipoMenu(TipoMenuEnum::LIBRE);
+        $menuGala2->setFranjaComida(FranjaComidaEnum::CENA);
+        $menuGala2->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::AMBOS);
         $menuGala2->setEsDePago(true);
         $menuGala2->setPrecioBase(15.00);
         $menuGala2->setPrecioAdultoInterno(10.00);
@@ -305,6 +311,8 @@ class AppFixtures extends Fixture
         $menuPaella1->setNombre('Paella + Postre');
         $menuPaella1->setDescripcion('Ración de paella gigante + postre casero');
         $menuPaella1->setTipoMenu(TipoMenuEnum::LIBRE);
+        $menuPaella1->setFranjaComida(FranjaComidaEnum::COMIDA);
+        $menuPaella1->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::AMBOS);
         $menuPaella1->setEsDePago(true);
         $menuPaella1->setPrecioBase(12.00);
         $menuPaella1->setPrecioAdultoInterno(10.00);
@@ -321,6 +329,8 @@ class AppFixtures extends Fixture
         $menuPaella2->setNombre('Barra Libre');
         $menuPaella2->setDescripcion('Bebidas durante 4 horas');
         $menuPaella2->setTipoMenu(TipoMenuEnum::LIBRE);
+        $menuPaella2->setFranjaComida(FranjaComidaEnum::COMIDA);
+        $menuPaella2->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::ADULTO);
         $menuPaella2->setEsDePago(true);
         $menuPaella2->setPrecioBase(20.00);
         $menuPaella2->setPrecioAdultoInterno(15.00);
@@ -337,6 +347,8 @@ class AppFixtures extends Fixture
         $menuVerbena->setNombre('Entrada Verbena');
         $menuVerbena->setDescripcion('Acceso a la verbena');
         $menuVerbena->setTipoMenu(TipoMenuEnum::LIBRE);
+        $menuVerbena->setFranjaComida(FranjaComidaEnum::CENA);
+        $menuVerbena->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::AMBOS);
         $menuVerbena->setEsDePago(true);
         $menuVerbena->setPrecioBase(0.00);
         $menuVerbena->setPrecioAdultoInterno(0.00);

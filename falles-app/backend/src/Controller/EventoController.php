@@ -6,10 +6,10 @@ use App\Entity\Evento;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
 use App\Service\InscripcionService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api')]
@@ -49,6 +49,8 @@ class EventoController extends AbstractController
                 'id' => $menu->getId(),
                 'nombre' => $menu->getNombre(),
                 'tipoMenu' => $menu->getTipoMenu()->value,
+                'franjaComida' => $menu->getFranjaComida()->value,
+                'compatibilidadPersona' => $menu->getCompatibilidadPersona()->value,
                 'esDePago' => $menu->isEsDePago(),
                 'precioBase' => $menu->getPrecioBase(),
                 'precioAdultoInterno' => $menu->getPrecioAdultoInterno(),
@@ -95,6 +97,8 @@ class EventoController extends AbstractController
                 'nombre' => $menu->getNombre(),
                 'descripcion' => $menu->getDescripcion(),
                 'tipoMenu' => $menu->getTipoMenu()->value,
+                'franjaComida' => $menu->getFranjaComida()->value,
+                'compatibilidadPersona' => $menu->getCompatibilidadPersona()->value,
                 'esDePago' => $menu->isEsDePago(),
                 'precioBase' => $menu->getPrecioBase(),
                 'precioAdultoInterno' => $menu->getPrecioAdultoInterno(),
@@ -129,6 +133,8 @@ class EventoController extends AbstractController
             'nombre' => $menu->getNombre(),
             'descripcion' => $menu->getDescripcion(),
             'tipoMenu' => $menu->getTipoMenu()->value,
+            'franjaComida' => $menu->getFranjaComida()->value,
+            'compatibilidadPersona' => $menu->getCompatibilidadPersona()->value,
             'esDePago' => $menu->isEsDePago(),
             'precioBase' => $menu->getPrecioBase(),
             'precioAdultoInterno' => $menu->getPrecioAdultoInterno(),
@@ -178,13 +184,14 @@ class EventoController extends AbstractController
                     'id' => $linea->getId(),
                     'nombrePersonaSnapshot' => $linea->getNombrePersonaSnapshot(),
                     'tipoPersonaSnapshot' => $linea->getTipoPersonaSnapshot(),
+                    'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
                     'nombreMenuSnapshot' => $linea->getNombreMenuSnapshot(),
                     'precioUnitario' => $linea->getPrecioUnitario(),
                     'esDePagoSnapshot' => $linea->isEsDePagoSnapshot(),
                     'estadoLinea' => $linea->getEstadoLinea()->value,
                 ], $inscripcion->getLineas()->toArray()),
             ], 201);
-        } catch (\InvalidArgumentException $e) {
+        } catch (BadRequestHttpException $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }

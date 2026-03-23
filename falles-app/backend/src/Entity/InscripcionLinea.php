@@ -67,6 +67,10 @@ class InscripcionLinea
     #[Groups(['inscripcion-linea:read'])]
     private string $nombreMenuSnapshot;
 
+    #[ORM\Column(type: Types::STRING, length: 50)]
+    #[Groups(['inscripcion-linea:read'])]
+    private string $franjaComidaSnapshot;
+
     #[ORM\Column(type: Types::BOOLEAN)]
     #[Groups(['inscripcion-linea:read'])]
     private bool $esDePagoSnapshot;
@@ -187,6 +191,17 @@ class InscripcionLinea
         return $this;
     }
 
+    public function getFranjaComidaSnapshot(): string
+    {
+        return $this->franjaComidaSnapshot;
+    }
+
+    public function setFranjaComidaSnapshot(string $franjaComidaSnapshot): static
+    {
+        $this->franjaComidaSnapshot = $franjaComidaSnapshot;
+        return $this;
+    }
+
     public function isEsDePagoSnapshot(): bool
     {
         return $this->esDePagoSnapshot;
@@ -247,6 +262,7 @@ class InscripcionLinea
         $this->tipoRelacionEconomicaSnapshot = $this->persona->getTipoRelacionEconomica()->value;
         $this->estadoValidacionSnapshot = $this->persona->getEstadoValidacion()->value;
         $this->nombreMenuSnapshot = $this->menu->getNombre();
+        $this->franjaComidaSnapshot = $this->menu->getFranjaComida()->value;
         $this->esDePagoSnapshot = $this->menu->isEsDePago();
     }
 }

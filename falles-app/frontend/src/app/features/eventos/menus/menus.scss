@@ -32,6 +32,12 @@
     margin: 0.35rem 0 0;
     color: var(--text-muted);
   }
+
+  small {
+    display: inline-block;
+    margin-top: 0.45rem;
+    color: var(--text-secondary);
+  }
 }
 
 .member-list {

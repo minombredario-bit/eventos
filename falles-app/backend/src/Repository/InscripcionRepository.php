@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Inscripcion;
 use App\Entity\Evento;
 use App\Entity\Usuario;
+use App\Enum\FranjaComidaEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -95,6 +96,35 @@ class InscripcionRepository extends ServiceEntityRepository
             ->setParameter('usuarioId', $usuarioId)
             ->setParameter('eventoId', $eventoId)
             ->setParameter('personaId', $personaId)
+            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $result > 0;
+    }
+
+    public function personaYaInscritaEnFranja(
+        string $usuarioId,
+        string $eventoId,
+        string $personaId,
+        FranjaComidaEnum $franjaComida,
+    ): bool {
+        $result = $this->createQueryBuilder('i')
+            ->select('COUNT(i.id)')
+            ->join('i.usuario', 'u')
+            ->join('i.evento', 'e')
+            ->join('i.lineas', 'l')
+            ->join('l.persona', 'p')
+            ->join('l.menu', 'm')
+            ->where('u.id = :usuarioId')
+            ->andWhere('e.id = :eventoId')
+            ->andWhere('p.id = :personaId')
+            ->andWhere('m.franjaComida = :franjaComida')
+            ->andWhere('i.estadoInscripcion != :cancelada')
+            ->setParameter('usuarioId', $usuarioId)
+            ->setParameter('eventoId', $eventoId)
+            ->setParameter('personaId', $personaId)
+            ->setParameter('franjaComida', $franjaComida)
             ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
             ->getQuery()
             ->getSingleScalarResult();

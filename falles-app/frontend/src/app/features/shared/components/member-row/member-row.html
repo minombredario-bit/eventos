@@ -14,18 +14,24 @@
 
   @if (showSelect()) {
     <label class="menu-selector" [attr.for]="'menu-' + member().id">
-      <span class="selector-label">Menú</span>
-      <select
-        [id]="'menu-' + member().id"
-        [value]="selectedMenuId() ?? ''"
-        [disabled]="disabled()"
-        (change)="onMenuChange($event)"
-      >
-        <option value="" disabled>Elegí menú</option>
-        @for (menu of menuOptions(); track menu.id) {
-          <option [value]="menu.id">{{ menu.label }} · {{ menu.price | currency: 'EUR' : 'symbol' : '1.0-0' }}</option>
-        }
-      </select>
+      <span class="selector-label">{{ selectorLabel() }}</span>
+      @if (menuOptions().length === 0) {
+        <small class="empty-message">{{ emptyMessage() }}</small>
+      } @else {
+        <select
+          [id]="'menu-' + member().id + '-' + (slot() ?? 'general')"
+          [value]="selectedMenuId() ?? ''"
+          [disabled]="disabled()"
+          (change)="onMenuChange($event)"
+        >
+          <option value="" disabled>Elegí menú</option>
+          @for (menu of menuOptions(); track menu.id) {
+            <option [value]="menu.id" [disabled]="menu.disabled ?? false">
+              {{ menu.label }} · {{ menu.price | currency: 'EUR' : 'symbol' : '1.0-0' }}
+            </option>
+          }
+        </select>
+      }
     </label>
   }
 

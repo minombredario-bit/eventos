@@ -5,16 +5,14 @@ namespace App\Service;
 use App\Entity\Inscripcion;
 use App\Entity\InscripcionLinea;
 use App\Entity\Evento;
-use App\Entity\PersonaFamiliar;
 use App\Entity\Usuario;
-use App\Entity\MenuEvento;
 use App\Repository\InscripcionRepository;
 use App\Repository\EventoRepository;
 use App\Repository\PersonaFamiliarRepository;
 use App\Repository\MenuEventoRepository;
 use App\Repository\UsuarioRepository;
+use App\Enum\FranjaComidaEnum;
 use App\Enum\EstadoInscripcionEnum;
-use App\Enum\EstadoPagoEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -37,17 +35,21 @@ class InscripcionService
      * - El evento debe existir y estar publicado
      * - Las inscripciones deben estar abiertas
      * - UN USUARIO NO PUEDE TENER YA UNA INSCRIPCIÓN PARA ESTE EVENTO
-     * - Cada persona solo puede inscribirse una vez al evento
+     * - Cada persona solo puede tener una selección por franja de comida
      * - Los menús deben pertenecer al evento y estar activos
      */
     public function crearInscripcion(
-        string $eventoId,
-        string $usuarioId,
+        string|Evento $eventoInput,
+        string|Usuario $usuarioInput,
         array $lineasData,
     ): Inscripcion {
+        if ($lineasData === []) {
+            throw new BadRequestHttpException('Se requiere al menos una línea de inscripción');
+        }
+
         // 1. Verificar que el evento existe y está abierto
-        $evento = $this->eventoRepository->find($eventoId);
-        if (!$evento) {
+        $evento = $this->resolveEvento($eventoInput);
+        if ($evento === null) {
             throw new BadRequestHttpException('Evento no encontrado');
         }
 
@@ -60,18 +62,17 @@ class InscripcionService
         }
 
         // 2. Verificar que no existe ya una inscripción para este usuario-evento
-        $inscripcionExistente = $this->inscripcionRepository->findOneByUsuarioAndEvento($usuarioId, $eventoId);
+        $usuario = $this->resolveUsuario($usuarioInput);
+        if ($usuario === null) {
+            throw new BadRequestHttpException('Usuario no encontrado');
+        }
+
+        $inscripcionExistente = $this->inscripcionRepository->findOneByUsuarioAndEvento($usuario->getId(), $evento->getId());
         if ($inscripcionExistente) {
             throw new BadRequestHttpException('Ya tienes una inscripción para este evento');
         }
 
-        // 3. Obtener el usuario
-        $usuario = $this->usuarioRepository->find($usuarioId);
-        if (!$usuario) {
-            throw new BadRequestHttpException('Usuario no encontrado');
-        }
-
-        // 4. Crear la inscripción
+        // 3. Crear la inscripción
         $inscripcion = new Inscripcion();
         $inscripcion->setEvento($evento);
         $inscripcion->setEntidad($evento->getEntidad());
@@ -81,10 +82,12 @@ class InscripcionService
         $codigo = $this->generarCodigo($evento);
         $inscripcion->setCodigo($codigo);
 
-        // 5. Procesar las líneas
+        // 4. Procesar las líneas
+        $lineasRegistradasPorPersonaYFranja = [];
+
         foreach ($lineasData as $lineaData) {
-            $personaId = $lineaData['persona_id'] ?? null;
-            $menuId = $lineaData['menu_id'] ?? null;
+            $personaId = $this->extractResourceId($lineaData['persona_id'] ?? $lineaData['persona'] ?? null);
+            $menuId = $this->extractResourceId($lineaData['menu_id'] ?? $lineaData['menu'] ?? null);
             $observaciones = $lineaData['observaciones'] ?? null;
 
             if (!$personaId || !$menuId) {
@@ -112,8 +115,23 @@ class InscripcionService
                 throw new BadRequestHttpException('El menú seleccionado no está activo');
             }
 
-            // Verificar que la persona no está ya inscrita en este evento
-            $this->verificarPersonaNoDuplicada($usuarioId, $eventoId, $personaId);
+            if ($persona->getUsuarioPrincipal()->getId() !== $usuario->getId()) {
+                throw new BadRequestHttpException('La persona seleccionada no pertenece al usuario autenticado');
+            }
+
+            if (!$menu->esCompatibleConTipoPersona($persona->getTipoPersona())) {
+                throw new BadRequestHttpException('El menú seleccionado no es compatible con el tipo de persona');
+            }
+
+            $franjaComida = $menu->getFranjaComida();
+            $claveLinea = sprintf('%s|%s', $personaId, $franjaComida->value);
+            if (isset($lineasRegistradasPorPersonaYFranja[$claveLinea])) {
+                throw new BadRequestHttpException('No puedes seleccionar más de un menú por persona en la misma franja');
+            }
+            $lineasRegistradasPorPersonaYFranja[$claveLinea] = true;
+
+            // Verificar que la persona no está ya inscrita en este evento para la misma franja
+            $this->verificarPersonaNoDuplicadaEnFranja($usuario->getId(), $evento->getId(), $personaId, $franjaComida);
 
             // Crear la línea
             $linea = new InscripcionLinea();
@@ -132,14 +150,14 @@ class InscripcionService
             $inscripcion->addLinea($linea);
         }
 
-        // 6. Calcular totales
+        // 5. Calcular totales
         $importeTotal = $this->priceCalculator->calculateTotal(
             $inscripcion->getLineas()->toArray()
         );
         $inscripcion->setImporteTotal($importeTotal);
         $inscripcion->actualizarEstadoPago();
 
-        // 7. Guardar
+        // 6. Guardar
         $this->entityManager->persist($inscripcion);
         $this->entityManager->flush();
 
@@ -161,15 +179,57 @@ class InscripcionService
     /**
      * Verifica que una persona no esté duplicada en el mismo evento.
      */
-    private function verificarPersonaNoDuplicada(string $usuarioId, string $eventoId, string $personaId): void
+    private function verificarPersonaNoDuplicadaEnFranja(
+        string $usuarioId,
+        string $eventoId,
+        string $personaId,
+        FranjaComidaEnum $franjaComida,
+    ): void
     {
-        // Buscar si la persona ya está en alguna línea de este evento
-        $existe = $this->inscripcionRepository->personaYaInscrita($usuarioId, $eventoId, $personaId);
+        $existe = $this->inscripcionRepository->personaYaInscritaEnFranja(
+            $usuarioId,
+            $eventoId,
+            $personaId,
+            $franjaComida,
+        );
+
         if ($existe) {
             throw new BadRequestHttpException(
-                'Esta persona ya está inscrita en el evento'
+                sprintf('Esta persona ya está inscrita en la franja %s para este evento', $franjaComida->label())
             );
         }
+    }
+
+    private function resolveEvento(string|Evento $eventoInput): ?Evento
+    {
+        if ($eventoInput instanceof Evento) {
+            return $eventoInput;
+        }
+
+        return $this->eventoRepository->find($eventoInput);
+    }
+
+    private function resolveUsuario(string|Usuario $usuarioInput): ?Usuario
+    {
+        if ($usuarioInput instanceof Usuario) {
+            return $usuarioInput;
+        }
+
+        return $this->usuarioRepository->find($usuarioInput);
+    }
+
+    private function extractResourceId(mixed $value): ?string
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (str_contains($value, '/')) {
+            $parts = explode('/', trim($value, '/'));
+            return end($parts) ?: null;
+        }
+
+        return $value;
     }
 
     /**

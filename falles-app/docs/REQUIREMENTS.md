@@ -1,6 +1,6 @@
 # Requisitos funcionales y técnicos — Festapp
 
-> Versión 1.2 — UUID como tipo de identificador, validación anti-duplicado en inscripciones
+> Versión 1.3 — Franjas de comida por evento y compatibilidad de menú por tipo de persona
 
 ---
 
@@ -46,7 +46,7 @@ Puede:
 
 - crear y editar eventos de su entidad
 - abrir y cerrar inscripciones por evento
-- crear menús y definir precios por menú y tipo de persona
+- crear menús y definir precios, franja de comida y compatibilidad por tipo de persona
 - ver todas las inscripciones de su entidad
 - validar o rechazar usuarios y familiares pendientes
 - dar de alta y de baja a usuarios en el censo interno
@@ -219,6 +219,8 @@ Cada asistente posible dentro de la unidad familiar de un usuario.
 | nombre | string | |
 | descripcion | text | nullable |
 | tipoMenu | enum TipoMenuEnum | ADULTO / INFANTIL / ESPECIAL / LIBRE |
+| franjaComida | enum FranjaComidaEnum | ALMUERZO / COMIDA / MERIENDA / CENA |
+| compatibilidadPersona | enum CompatibilidadPersonaMenuEnum | ADULTO / INFANTIL / AMBOS |
 | esDePago | boolean | |
 | precioBase | decimal(8,2) | fallback si no hay precio específico |
 | precioAdultoInterno | decimal(8,2) | nullable |
@@ -267,6 +269,7 @@ Cada asistente posible dentro de la unidad familiar de un usuario.
 | tipoRelacionEconomicaSnapshot | string | histórico |
 | estadoValidacionSnapshot | string | histórico |
 | nombreMenuSnapshot | string | histórico |
+| franjaComidaSnapshot | string | histórico |
 | esDePagoSnapshot | boolean | histórico |
 | precioUnitario | decimal(8,2) | precio real aplicado, histórico |
 | estadoLinea | enum EstadoLineaInscripcionEnum | |
@@ -296,6 +299,8 @@ Cada asistente posible dentro de la unidad familiar de un usuario.
 TipoEntidadEnum:        FALLA, COMPARSA, PENYA, HERMANDAD, ASOCIACION, CLUB, OTRO
 TipoEventoEnum:         ALMUERZO, COMIDA, MERIENDA, CENA, OTRO
 TipoPersonaEnum:        ADULTO, INFANTIL
+FranjaComidaEnum:       ALMUERZO, COMIDA, MERIENDA, CENA
+CompatibilidadPersonaMenuEnum: ADULTO, INFANTIL, AMBOS
 ```
 TipoRelacionEconomicaEnum: INTERNO, EXTERNO, INVITADO
 EstadoValidacionEnum:   PENDIENTE_VALIDACION, VALIDADO, RECHAZADO, BLOQUEADO
@@ -342,7 +347,9 @@ CensadoViaEnum:         EXCEL, MANUAL, INVITACION
 - si el evento está cerrado no admite nuevas inscripciones
 - **un usuario no puede inscribirse dos veces al mismo evento** (validación a nivel de API y base de datos con constraint única en `usuario_id` + `evento_id`)
 - el menú elegido debe pertenecer al evento y estar activo
-- una persona no puede duplicarse en el mismo evento (cada PersonaFamiliar solo puede aparecer una vez por evento, incluso en inscripciones distintas del mismo usuario)
+- cada menú pertenece a una franja de comida (almuerzo/comida/merienda/cena)
+- una persona puede tener varias líneas en el mismo evento, pero **solo una por franja**
+- no se puede seleccionar un menú incompatible con el tipo de persona (adulto/infantil)
 - el importe total se calcula en el backend sumando solo las líneas de pago
 - si el importe total es 0, el estado de pago es `NO_REQUIERE_PAGO` y la inscripción puede confirmarse automáticamente
 - se guardan snapshots en cada línea en el momento de la inscripción
@@ -479,6 +486,11 @@ POST /api/eventos/42/inscribirme
       "observaciones": "Sin cebolla"
     },
     {
+      "persona": "/api/persona_familiares/1",
+      "menu": "/api/menu_eventos/12",
+      "observaciones": "Solo para cena"
+    },
+    {
       "persona": "/api/persona_familiares/2",
       "menu": "/api/menu_eventos/11",
       "observaciones": null
@@ -501,12 +513,14 @@ POST /api/eventos/42/inscribirme
     {
       "persona": "Ana García",
       "menu": "Menú adulto",
+      "franja": "comida",
       "precioUnitario": 15.00,
       "esDePago": true
     },
     {
       "persona": "Pablo García",
       "menu": "Menú infantil",
+      "franja": "comida",
       "precioUnitario": 12.00,
       "esDePago": true
     }
@@ -530,7 +544,7 @@ POST /api/eventos/42/inscribirme
 | Inicio | Calendario mensual con eventos marcados |
 | Listado de eventos | Próximos, con inscripción abierta, mis reservas |
 | Detalle de evento | Info, menús, plazo, botón inscribirse |
-| Selección de asistentes | Checkbox por persona + selector de menú |
+| Selección de asistentes | Selector por persona y por franja (almuerzo/comida/merienda/cena), con bloqueo de menús incompatibles |
 | Resumen de inscripción | Asistentes, menús, subtotal, total, estado pago |
 | Mis inscripciones | Lista con estado |
 | Mis pagos | Historial |

@@ -5,6 +5,7 @@ import { FamilyMember, MenuOption } from '../../../eventos/models/ui';
 interface MenuChangePayload {
   memberId: string;
   menuId: string;
+  slot: string | null;
 }
 
 @Component({
@@ -19,8 +20,11 @@ export class MemberRow {
   readonly member = input.required<FamilyMember>();
   readonly actionLabel = input('');
   readonly showSelect = input(false);
+  readonly selectorLabel = input('Menú');
+  readonly slot = input<string | null>(null);
   readonly menuOptions = input<MenuOption[]>([]);
   readonly selectedMenuId = input<string | null>(null);
+  readonly emptyMessage = input('No hay menús disponibles para esta persona');
   readonly disabled = input(false);
 
   readonly actionPressed = output<string>();
@@ -35,6 +39,7 @@ export class MemberRow {
     this.menuChanged.emit({
       memberId: this.member().id,
       menuId: target.value,
+      slot: this.slot(),
     });
   }
 }
