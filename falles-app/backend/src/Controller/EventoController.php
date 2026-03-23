@@ -66,7 +66,7 @@ class EventoController extends AbstractController
      * Get event detail.
      */
     #[Route('/eventos/{id}', name: 'api_eventos_detail', methods: ['GET'])]
-    public function detail(int $id): JsonResponse
+    public function detail(string $id): JsonResponse
     {
         $evento = $this->eventoRepository->find($id);
 
@@ -148,7 +148,7 @@ class EventoController extends AbstractController
      * Register for an event.
      */
     #[Route('/eventos/{id}/inscribirme', name: 'api_eventos_inscribirme', methods: ['POST'])]
-    public function inscribirme(int $id, Request $request): JsonResponse
+    public function inscribirme(string $id, Request $request): JsonResponse
     {
         /** @var Usuario $user */
         $user = $this->getUser();

@@ -1,6 +1,8 @@
 export interface AuthUser {
   id?: string | number;
   email: string;
+  nombre?: string;
+  apellidos?: string;
   roles?: string[];
   [key: string]: unknown;
 }

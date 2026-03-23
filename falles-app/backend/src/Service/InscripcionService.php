@@ -12,6 +12,7 @@ use App\Repository\PersonaFamiliarRepository;
 use App\Repository\MenuEventoRepository;
 use App\Repository\UsuarioRepository;
 use App\Enum\FranjaComidaEnum;
+use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\EstadoInscripcionEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -238,6 +239,35 @@ class InscripcionService
     public function cancelarInscripcion(Inscripcion $inscripcion): void
     {
         $inscripcion->setEstadoInscripcion(EstadoInscripcionEnum::CANCELADA);
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Cancela una línea de inscripción aplicando reglas de negocio de usuario final.
+     */
+    public function cancelarLineaInscripcion(Inscripcion $inscripcion, InscripcionLinea $linea): void
+    {
+        if ($linea->getInscripcion()->getId() !== $inscripcion->getId()) {
+            throw new BadRequestHttpException('La línea no pertenece a la inscripción indicada');
+        }
+
+        if (!$inscripcion->getEvento()->estaInscripcionAbierta()) {
+            throw new BadRequestHttpException('No puedes cancelar líneas fuera del plazo de inscripción');
+        }
+
+        if ($inscripcion->getImportePagado() > 0.0) {
+            throw new BadRequestHttpException('No puedes cancelar líneas de una inscripción con pagos registrados');
+        }
+
+        if ($linea->getEstadoLinea() === EstadoLineaInscripcionEnum::CANCELADA) {
+            throw new BadRequestHttpException('La línea ya está cancelada');
+        }
+
+        $linea->setEstadoLinea(EstadoLineaInscripcionEnum::CANCELADA);
+
+        $inscripcion->setImporteTotal($inscripcion->calcularImporteTotal());
+        $inscripcion->actualizarEstadoPago();
+
         $this->entityManager->flush();
     }
 }

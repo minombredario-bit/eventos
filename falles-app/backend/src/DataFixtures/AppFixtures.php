@@ -265,6 +265,28 @@ class AppFixtures extends Fixture
         $evento4->setCodigoVisual('VERBENA24');
         $manager->persist($evento4);
 
+        // Evento 5: Demo de franjas y compatibilidad de menú
+        $eventoDemoFranjas = new Evento();
+        $eventoDemoFranjas->setEntidad($entidad);
+        $eventoDemoFranjas->setTitulo('Demo Franjas y Compatibilidad Menús');
+        $eventoDemoFranjas->setSlug('demo-franjas-compatibilidad-menus');
+        $eventoDemoFranjas->setDescripcion('Evento de demostración para visualizar todas las franjas de comida y compatibilidades de persona en menús.');
+        $eventoDemoFranjas->setTipoEvento(TipoEventoEnum::COMIDA);
+        $eventoDemoFranjas->setFechaEvento(new \DateTimeImmutable('2026-09-20'));
+        $eventoDemoFranjas->setHoraInicio(new \DateTimeImmutable('10:30'));
+        $eventoDemoFranjas->setHoraFin(new \DateTimeImmutable('22:30'));
+        $eventoDemoFranjas->setLugar('Casal - Zona Demo Menús');
+        $eventoDemoFranjas->setAforo(120);
+        $eventoDemoFranjas->setFechaInicioInscripcion(new \DateTimeImmutable('2026-08-20'));
+        $eventoDemoFranjas->setFechaFinInscripcion(new \DateTimeImmutable('2026-09-18'));
+        $eventoDemoFranjas->setVisible(true);
+        $eventoDemoFranjas->setPublicado(true);
+        $eventoDemoFranjas->setAdmitePago(true);
+        $eventoDemoFranjas->setEstado(EstadoEventoEnum::PUBLICADO);
+        $eventoDemoFranjas->setRequiereVerificacionAcceso(false);
+        $eventoDemoFranjas->setCodigoVisual('DEMO26');
+        $manager->persist($eventoDemoFranjas);
+
         // ============================================
         // 5. Crear Menús para los eventos
         // ============================================
@@ -358,6 +380,79 @@ class AppFixtures extends Fixture
         $menuVerbena->setConfirmacionAutomatica(true);
         $menuVerbena->setActivo(true);
         $manager->persist($menuVerbena);
+
+        // Menús demo (cobertura explícita de todas las franjas y compatibilidades)
+        $menuDemoAlmuerzoAdulto = new MenuEvento();
+        $menuDemoAlmuerzoAdulto->setEvento($eventoDemoFranjas);
+        $menuDemoAlmuerzoAdulto->setNombre('[DEMO] Almuerzo Adulto');
+        $menuDemoAlmuerzoAdulto->setDescripcion('Demo franja ALMUERZO con compatibilidad ADULTO.');
+        $menuDemoAlmuerzoAdulto->setTipoMenu(TipoMenuEnum::ADULTO);
+        $menuDemoAlmuerzoAdulto->setFranjaComida(FranjaComidaEnum::ALMUERZO);
+        $menuDemoAlmuerzoAdulto->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::ADULTO);
+        $menuDemoAlmuerzoAdulto->setEsDePago(true);
+        $menuDemoAlmuerzoAdulto->setPrecioBase(8.00);
+        $menuDemoAlmuerzoAdulto->setPrecioAdultoInterno(6.50);
+        $menuDemoAlmuerzoAdulto->setPrecioAdultoExterno(9.00);
+        $menuDemoAlmuerzoAdulto->setPrecioInfantil(5.00);
+        $menuDemoAlmuerzoAdulto->setUnidadesMaximas(60);
+        $menuDemoAlmuerzoAdulto->setOrdenVisualizacion(1);
+        $menuDemoAlmuerzoAdulto->setConfirmacionAutomatica(true);
+        $menuDemoAlmuerzoAdulto->setActivo(true);
+        $manager->persist($menuDemoAlmuerzoAdulto);
+
+        $menuDemoComidaInfantil = new MenuEvento();
+        $menuDemoComidaInfantil->setEvento($eventoDemoFranjas);
+        $menuDemoComidaInfantil->setNombre('[DEMO] Comida Infantil');
+        $menuDemoComidaInfantil->setDescripcion('Demo franja COMIDA con compatibilidad INFANTIL.');
+        $menuDemoComidaInfantil->setTipoMenu(TipoMenuEnum::INFANTIL);
+        $menuDemoComidaInfantil->setFranjaComida(FranjaComidaEnum::COMIDA);
+        $menuDemoComidaInfantil->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::INFANTIL);
+        $menuDemoComidaInfantil->setEsDePago(true);
+        $menuDemoComidaInfantil->setPrecioBase(11.00);
+        $menuDemoComidaInfantil->setPrecioAdultoInterno(11.00);
+        $menuDemoComidaInfantil->setPrecioAdultoExterno(11.00);
+        $menuDemoComidaInfantil->setPrecioInfantil(7.00);
+        $menuDemoComidaInfantil->setUnidadesMaximas(50);
+        $menuDemoComidaInfantil->setOrdenVisualizacion(2);
+        $menuDemoComidaInfantil->setConfirmacionAutomatica(true);
+        $menuDemoComidaInfantil->setActivo(true);
+        $manager->persist($menuDemoComidaInfantil);
+
+        $menuDemoMeriendaAmbos = new MenuEvento();
+        $menuDemoMeriendaAmbos->setEvento($eventoDemoFranjas);
+        $menuDemoMeriendaAmbos->setNombre('[DEMO] Merienda Ambos');
+        $menuDemoMeriendaAmbos->setDescripcion('Demo franja MERIENDA con compatibilidad AMBOS.');
+        $menuDemoMeriendaAmbos->setTipoMenu(TipoMenuEnum::LIBRE);
+        $menuDemoMeriendaAmbos->setFranjaComida(FranjaComidaEnum::MERIENDA);
+        $menuDemoMeriendaAmbos->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::AMBOS);
+        $menuDemoMeriendaAmbos->setEsDePago(false);
+        $menuDemoMeriendaAmbos->setPrecioBase(0.00);
+        $menuDemoMeriendaAmbos->setPrecioAdultoInterno(0.00);
+        $menuDemoMeriendaAmbos->setPrecioAdultoExterno(0.00);
+        $menuDemoMeriendaAmbos->setPrecioInfantil(0.00);
+        $menuDemoMeriendaAmbos->setUnidadesMaximas(120);
+        $menuDemoMeriendaAmbos->setOrdenVisualizacion(3);
+        $menuDemoMeriendaAmbos->setConfirmacionAutomatica(true);
+        $menuDemoMeriendaAmbos->setActivo(true);
+        $manager->persist($menuDemoMeriendaAmbos);
+
+        $menuDemoCenaAdulto = new MenuEvento();
+        $menuDemoCenaAdulto->setEvento($eventoDemoFranjas);
+        $menuDemoCenaAdulto->setNombre('[DEMO] Cena Adulto');
+        $menuDemoCenaAdulto->setDescripcion('Demo franja CENA con compatibilidad ADULTO.');
+        $menuDemoCenaAdulto->setTipoMenu(TipoMenuEnum::ADULTO);
+        $menuDemoCenaAdulto->setFranjaComida(FranjaComidaEnum::CENA);
+        $menuDemoCenaAdulto->setCompatibilidadPersona(CompatibilidadPersonaMenuEnum::ADULTO);
+        $menuDemoCenaAdulto->setEsDePago(true);
+        $menuDemoCenaAdulto->setPrecioBase(16.00);
+        $menuDemoCenaAdulto->setPrecioAdultoInterno(13.00);
+        $menuDemoCenaAdulto->setPrecioAdultoExterno(18.00);
+        $menuDemoCenaAdulto->setPrecioInfantil(10.00);
+        $menuDemoCenaAdulto->setUnidadesMaximas(80);
+        $menuDemoCenaAdulto->setOrdenVisualizacion(4);
+        $menuDemoCenaAdulto->setConfirmacionAutomatica(true);
+        $menuDemoCenaAdulto->setActivo(true);
+        $manager->persist($menuDemoCenaAdulto);
 
         // ============================================
         // 6. Crear Census de entrada (importación masiva)

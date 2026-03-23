@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Inscripcion;
 use App\Entity\Usuario;
+use App\Repository\InscripcionLineaRepository;
 use App\Repository\InscripcionRepository;
 use App\Service\InscripcionService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,7 @@ class InscripcionController extends AbstractController
 {
     public function __construct(
         private readonly InscripcionRepository $inscripcionRepository,
+        private readonly InscripcionLineaRepository $inscripcionLineaRepository,
         private readonly InscripcionService $inscripcionService
     ) {}
 
@@ -54,7 +56,7 @@ class InscripcionController extends AbstractController
      * Get inscription detail.
      */
     #[Route('/inscripciones/{id}', name: 'api_inscripciones_detail', methods: ['GET'])]
-    public function detail(int $id): JsonResponse
+    public function detail(string $id): JsonResponse
     {
         /** @var Usuario $user */
         $user = $this->getUser();
@@ -81,6 +83,7 @@ class InscripcionController extends AbstractController
                 'fechaEvento' => $inscripcion->getEvento()->getFechaEvento()->format('Y-m-d'),
                 'horaInicio' => $inscripcion->getEvento()->getHoraInicio()?->format('H:i'),
                 'lugar' => $inscripcion->getEvento()->getLugar(),
+                'inscripcionAbierta' => $inscripcion->getEvento()->estaInscripcionAbierta(),
             ],
             'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
             'estadoPago' => $inscripcion->getEstadoPago()->value,
@@ -110,7 +113,7 @@ class InscripcionController extends AbstractController
      * Cancel inscription.
      */
     #[Route('/inscripciones/{id}/cancelar', name: 'api_inscripciones_cancelar', methods: ['POST'])]
-    public function cancelar(int $id): JsonResponse
+    public function cancelar(string $id): JsonResponse
     {
         /** @var Usuario $user */
         $user = $this->getUser();
@@ -137,6 +140,45 @@ class InscripcionController extends AbstractController
             'id' => $inscripcion->getId(),
             'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
             'mensaje' => 'Inscripción cancelada correctamente',
+        ]);
+    }
+
+    /**
+     * Cancel a single line for the current user.
+     */
+    #[Route('/inscripciones/{id}/lineas/{lineaId}/cancelar', name: 'api_inscripciones_linea_cancelar', methods: ['POST'])]
+    public function cancelarLinea(string $id, string $lineaId): JsonResponse
+    {
+        /** @var Usuario $user */
+        $user = $this->getUser();
+
+        $inscripcion = $this->inscripcionRepository->find($id);
+        if (!$inscripcion) {
+            return $this->json(['error' => 'Inscripción no encontrada'], 404);
+        }
+
+        if ($inscripcion->getUsuario()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'Solo puedes cancelar líneas de tus propias inscripciones'], 403);
+        }
+
+        $linea = $this->inscripcionLineaRepository->find($lineaId);
+        if (!$linea || $linea->getInscripcion()->getId() !== $inscripcion->getId()) {
+            return $this->json(['error' => 'Línea de inscripción no encontrada'], 404);
+        }
+
+        try {
+            $this->inscripcionService->cancelarLineaInscripcion($inscripcion, $linea);
+        } catch (\Symfony\Component\HttpKernel\Exception\BadRequestHttpException $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
+
+        return $this->json([
+            'id' => $inscripcion->getId(),
+            'lineaId' => $linea->getId(),
+            'estadoLinea' => $linea->getEstadoLinea()->value,
+            'importeTotal' => $inscripcion->getImporteTotal(),
+            'estadoPago' => $inscripcion->getEstadoPago()->value,
+            'mensaje' => 'Línea cancelada correctamente',
         ]);
     }
 }
