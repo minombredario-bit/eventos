@@ -10,31 +10,50 @@
   />
 
   <div class="content">
-    <article class="panel event-hero">
-      <p class="eyebrow">Evento seleccionado</p>
-      <h2>{{ event().title }}</h2>
-      <div class="meta-grid">
-        <p>{{ event().date | date: 'EEEE d MMMM' }} · {{ event().time }}</p>
-        <p>{{ event().location }}</p>
-      </div>
-      <p class="description">{{ event().description }}</p>
-      <span class="status-chip" [class]="'status-chip ' + event().status">{{ eventStatusLabel() }}</span>
-    </article>
+    @if (eventSummary(); as event) {
+      <article class="panel event-hero">
+        <p class="eyebrow">Evento seleccionado</p>
+        <h2>{{ event.title }}</h2>
+        <div class="meta-grid">
+          <p>{{ event.date }} · {{ event.time }}</p>
+          <p>{{ event.location }}</p>
+        </div>
+        <p class="description">{{ event.description }}</p>
+        <span class="status-chip" [class]="'status-chip ' + event.status">{{ eventStatusLabel() }}</span>
+      </article>
+    } @else if (loading()) {
+      <article class="panel event-hero">
+        <p class="eyebrow">Evento seleccionado</p>
+        <h2>Cargando detalle...</h2>
+      </article>
+    }
+
+    @if (errorMessage(); as error) {
+      <article class="panel">
+        <p>{{ error }}</p>
+      </article>
+    }
 
     <article class="panel family-list" aria-label="Listado de familiares">
       <h2>Inscripciones y familiares</h2>
-      <p class="supporting-copy">Podés gestionar menú y asistencia de cada persona.</p>
-      @for (member of members; track member.id) {
-        <app-member-row
-          [member]="member"
-          actionLabel="Inscribir"
-          aria-label="Fila de persona para inscribir"
-        />
+      <p class="supporting-copy">Toca en “Inscribir” para elegir quiénes pasan a la pantalla de menús.</p>
+      <p class="selection-summary">{{ selectedCountLabel() }}</p>
+      @if (loadingPeople()) {
+        <p>Cargando familiares...</p>
+      } @else {
+        @for (member of members(); track member.id) {
+          <app-member-row
+            [member]="member"
+            [actionLabel]="isMemberSelected(member.id) ? 'Quitar' : 'Inscribir'"
+            aria-label="Fila de persona para inscribir"
+            (actionPressed)="toggleMemberSelection($event)"
+          />
+        }
       }
     </article>
 
     <div class="cta-wrap">
-      <app-cta-button label="Seleccionar menús" (pressed)="openMenus()" />
+      <app-cta-button [label]="menusButtonLabel()" [disabled]="!canContinueToMenus()" (pressed)="openMenus()" />
     </div>
   </div>
 </section>

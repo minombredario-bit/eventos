@@ -1,17 +1,6 @@
-# Skill: Backend — Symfony 7.3 + API Platform 4.2.6
+# Skill: Backend — Symfony 7.3 + API Platform 4
 
 Lee este archivo completo antes de generar cualquier código de backend.
-
----
-
-## ⚠️ Restricciones de edición
-
-- Modifica **solo** los archivos mencionados en la tarea
-- **No alteres** entidades existentes más allá de lo pedido
-- **No toques** `composer.json`, `symfony.lock`, `config/`, `security.yaml`, `services.yaml` sin indicación
-- **No generes ni modifiques** migraciones salvo que se pida explícitamente
-- **No renombres** clases, métodos ni propiedades existentes
-- Si necesitas un archivo no mencionado, **para y pregunta** antes de editarlo
 
 ---
 
@@ -20,27 +9,13 @@ Lee este archivo completo antes de generar cualquier código de backend.
 | Paquete | Versión |
 |---|---|
 | PHP | 8.3+ |
-| Symfony | 7.3 |
-| API Platform | 4.2.6 |
+| Symfony | 7.x |
+| API Platform | 4.x |
 | LexikJWTAuthenticationBundle | 3.x |
 | PhpSpreadsheet | 2.x |
 | DomPDF | 2.x |
 | Doctrine ORM | 3.x |
 | PHPUnit | 11.x |
-
----
-
-## ⚠️ Cambios importantes en API Platform 4.x (vs 3.x)
-
-API Platform 4 introduce breaking changes respecto a la versión 3. Aplica siempre estas convenciones:
-
-- El namespace de metadata es `ApiPlatform\Metadata\` (igual que en 3.x, no cambia)
-- Los **State Processors** implementan `ProcessorInterface` de `ApiPlatform\State\ProcessorInterface`
-- Los **State Providers** implementan `ProviderInterface` de `ApiPlatform\State\ProviderInterface`
-- Ya no existe `DataTransformerInterface` ni `DataPersisterInterface` — usa siempre Processors/Providers
-- La configuración de operaciones usa atributos PHP, nunca YAML
-- `#[ApiFilter]` y `#[ApiProperty]` siguen en el mismo namespace
-- Para paginación personalizada usa `PaginatorInterface` de `ApiPlatform\Doctrine\Orm\Paginator`
 
 ---
 
@@ -51,11 +26,9 @@ backend/src/
 ├── Entity/               # Entidades Doctrine
 ├── Enum/                 # PHP 8.1 backed enums
 ├── Repository/           # Repositorios custom
-├── Service/              # Lógica de negocio
+├── Service/              # Lógica de negocio (PriceCalculator, CensoImporter, etc.)
 ├── Controller/           # Controllers no-API-Platform (reportes, imports)
-├── State/                # State processors y providers (API Platform 4)
-│   ├── Processor/
-│   └── Provider/
+├── ApiResource/          # State processors y providers custom
 ├── Security/             # Voters y authenticators
 ├── EventSubscriber/      # Suscriptores de eventos Symfony/Doctrine
 ├── DataFixtures/         # Fixtures de desarrollo
@@ -93,7 +66,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
     denormalizationContext: ['groups' => ['usuario:write']],
     operations: [
         new Get(security: "is_granted('VIEW', object)"),
-        new GetCollection(security: "is_granted('ROLE_ADMIN_FALLA')"),
+        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
         new Patch(security: "is_granted('EDIT', object)"),
     ]
@@ -106,6 +79,8 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'uuid')]
     #[Groups(['usuario:read'])]
     private ?string $id = null;
+
+    // ... propiedades
 
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
@@ -131,37 +106,36 @@ namespace App\Enum;
 enum EstadoValidacionEnum: string
 {
     case PENDIENTE_VALIDACION = 'pendiente_validacion';
-    case VALIDADO             = 'validado';
-    case RECHAZADO            = 'rechazado';
-    case BLOQUEADO            = 'bloqueado';
+    case VALIDADO = 'validado';
+    case RECHAZADO = 'rechazado';
+    case BLOQUEADO = 'bloqueado';
 
     public function label(): string
     {
         return match($this) {
             self::PENDIENTE_VALIDACION => 'Pendiente de validación',
-            self::VALIDADO             => 'Validado',
-            self::RECHAZADO            => 'Rechazado',
-            self::BLOQUEADO            => 'Bloqueado',
+            self::VALIDADO => 'Validado',
+            self::RECHAZADO => 'Rechazado',
+            self::BLOQUEADO => 'Bloqueado',
         };
     }
 }
 ```
 
-Enums del proyecto:
+Enums a crear:
 
-| Enum | Casos |
-|---|---|
-| `TipoEventoEnum` | ALMUERZO, COMIDA, MERIENDA, CENA, OTRO |
-| `TipoPersonaEnum` | ADULTO, INFANTIL |
-| `TipoRelacionEconomicaEnum` | INTERNO, EXTERNO, INVITADO |
-| `EstadoValidacionEnum` | PENDIENTE_VALIDACION, VALIDADO, RECHAZADO, BLOQUEADO |
-| `TipoMenuEnum` | ADULTO, INFANTIL, ESPECIAL, LIBRE |
-| `EstadoEventoEnum` | BORRADOR, PUBLICADO, CERRADO, FINALIZADO, CANCELADO |
-| `EstadoInscripcionEnum` | PENDIENTE, CONFIRMADA, CANCELADA, LISTA_ESPERA |
-| `EstadoPagoEnum` | NO_REQUIERE_PAGO, PENDIENTE, PARCIAL, PAGADO, DEVUELTO, CANCELADO |
-| `MetodoPagoEnum` | EFECTIVO, TRANSFERENCIA, BIZUM, TPV, ONLINE, MANUAL |
-| `EstadoLineaInscripcionEnum` | PENDIENTE, CONFIRMADA, CANCELADA |
-| `CensadoViaEnum` | EXCEL, MANUAL, INVITACION |
+- `TipoEntidadEnum` (FALLA, COMPARSA, PENYA, HERMANDAD, ASOCIACION, CLUB, OTRO)
+- `TipoEventoEnum` (ALMUERZO, COMIDA, MERIENDA, CENA, OTRO)
+- `TipoPersonaEnum` (ADULTO, INFANTIL)
+- `TipoRelacionEconomicaEnum` (INTERNO, EXTERNO, INVITADO)
+- `EstadoValidacionEnum` (PENDIENTE_VALIDACION, VALIDADO, RECHAZADO, BLOQUEADO)
+- `TipoMenuEnum` (ADULTO, INFANTIL, ESPECIAL, LIBRE)
+- `EstadoEventoEnum` (BORRADOR, PUBLICADO, CERRADO, FINALIZADO, CANCELADO)
+- `EstadoInscripcionEnum` (PENDIENTE, CONFIRMADA, CANCELADA, LISTA_ESPERA)
+- `EstadoPagoEnum` (NO_REQUIERE_PAGO, PENDIENTE, PARCIAL, PAGADO, DEVUELTO, CANCELADO)
+- `MetodoPagoEnum` (EFECTIVO, TRANSFERENCIA, BIZUM, TPV, ONLINE, MANUAL)
+- `EstadoLineaInscripcionEnum` (PENDIENTE, CONFIRMADA, CANCELADA)
+- `CensadoViaEnum` (EXCEL, MANUAL, INVITACION)
 
 ---
 
@@ -169,18 +143,19 @@ Enums del proyecto:
 
 ### PriceCalculatorService
 
-`src/Service/PriceCalculatorService.php` — servicio más importante del sistema.
+Este es el servicio más importante del sistema. Reside en `src/Service/PriceCalculatorService.php`.
 
-**Reglas de cálculo (no modificar sin autorización explícita):**
+Reglas que debe implementar:
 
 ```
 1. Si esDePago = false → precio = 0.00
 2. Si esDePago = true:
-   a. Si tipoMenu = INFANTIL → precioInfantil ?? precioBase
+   a. Si tipoMenu = INFANTIL → aplicar precioInfantil (sin importar tipo de persona)
    b. Si tipoMenu = ADULTO o ESPECIAL:
-      - INTERNO + VALIDADO → precioAdultoInterno ?? precioBase
-      - Cualquier otro caso → precioAdultoExterno ?? precioBase
-3. Nunca retornar null; siempre decimal(8,2)
+      - Si tipoRelacionEconomica = INTERNO y estadoValidacion = VALIDADO → precioAdultoInterno
+      - Cualquier otro caso → precioAdultoExterno
+   c. Fallback: precioBase si el precio específico es null
+3. Nunca retornar null; siempre retornar decimal(8,2)
 ```
 
 ```php
@@ -225,16 +200,17 @@ class PriceCalculatorService
 
 ### CensoImporterService
 
-`src/Service/CensoImporterService.php` — usa PhpSpreadsheet.
+Reside en `src/Service/CensoImporterService.php`. Usa PhpSpreadsheet.
 
-- Leer Excel fila a fila
-- Detectar columnas por nombre de cabecera (no por posición)
-- Normalizar strings (trim, lowercase para matching)
-- Validar columnas obligatorias: `nombre`, `apellidos`
-- Crear entidades `CensoEntrada` para la falla
-- Retornar: `{ total, insertadas, errores: [{ fila, motivo }] }`
+Responsabilidades:
 
-Columnas esperadas:
+- leer el Excel fila por fila
+- normalizar strings (trim, lowercase para matching)
+- validar columnas obligatorias (nombre, apellidos)
+- crear entidades `CensoEntrada` para la entidad
+- devolver estadísticas: total leídas, insertadas, con errores
+
+Columnas esperadas en el Excel (orden flexible, detectar por cabecera):
 
 ```
 nombre | apellidos | email | dni | parentesco | tipo_persona | tipo_relacion
@@ -242,64 +218,46 @@ nombre | apellidos | email | dni | parentesco | tipo_persona | tipo_relacion
 
 ### CensoMatcherService
 
-`src/Service/CensoMatcherService.php`
+Reside en `src/Service/CensoMatcherService.php`.
 
 ```php
-public function buscarCoincidencia(Falla $falla, string $email, ?string $dni): MatchResult
+public function buscarCoincidencia(Entidad $entidad, string $email, ?string $dni): MatchResult
 {
-    // 1. Buscar por email (case-insensitive)
+    // 1. Buscar por email (case-insensitive, sin tildes)
     // 2. Si no hay resultado, buscar por DNI si se proporcionó
-    // 3. Más de una coincidencia → MatchResult::MULTIPLE
-    // 4. Exactamente una → MatchResult::FOUND con la entidad
-    // 5. Ninguna → MatchResult::NOT_FOUND
+    // 3. Si hay más de una coincidencia → MatchResult::MULTIPLE
+    // 4. Si hay exactamente una → MatchResult::FOUND con la entidad
+    // 5. Si no hay ninguna → MatchResult::NOT_FOUND
 }
 ```
 
 ### InscripcionService
 
-`src/Service/InscripcionService.php`
+Reside en `src/Service/InscripcionService.php`.
 
-- Validar que el evento está abierto (estado y fechas)
-- Validar que cada persona pertenece al usuario autenticado
-- Validar que cada menú pertenece al evento y está activo
-- Validar que no hay duplicado de persona en el evento
-- Calcular precio de cada línea usando `PriceCalculatorService`
-- Crear snapshots en cada `InscripcionLinea`
-- Calcular `importeTotal`
-- Determinar `estadoPago` automáticamente
-- Generar código único de inscripción
+Responsabilidades:
+
+- validar que el evento está abierto
+- validar que cada persona pertenece al usuario autenticado
+- validar que cada menú pertenece al evento y está activo
+- validar que no hay duplicado de persona en el evento
+- calcular precio de cada línea usando `PriceCalculatorService`
+- crear snapshots en cada `InscripcionLinea`
+- calcular `importeTotal`
+- determinar `estadoPago` automáticamente
+- generar código único de inscripción
 
 ### CredencialService
 
-`src/Service/CredencialService.php`
+Reside en `src/Service/CredencialService.php`.
 
-- Verificar que la inscripción está confirmada
-- Verificar que el evento requiere credencial
-- Verificar que la hora actual (UTC del servidor, nunca del cliente) está dentro de la ventana configurada
-- Verificar que el pago no bloquea la credencial
-- Generar token temporal firmado válido para esa ventana
+Responsabilidades:
 
----
-
-## State Processors y Providers (API Platform 4)
-
-En API Platform 4 usa `src/State/Processor/` y `src/State/Provider/`.
-**No uses** `DataPersisterInterface` ni `DataTransformerInterface` (eliminados en v4).
-
-```php
-// src/State/Processor/InscripcionProcessor.php
-
-use ApiPlatform\State\ProcessorInterface;
-use ApiPlatform\Metadata\Operation;
-
-class InscripcionProcessor implements ProcessorInterface
-{
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
-    {
-        // lógica de persistencia
-    }
-}
-```
+- verificar que la inscripción está confirmada
+- verificar que el evento requiere credencial
+- verificar que la hora actual (UTC, tomada del servidor) está dentro de la ventana configurada
+- verificar que el pago no bloquea la credencial
+- generar token temporal firmado (válido para esa ventana temporal)
 
 ---
 
@@ -311,10 +269,10 @@ Usa controllers Symfony normales para operaciones que no encajan en REST puro.
 // src/Controller/Admin/ValidarUsuarioController.php
 
 #[Route('/api/admin/usuarios/{id}/validar', methods: ['POST'])]
-#[IsGranted('ROLE_ADMIN_FALLA')]
+#[IsGranted('ROLE_ADMIN_ENTIDAD')]
 public function validar(Usuario $usuario, EntityManagerInterface $em): JsonResponse
 {
-    // 1. Comprobar que el usuario pertenece a la falla del admin (voter)
+    // 1. Comprobar que el usuario pertenece a la entidad del admin (voter)
     // 2. Cambiar estadoValidacion a VALIDADO
     // 3. Registrar validadoPor y fechaValidacion
     // 4. Guardar
@@ -328,10 +286,11 @@ public function validar(Usuario $usuario, EntityManagerInterface $em): JsonRespo
 
 Crear voters en `src/Security/Voter/`:
 
-- `FallaVoter` — verifica que el recurso pertenece a la falla del admin autenticado
+- `EntidadVoter` — verifica que el recurso pertenece a la entidad del admin autenticado
 - `InscripcionVoter` — verifica que la inscripción pertenece al usuario autenticado
 - `PersonaFamiliarVoter` — verifica que el familiar pertenece al usuario autenticado
-- `EventoVoter` — VIEW público, EDIT/DELETE solo admin de la falla
+
+Ejemplo de voter:
 
 ```php
 <?php
@@ -343,7 +302,7 @@ use App\Entity\Usuario;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-class EventoVoter extends Voter
+class EntidadVoter extends Voter
 {
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -358,17 +317,20 @@ class EventoVoter extends Voter
             return false;
         }
 
+        /** @var Evento $evento */
+        $evento = $subject;
+
         return match($attribute) {
-            'VIEW'           => true,
-            'EDIT', 'DELETE' => $this->puedeEditar($subject, $user),
-            default          => false,
+            'VIEW' => true, // eventos publicados son visibles para todos
+            'EDIT', 'DELETE' => $this->puedeEditar($evento, $user),
+            default => false,
         };
     }
 
     private function puedeEditar(Evento $evento, Usuario $user): bool
     {
-        return $user->getFalla() === $evento->getFalla()
-            && in_array('ROLE_ADMIN_FALLA', $user->getRoles());
+        return $user->getEntidad() === $evento->getEntidad()
+            && in_array('ROLE_ADMIN_ENTIDAD', $user->getRoles());
     }
 }
 ```
@@ -377,7 +339,7 @@ class EventoVoter extends Voter
 
 ## Importación del censo (Excel)
 
-Columnas del Excel:
+Columnas requeridas en el Excel de censo:
 
 | Columna | Obligatoria | Valor por defecto |
 |---|---|---|
@@ -389,13 +351,13 @@ Columnas del Excel:
 | tipo_persona | no | "adulto" |
 | tipo_relacion | no | "interno" |
 
-El endpoint debe:
+El endpoint de importación debe:
 
-1. Recibir archivo `multipart/form-data`
-2. Validar que es `.xlsx` o `.xls`
-3. Leer cabecera y mapear columnas por nombre (no por posición)
-4. Procesar fila a fila capturando errores sin abortar el proceso
-5. Retornar: `{ total: 150, insertadas: 148, errores: [{ fila: 23, motivo: "..." }] }`
+1. recibir el archivo multipart/form-data
+2. validar que es .xlsx o .xls
+3. leer la cabecera y mapear columnas por nombre (no por posición)
+4. procesar fila a fila, capturando errores por fila sin abortar el proceso
+5. retornar un resumen: `{ total: 150, insertadas: 148, errores: [{ fila: 23, motivo: "..." }] }`
 
 ---
 
@@ -410,7 +372,12 @@ public function generarExcel(Evento $evento): Response
 {
     $spreadsheet = new Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
+
+    // Cabecera
     $sheet->fromArray(['Menú', 'Adultos', 'Infantiles', 'Total'], null, 'A1');
+
+    // Datos agrupados por menú
+    // ...
 
     $writer = new Xlsx($spreadsheet);
     $response = new StreamedResponse(fn() => $writer->save('php://output'));
@@ -430,7 +397,7 @@ public function generarPdf(Evento $evento, string $tipoReporte): Response
 {
     $html = $this->twig->render('reporte/' . $tipoReporte . '.html.twig', [
         'evento' => $evento,
-        'datos'  => $this->getDatos($evento, $tipoReporte),
+        'datos' => $this->getDatos($evento, $tipoReporte),
     ]);
 
     $dompdf = new Dompdf();
@@ -438,10 +405,14 @@ public function generarPdf(Evento $evento, string $tipoReporte): Response
     $dompdf->setPaper('A4', 'landscape');
     $dompdf->render();
 
-    return new Response($dompdf->output(), 200, [
-        'Content-Type'        => 'application/pdf',
-        'Content-Disposition' => 'attachment; filename="reporte.pdf"',
-    ]);
+    return new Response(
+        $dompdf->output(),
+        200,
+        [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="reporte.pdf"',
+        ]
+    );
 }
 ```
 
@@ -451,16 +422,20 @@ public function generarPdf(Evento $evento, string $tipoReporte): Response
 
 Crear en `src/DataFixtures/`:
 
-- `FallaFixtures` — 2 fallas de ejemplo
-- `CensoFixtures` — 20 entradas de censo por falla
-- `UsuarioFixtures` — superadmin, 2 admins, 10 usuarios por falla
-- `EventoFixtures` — 5 eventos por falla con distintos estados
+- `FallaFixtures` — 2 entidades de ejemplo
+- `CensoFixtures` — 20 entradas de censo por entidad
+- `UsuarioFixtures` — superadmin, 2 admins de entidad, 10 usuarios por entidad
+- `EventoFixtures` — 5 eventos por entidad con distintos estados
 - `MenuFixtures` — 2-3 menús por evento
 - `InscripcionFixtures` — inscripciones variadas
+
+Usar `Alice` (hautelook/alice-bundle) si se prefiere YAML, o AppFixtures con dependencias entre fixtures.
 
 ---
 
 ## Tests
+
+Estructura de tests:
 
 ```
 backend/tests/
@@ -475,30 +450,33 @@ backend/tests/
 └── bootstrap.php
 ```
 
-- Tests de servicio: unitarios (sin base de datos)
-- Tests de API: `ApiTestCase` de API Platform con SQLite en memoria
+Los tests de servicio son unitarios (sin base de datos). Los tests de API usan `ApiTestCase` de API Platform con base de datos SQLite en memoria.
 
 ---
 
 ## Migraciones
 
 ```bash
-php bin/console doctrine:migrations:diff     # generar tras cambiar entidades
-php bin/console doctrine:migrations:migrate  # aplicar
-php bin/console doctrine:migrations:status   # estado actual
+# Generar migración tras cambiar entidades
+php bin/console doctrine:migrations:diff
+
+# Aplicar migraciones
+php bin/console doctrine:migrations:migrate
+
+# Estado actual
+php bin/console doctrine:migrations:status
 ```
 
-**Nunca editar migraciones ya ejecutadas.** Crear siempre una nueva.
+Nunca editar migraciones ya ejecutadas. Crear siempre una nueva.
 
 ---
 
 ## Checklist antes de hacer PR
 
 - [ ] Todos los precios se calculan en `PriceCalculatorService`, nunca en el controller
-- [ ] Los endpoints de admin comprueban que el recurso pertenece a la falla del usuario (voter)
+- [ ] Los endpoints de admin comprueban que el recurso pertenece a la entidad del usuario (voter)
 - [ ] Los endpoints de superadmin requieren `ROLE_SUPERADMIN`
 - [ ] Los snapshots de `InscripcionLinea` se rellenan en el momento de la inscripción
 - [ ] La hora del servidor se usa para validar credenciales, nunca la del cliente
 - [ ] Las migraciones están generadas y revisadas
 - [ ] Los tests unitarios de servicios críticos están actualizados
-- [ ] Se usan State Processors/Providers de API Platform 4 (no DataPersisters)

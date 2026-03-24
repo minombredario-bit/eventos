@@ -105,6 +105,22 @@ export class Credencial {
     return this.canManageLines() && lineState !== 'cancelada';
   }
 
+  protected lineMenuLabel(line: InscripcionApi['lineas'][number]): string {
+    return line.estadoLinea === 'cancelada' ? 'Sin menú' : line.nombreMenuSnapshot;
+  }
+
+  protected lineStatusLabel(lineState: string): string {
+    if (lineState === 'cancelada') {
+      return 'Línea cancelada · Sin menú';
+    }
+
+    if (!this.canManageLines()) {
+      return 'No se puede eliminar · inscripción cerrada o con pagos registrados';
+    }
+
+    return 'Estado no editable';
+  }
+
   protected async cancelLine(lineId: string): Promise<void> {
     const inscription = this.inscription();
     if (!inscription || this.processingLineId()) {

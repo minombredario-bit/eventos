@@ -2,7 +2,8 @@
 backend/.env.local
 backend/.env.*.local
 backend/var/
-backend/vendor/
+backend/vendor/*
+vendor/*
 backend/config/jwt/
 backend/public/bundles/
 

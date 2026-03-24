@@ -4,18 +4,6 @@ Lee este archivo completo antes de generar cualquier código de frontend.
 
 ---
 
-## ⚠️ Restricciones de edición
-
-- Modifica **solo** los archivos mencionados en la tarea
-- **No reformatees** código existente fuera de las líneas que cambias
-- **No renombres** componentes, servicios, interfaces ni métodos existentes
-- **No añadas** dependencias npm sin confirmación explícita
-- **No toques** `angular.json`, `tsconfig.json`, `package.json`, `ngsw-config.json` ni `environments/` sin indicación
-- Si necesitas un archivo no mencionado, **para y pregunta** antes de editarlo
-- **No conviertas** componentes existentes de una forma a otra (ej: class → standalone) sin que se pida
-
----
-
 ## Stack y versiones
 
 | Paquete | Versión |
@@ -23,22 +11,9 @@ Lee este archivo completo antes de generar cualquier código de frontend.
 | Angular | 18.x |
 | Angular Material | 18.x |
 | @angular/pwa | 18.x |
-| @angular/service-worker | 18.x |
 | RxJS | 7.x |
 | TypeScript | 5.x |
-
----
-
-## Convenciones Angular 18 — aplicar siempre
-
-- **Standalone components** en todos los componentes nuevos (`standalone: true`)
-- **`inject()`** en lugar de constructor injection en todos los componentes y servicios nuevos
-- **Signals** (`signal()`, `computed()`, `effect()`) para estado local reactivo cuando aplique
-- **Typed reactive forms**: siempre `FormGroup<{...}>` y `FormControl<tipo>` con tipo explícito
-- **Functional guards**: `CanActivateFn`, nunca clases que implementen `CanActivate`
-- **Functional interceptors**: `HttpInterceptorFn`, nunca clases
-- Las respuestas de API Platform son JSON-LD: las colecciones tienen `hydra:member`, no `data` ni `items`
-- Nunca calcular precios en el frontend — solo mostrar lo que devuelve el backend
+| @angular/service-worker | 18.x |
 
 ---
 
@@ -48,8 +23,8 @@ Lee este archivo completo antes de generar cualquier código de frontend.
 frontend/src/app/
 ├── core/
 │   ├── auth/                   # AuthService, guards, interceptors
-│   ├── api/                    # Servicios HTTP (uno por entidad)
-│   ├── models/                 # Interfaces TypeScript (un archivo por entidad)
+│   ├── api/                    # Servicios HTTP base
+│   ├── models/                 # Interfaces TypeScript
 │   └── utils/                  # Helpers (normalización de texto, etc.)
 │
 ├── shared/
@@ -62,7 +37,7 @@ frontend/src/app/
 ├── auth/                       # Login, registro, recuperación
 │   ├── login/
 │   ├── registro/
-│   │   ├── paso-codigo/        # Paso 1: código de falla
+│   │   ├── paso-codigo/        # Paso 1: introducir código de entidad
 │   │   └── paso-datos/         # Paso 2: datos personales
 │   └── pendiente-validacion/
 │
@@ -77,7 +52,9 @@ frontend/src/app/
 │   └── credencial/             # Pase visual de acceso
 │
 ├── familia/                    # Gestión de PersonaFamiliar
+│
 ├── inscripciones/              # Mis inscripciones
+│
 ├── perfil/                     # Datos personales y contraseña
 │
 └── admin/
@@ -93,14 +70,14 @@ frontend/src/app/
     ├── censo/
     ├── reportes/
     └── verificacion-acceso/
+
 ```
 
 ---
 
 ## Modelos TypeScript
 
-Un archivo por entidad en `src/app/core/models/`.
-**No cambies los nombres de tipos ni interfaces existentes.**
+Crear interfaces en `src/app/core/models/`. Un archivo por entidad principal.
 
 ```typescript
 // src/app/core/models/usuario.model.ts
@@ -122,7 +99,7 @@ export interface Usuario {
   puedeAcceder: boolean;
   esCensadoInterno: boolean;
   censadoVia?: CensadoVia;
-  falla: string; // IRI
+  entidad: string; // IRI
   fechaSolicitudAlta?: string;
   fechaAltaCenso?: string;
   fechaBajaCenso?: string;
@@ -206,8 +183,8 @@ export interface Inscripcion {
 
 export interface InscripcionRequest {
   personas: {
-    persona: string;       // IRI: /api/persona_familiares/{id}
-    menu: string;          // IRI: /api/menu_eventos/{id}
+    persona: string;    // IRI: /api/persona_familiares/{id}
+    menu: string;       // IRI: /api/menu_eventos/{id}
     observaciones?: string;
   }[];
 }
@@ -218,7 +195,6 @@ export interface InscripcionRequest {
 ## Servicios HTTP
 
 Crear en `src/app/core/api/`. Usar `HttpClient` con `inject()`.
-Las respuestas de API Platform son JSON-LD — las colecciones usan `hydra:member`.
 
 ```typescript
 // src/app/core/api/evento.service.ts
@@ -238,10 +214,8 @@ export class EventoService {
   getEventos(params?: { estado?: string; tipo?: string }): Observable<Evento[]> {
     let httpParams = new HttpParams();
     if (params?.estado) httpParams = httpParams.set('estado', params.estado);
-    if (params?.tipo)   httpParams = httpParams.set('tipoEvento', params.tipo);
-
-    return this.http
-      .get<{ 'hydra:member': Evento[] }>(`${this.base}/api/eventos`, { params: httpParams })
+    if (params?.tipo) httpParams = httpParams.set('tipoEvento', params.tipo);
+    return this.http.get<{ 'hydra:member': Evento[] }>(`${this.base}/api/eventos`, { params: httpParams })
       .pipe(map(r => r['hydra:member']));
   }
 
@@ -251,9 +225,7 @@ export class EventoService {
 }
 ```
 
----
-
-## Interceptor JWT
+### Interceptor JWT
 
 ```typescript
 // src/app/core/auth/auth.interceptor.ts
@@ -267,7 +239,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = auth.getToken();
 
   if (token) {
-    req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+    req = req.clone({
+      setHeaders: { Authorization: `Bearer ${token}` }
+    });
   }
 
   return next(req);
@@ -285,24 +259,32 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  return auth.isAuthenticated() ? true : router.createUrlTree(['/auth/login']);
+
+  if (auth.isAuthenticated()) {
+    return true;
+  }
+  return router.createUrlTree(['/auth/login']);
 };
 
-export const adminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  return (auth.hasRole('ROLE_ADMIN_FALLA') || auth.hasRole('ROLE_SUPERADMIN'))
-    ? true
-    : router.createUrlTree(['/inicio']);
+
+  if (auth.hasRole('ROLE_ADMIN_ENTIDAD') || auth.hasRole('ROLE_SUPERADMIN')) {
+    return true;
+  }
+  return router.createUrlTree(['/inicio']);
 };
 ```
 
 ---
 
 ## Pantalla principal — Calendario de eventos
+
+El componente de inicio debe mostrar un calendario mensual. Usar `@angular/material` `MatCalendar` o una librería como `ngx-mat-calendar`. La lógica clave:
 
 ```typescript
 // src/app/inicio/inicio.component.ts
@@ -317,7 +299,9 @@ export class InicioComponent implements OnInit {
     this.eventoService.getEventos().subscribe(eventos => {
       eventos.forEach(e => {
         const key = e.fechaEvento.substring(0, 10);
-        if (!this.eventosPorFecha.has(key)) this.eventosPorFecha.set(key, []);
+        if (!this.eventosPorFecha.has(key)) {
+          this.eventosPorFecha.set(key, []);
+        }
         this.eventosPorFecha.get(key)!.push(e);
       });
       this.actualizarEventosDelDia();
@@ -334,7 +318,7 @@ export class InicioComponent implements OnInit {
     this.eventosDelDia = this.eventosPorFecha.get(key) ?? [];
   }
 
-  // Para marcar días con eventos en MatCalendar
+  // Para marcar días con eventos en el calendario
   dateClass = (date: Date): string => {
     const key = date.toISOString().substring(0, 10);
     return this.eventosPorFecha.has(key) ? 'tiene-evento' : '';
@@ -344,13 +328,17 @@ export class InicioComponent implements OnInit {
 
 ---
 
-## Flujo de inscripción (stepper 3 pasos)
+## Flujo de inscripción
 
-### Paso 1 — Detalle del evento
-- Mostrar info del evento y menús disponibles
-- Botón "Inscribirse" solo si: plazo abierto + usuario validado
+El flujo de inscripción es el más complejo del frontend. Se compone de tres pasos en un stepper:
 
-### Paso 2 — Selector de asistentes
+### Paso 1: Detalle del evento
+
+- mostrar info del evento
+- mostrar menús disponibles
+- botón "Inscribirse" (solo si plazo abierto y usuario validado)
+
+### Paso 2: Selector de asistentes
 
 ```typescript
 // src/app/eventos/inscripcion/selector-personas/selector-personas.component.ts
@@ -363,22 +351,26 @@ export interface LineaSeleccion {
 }
 
 export class SelectorPersonasComponent {
+  // Estado local por persona
   lineas: LineaSeleccion[] = [];
 
-  // Solo orientativo — el precio real lo calcula el backend
+  // Calcular precio estimado (solo visual, el real viene del backend)
   precioEstimado(linea: LineaSeleccion): number {
     if (!linea.asiste || !linea.menuId) return 0;
     const menu = this.menus.find(m => m.id === linea.menuId);
-    return (!menu || !menu.esDePago) ? 0 : menu.precioBase;
+    if (!menu || !menu.esDePago) return 0;
+    // Precio orientativo; el backend recalcula
+    return menu.precioBase;
   }
 }
 ```
 
-### Paso 3 — Resumen y confirmación
-- Mostrar asistentes, menú por persona, precio estimado
-- Botón "Confirmar inscripción" → llamada al endpoint
-- Gestionar estados: loading / error / éxito
-- Tras éxito: redirigir a la pantalla de la inscripción creada
+### Paso 3: Resumen y confirmación
+
+- mostrar asistentes, menú por persona, precio estimado
+- botón "Confirmar inscripción" que llama al endpoint
+- gestionar estados: loading, error, éxito
+- tras éxito, redirigir a la pantalla de la inscripción creada
 
 ---
 
@@ -394,6 +386,7 @@ export class CredencialComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.cargarCredencial();
+    // Verificar estado cada 60 segundos
     this.timer = setInterval(() => this.cargarCredencial(), 60_000);
   }
 
@@ -407,25 +400,28 @@ export class CredencialComponent implements OnInit, OnDestroy {
         this.credencial = data;
         this.enVentana = data.enVentanaActiva;
       },
-      error: () => { this.enVentana = false; }
+      error: () => {
+        this.enVentana = false;
+      }
     });
   }
 }
 ```
 
 La credencial debe mostrar:
-- Nombre del evento y fecha (grande y legible)
-- Nombre del titular
-- Personas incluidas con sus menús
-- Estado de pago si es relevante
-- Token visual temporal (cambia periódicamente para evitar capturas reutilizadas)
-- Color identificativo del tipo de evento
+
+- nombre del evento y fecha (grande y legible)
+- nombre del titular
+- personas incluidas con sus menús
+- estado de pago si es relevante
+- token visual temporal (cambia cada cierto tiempo para evitar capturas reutilizadas)
+- color o imagen identificativa del evento/tipo
 
 ---
 
-## Registro en dos pasos
+## Pantalla de registro en dos pasos
 
-### Paso 1 — Código de falla
+### Paso 1: Código de entidad
 
 ```typescript
 // src/app/auth/registro/paso-codigo/paso-codigo.component.ts
@@ -434,17 +430,20 @@ export class PasoCodigoComponent {
   codigo = '';
   cargando = false;
   error = '';
-  fallaInfo: { nombre: string; logo?: string } | null = null;
+  entidadInfo: { nombre: string; logo?: string; tipoEntidad: string; terminologiaSocio: string } | null = null;
 
   validarCodigo() {
     this.cargando = true;
-    this.authService.validarCodigoFalla(this.codigo).subscribe({
-      next: (falla) => {
-        this.fallaInfo = falla;
-        this.router.navigate(['/auth/registro/datos'], { queryParams: { codigo: this.codigo } });
+    this.authService.validarCodigoEntidad(this.codigo).subscribe({
+      next: (entidad) => {
+        this.entidadInfo = entidad;
+        // Navegar al paso 2 pasando el código
+        this.router.navigate(['/auth/registro/datos'], {
+          queryParams: { codigo: this.codigo }
+        });
       },
       error: () => {
-        this.error = 'Código de falla no válido o inactivo';
+        this.error = 'Código de entidad no válido o inactivo';
         this.cargando = false;
       }
     });
@@ -452,24 +451,24 @@ export class PasoCodigoComponent {
 }
 ```
 
-### Paso 2 — Datos personales
-- Formulario reactivo con validaciones explícitas
-- `POST /api/registro/solicitud` con el código incluido
-- Si `validadoAutomaticamente: true` → redirigir a login
-- Si `false` → redirigir a `/auth/pendiente-validacion`
+### Paso 2: Datos personales
+
+- formulario reactivo con validaciones
+- llamar a `POST /api/registro/solicitud` con el código incluido
+- según la respuesta (`validadoAutomaticamente: true/false`), redirigir a login o a pantalla de "pendiente de validación"
 
 ---
 
 ## UX móvil — principios
 
-- **Mobile-first**: layouts para 360px de ancho mínimo
-- **Touch targets**: botones mínimo 44×44px
-- **Bottom navigation**: para usuario autenticado (Inicio, Eventos, Familia, Inscripciones, Perfil)
-- **Top app bar**: con título y acciones contextuales
-- **Skeleton loaders**: nunca spinners globales bloqueantes
-- **Pull to refresh**: en listados de eventos e inscripciones
-- **Offline**: PWA muestra calendario y credencial desde caché
-- **Instalable**: manifest configurado para prompt de instalación
+- **mobile-first**: todos los layouts deben funcionar en pantallas de 360px de ancho
+- **touch targets**: botones y elementos interactivos mínimo 44x44px
+- **bottom navigation**: para usuario autenticado (Inicio, Eventos, Familia, Inscripciones, Perfil)
+- **top app bar**: con título y acciones contextuales
+- **skeleton loaders**: mostrar esqueletos mientras carga, nunca spinners globales bloqueantes
+- **pull to refresh**: en listados de eventos e inscripciones
+- **offline**: la PWA debe poder mostrar el calendario y la credencial guardados en cache
+- **instalable**: manifest configurado para que el navegador ofrezca instalar la PWA
 
 ---
 
@@ -491,12 +490,20 @@ export class PasoCodigoComponent {
     {
       "name": "eventos",
       "urls": ["/api/eventos"],
-      "cacheConfig": { "maxSize": 100, "maxAge": "1h", "strategy": "freshness" }
+      "cacheConfig": {
+        "maxSize": 100,
+        "maxAge": "1h",
+        "strategy": "freshness"
+      }
     },
     {
       "name": "credencial",
       "urls": ["/api/inscripciones/*/mi-credencial"],
-      "cacheConfig": { "maxSize": 20, "maxAge": "5m", "strategy": "freshness" }
+      "cacheConfig": {
+        "maxSize": 20,
+        "maxAge": "5m",
+        "strategy": "freshness"
+      }
     }
   ]
 }
@@ -506,21 +513,23 @@ export class PasoCodigoComponent {
 
 ## Colores por tipo de evento
 
+Definir en el tema global:
+
 ```scss
 // src/styles/evento-tipos.scss
 
-.tipo-almuerzo { --evento-color: #F59E0B; } // amber
-.tipo-comida   { --evento-color: #EF4444; } // red
-.tipo-merienda { --evento-color: #8B5CF6; } // purple
-.tipo-cena     { --evento-color: #3B82F6; } // blue
-.tipo-otro     { --evento-color: #6B7280; } // gray
+.tipo-almuerzo   { --evento-color: #F59E0B; } // amber
+.tipo-comida     { --evento-color: #EF4444; } // red
+.tipo-merienda   { --evento-color: #8B5CF6; } // purple
+.tipo-cena       { --evento-color: #3B82F6; } // blue
+.tipo-otro       { --evento-color: #6B7280; } // gray
 ```
 
 Usar en `EventoCardComponent` y en el calendario para marcar días.
 
 ---
 
-## Estado de pago — pipe
+## Estado de pago — badges
 
 ```typescript
 // src/app/shared/pipes/estado-pago.pipe.ts
@@ -529,12 +538,12 @@ Usar en `EventoCardComponent` y en el calendario para marcar días.
 export class EstadoPagoPipe implements PipeTransform {
   transform(estado: EstadoPago): { label: string; color: string } {
     const map: Record<EstadoPago, { label: string; color: string }> = {
-      no_requiere_pago: { label: 'Sin coste',         color: 'success' },
-      pendiente:        { label: 'Pendiente de pago', color: 'warn'    },
-      parcial:          { label: 'Pago parcial',      color: 'accent'  },
-      pagado:           { label: 'Pagado',             color: 'success' },
-      devuelto:         { label: 'Devuelto',           color: 'default' },
-      cancelado:        { label: 'Cancelado',          color: 'default' },
+      no_requiere_pago: { label: 'Sin coste', color: 'success' },
+      pendiente:        { label: 'Pendiente de pago', color: 'warn' },
+      parcial:          { label: 'Pago parcial', color: 'accent' },
+      pagado:           { label: 'Pagado', color: 'success' },
+      devuelto:         { label: 'Devuelto', color: 'default' },
+      cancelado:        { label: 'Cancelado', color: 'default' },
     };
     return map[estado] ?? { label: estado, color: 'default' };
   }
@@ -546,11 +555,10 @@ export class EstadoPagoPipe implements PipeTransform {
 ## Checklist antes de hacer PR
 
 - [ ] Ninguna lógica de precios en el frontend (solo mostrar lo que devuelve el backend)
-- [ ] Todos los formularios usan `ReactiveFormsModule` con tipos explícitos
-- [ ] Los guards protegen correctamente rutas de admin y superadmin
-- [ ] La credencial usa la hora del servidor, nunca `new Date()`
+- [ ] Todos los formularios usan `ReactiveFormsModule` con validaciones explícitas
+- [ ] Los guards protegen correctamente las rutas de admin y superadmin
+- [ ] La credencial consulta la hora al servidor, no a `new Date()`
 - [ ] El interceptor adjunta el JWT en todas las llamadas autenticadas
-- [ ] Las rutas de API están en la estrategia de caché correcta del service worker
-- [ ] Las rutas usan lazy loading para reducir el bundle inicial
-- [ ] Los componentes nuevos son standalone y usan `inject()`
-- [ ] Las respuestas de colección de API Platform se mapean desde `hydra:member`
+- [ ] La PWA tiene las rutas de API en la estrategia de cache correcta
+- [ ] Los lazy modules están configurados para reducir el bundle inicial
+- [ ] Los componentes standalone usan `inject()` en lugar de constructor injection

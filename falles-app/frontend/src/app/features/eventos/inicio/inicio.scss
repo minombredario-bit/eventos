@@ -105,6 +105,13 @@
   .dot {
     background: var(--brand-orange);
   }
+  
+}
+
+.grid button.outside.has-event {
+  .dot {
+    opacity: 0.4;
+  }
 }
 
 .grid button.selected {

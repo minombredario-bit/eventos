@@ -13,7 +13,7 @@
   </div>
 
   @if (showSelect()) {
-    <label class="menu-selector" [attr.for]="'menu-' + member().id">
+    <label class="menu-selector" [attr.for]="'menu-' + member().id + '-' + (slot() ?? 'general')">
       <span class="selector-label">{{ selectorLabel() }}</span>
       @if (menuOptions().length === 0) {
         <small class="empty-message">{{ emptyMessage() }}</small>
@@ -24,7 +24,7 @@
           [disabled]="disabled()"
           (change)="onMenuChange($event)"
         >
-          <option value="" disabled>Elegí menú</option>
+          <option value="">No incluir en la inscripción</option>
           @for (menu of menuOptions(); track menu.id) {
             <option [value]="menu.id" [disabled]="menu.disabled ?? false">
               {{ menu.label }} · {{ menu.price | currency: 'EUR' : 'symbol' : '1.0-0' }}

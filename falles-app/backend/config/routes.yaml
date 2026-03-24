@@ -9,3 +9,7 @@ controllers_app_evento:
 controllers_app_inscripcion:
     resource: ../src/Controller/InscripcionController.php
     type: attribute
+
+controllers_app_persona_familiar:
+    resource: ../src/Controller/PersonaFamiliarController.php
+    type: attribute

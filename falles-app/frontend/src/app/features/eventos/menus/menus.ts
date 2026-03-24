@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { firstValueFrom, map } from 'rxjs';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { distinctUntilChanged, filter, firstValueFrom, map } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth';
 import { CtaButton } from '../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../shared/components/member-row/member-row';
@@ -12,7 +12,7 @@ import { EventoDetalleApi, EventosApi, MenuEventoApi, PersonaFamiliarApi } from 
 
 interface MenuChangePayload {
   memberId: string;
-  menuId: string;
+  menuId: string | null;
   slot: string | null;
 }
 
@@ -36,12 +36,18 @@ interface SelectionSummaryRow {
 export class Menus {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly eventosApi = inject(EventosApi);
 
   private readonly eventId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('id') ?? '')),
     { initialValue: '' }
+  );
+
+  private readonly preselectedParticipantIds = toSignal(
+    this.route.queryParamMap.pipe(map((params) => this.parseParticipantsParam(params.get('participants')))),
+    { initialValue: [] as string[] }
   );
 
   protected readonly loading = signal(true);
@@ -54,58 +60,58 @@ export class Menus {
   protected readonly members = signal<FamilyMember[]>([]);
   protected readonly options = signal<MenuOption[]>([]);
 
+  protected readonly membersInScope = computed(() => {
+    const members = this.members();
+    const preselectedIds = this.preselectedParticipantIds();
+
+    if (!preselectedIds.length) {
+      return members;
+    }
+
+    const selectedSet = new Set(preselectedIds);
+    return members.filter((member) => selectedSet.has(member.id));
+  });
+
+  protected readonly hasPreselection = computed(() => this.preselectedParticipantIds().length > 0);
+
+  protected readonly participantScopeMessage = computed(() => {
+    const visible = this.membersInScope().length;
+
+    if (!this.hasPreselection()) {
+      return 'No había selección previa en detalle. Mostramos todos tus familiares.';
+    }
+
+    if (visible === 0) {
+      return 'No encontramos familiares seleccionados válidos para este evento. Volvé al detalle para seleccionar participantes.';
+    }
+
+    if (visible === 1) {
+      return 'Mostrando 1 familiar seleccionado desde detalle.';
+    }
+
+    return `Mostrando ${visible} familiares seleccionados desde detalle.`;
+  });
+
   protected readonly slots: MealSlot[] = ['almuerzo', 'comida', 'merienda', 'cena'];
 
   protected readonly selectedMenus = signal<Record<string, Partial<Record<MealSlot, string | null>>>>(
     {}
   );
 
-  private readonly loadEventEffect = effect(() => {
-    const id = this.eventId();
-    if (!id) {
-      return;
-    }
+  constructor() {
+    this.route.paramMap
+      .pipe(
+        map((params) => params.get('id') ?? ''),
+        filter((id): id is string => Boolean(id)),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((id) => {
+        void this.loadEvent(id);
+      });
 
-    void this.loadEvent(id);
-  });
-
-  private readonly loadMembersEffect = effect(() => {
     void this.loadMembers();
-  });
-
-  private readonly syncSelectionEffect = effect(() => {
-    const members = this.members();
-
-    if (!members.length) {
-      return;
-    }
-
-    this.selectedMenus.update((state) => {
-      const next: Record<string, Partial<Record<MealSlot, string | null>>> = {};
-
-      for (const member of members) {
-        const previous = state[member.id] ?? {};
-        const perSlotSelection: Partial<Record<MealSlot, string | null>> = {};
-
-        for (const slot of this.getAvailableSlotsForMember(member)) {
-          const slotOptions = this.getMenusForSlotAndMember(slot, member);
-          const hasPrevious = previous[slot] !== null && previous[slot] !== undefined;
-          const previousIsValid = slotOptions.some((option) => option.id === previous[slot]);
-
-          if (hasPrevious && previousIsValid) {
-            perSlotSelection[slot] = previous[slot] ?? null;
-            continue;
-          }
-
-          perSlotSelection[slot] = slotOptions[0]?.id ?? null;
-        }
-
-        next[member.id] = perSlotSelection;
-      }
-
-      return next;
-    });
-  });
+  }
 
   protected readonly totalPrice = computed(() => {
     return this.selectionSummary().reduce((total, row) => total + row.price, 0);
@@ -114,7 +120,7 @@ export class Menus {
   protected readonly selectionSummary = computed<SelectionSummaryRow[]>(() => {
     const summary: SelectionSummaryRow[] = [];
 
-    for (const member of this.members()) {
+    for (const member of this.membersInScope()) {
       for (const slot of this.getAvailableSlotsForMember(member)) {
         const selectedId = this.selectedMenus()[member.id]?.[slot];
         if (!selectedId) {
@@ -141,17 +147,11 @@ export class Menus {
   });
 
   protected readonly readyToConfirm = computed(() => {
-    if (!this.members().length || !this.event()?.inscripcionAbierta) {
+    if (!this.membersInScope().length || !this.event()?.inscripcionAbierta) {
       return false;
     }
 
-    return this.members().every((member) => {
-      const slots = this.getAvailableSlotsForMember(member);
-      return slots.every((slot) => {
-        const selectedId = this.selectedMenus()[member.id]?.[slot];
-        return Boolean(selectedId);
-      });
-    });
+    return this.selectionSummary().length > 0;
   });
 
   protected updateMenu(payload: MenuChangePayload): void {
@@ -185,7 +185,7 @@ export class Menus {
   }
 
   protected hasSlotForAnyMember(slot: MealSlot): boolean {
-    return this.members().some((member) => this.getMenusForSlotAndMember(slot, member).length > 0);
+    return this.membersInScope().some((member) => this.getMenusForSlotAndMember(slot, member).length > 0);
   }
 
   protected slotLabel(slot: MealSlot): string {
@@ -252,10 +252,12 @@ export class Menus {
           .filter((menu) => menu.activo !== false)
           .map((menu) => this.toMenuOption(menu)),
       );
+      this.reconcileSelectedMenus();
     } catch {
       this.errorMessage.set('No pudimos cargar el evento. Volvé a intentar en unos segundos.');
       this.event.set(null);
       this.options.set([]);
+      this.reconcileSelectedMenus();
     } finally {
       this.loading.set(false);
     }
@@ -267,12 +269,53 @@ export class Menus {
     try {
       const personas = await firstValueFrom(this.eventosApi.getPersonasMias());
       this.members.set(personas.map((persona) => this.toFamilyMember(persona)));
+      this.reconcileSelectedMenus();
     } catch {
       this.errorMessage.set('No pudimos cargar tus familiares para la inscripción.');
       this.members.set([]);
+      this.reconcileSelectedMenus();
     } finally {
       this.loadingPeople.set(false);
     }
+  }
+
+  private reconcileSelectedMenus(): void {
+    const members = this.membersInScope();
+
+    this.selectedMenus.update((state) => {
+      const next: Record<string, Partial<Record<MealSlot, string | null>>> = {};
+
+      for (const member of members) {
+        const previous = state[member.id] ?? {};
+        const perSlotSelection: Partial<Record<MealSlot, string | null>> = {};
+
+        for (const slot of this.getAvailableSlotsForMember(member)) {
+          const slotOptions = this.getMenusForSlotAndMember(slot, member);
+          const previousSelection = previous[slot] ?? null;
+          const previousIsValid = previousSelection === null
+            || slotOptions.some((option) => option.id === previousSelection);
+
+          perSlotSelection[slot] = previousIsValid ? previousSelection : null;
+        }
+
+        next[member.id] = perSlotSelection;
+      }
+
+      return next;
+    });
+  }
+
+  private parseParticipantsParam(rawValue: string | null): string[] {
+    if (!rawValue) {
+      return [];
+    }
+
+    return [...new Set(
+      rawValue
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0),
+    )];
   }
 
   private toFamilyMember(persona: PersonaFamiliarApi): FamilyMember {

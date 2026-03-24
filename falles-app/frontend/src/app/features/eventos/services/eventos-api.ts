@@ -30,9 +30,23 @@ export interface MenuEventoApi {
 export interface EventoDetalleApi {
   id: string;
   titulo: string;
+  descripcion?: string | null;
+  fechaEvento: string;
+  horaInicio?: string | null;
   lugar?: string | null;
   inscripcionAbierta: boolean;
   menus: MenuEventoApi[];
+}
+
+export interface EventoResumenApi {
+  id: string;
+  titulo: string;
+  descripcion?: string | null;
+  fechaEvento: string;
+  horaInicio?: string | null;
+  lugar?: string | null;
+  estado: string;
+  inscripcionAbierta: boolean;
 }
 
 export interface InscripcionApi {
@@ -75,6 +89,12 @@ interface CrearInscripcionResponse {
 export class EventosApi {
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = 'http://localhost:8080';
+
+  getEventos(): Observable<EventoResumenApi[]> {
+    return this.http
+      .get<HydraCollection<EventoResumenApi>>(`${this.apiBaseUrl}/api/eventos`)
+      .pipe(map((response) => response['hydra:member'] ?? []));
+  }
 
   getEvento(id: string): Observable<EventoDetalleApi> {
     return this.http.get<EventoDetalleApi>(`${this.apiBaseUrl}/api/eventos/${id}`);

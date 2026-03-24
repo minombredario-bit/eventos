@@ -45,6 +45,7 @@ class EventoController extends AbstractController
             'fechaFinInscripcion' => $evento->getFechaFinInscripcion()->format('c'),
             'admitePago' => $evento->isAdmitePago(),
             'estado' => $evento->getEstado()->value,
+            'inscripcionAbierta' => $evento->estaInscripcionAbierta(),
             'menus' => array_map(fn($menu) => [
                 'id' => $menu->getId(),
                 'nombre' => $menu->getNombre(),

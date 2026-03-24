@@ -11,6 +11,13 @@
     <article class="panel intro" aria-label="Resumen de inicio">
       <p class="eyebrow">Agenda fallera</p>
       <h2>Consultá próximos eventos y elegí un día para ver disponibilidad.</h2>
+      @if (selectedDayEvents().length) {
+        @for (event of selectedDayEvents(); track event.id) {
+          <app-event-card [event]="event" />
+        }
+      } @else {
+        <p>No hay eventos para esta fecha.</p>
+      }
     </article>
 
     <article class="panel calendar" aria-label="Calendario de eventos">
@@ -41,27 +48,18 @@
           </button>
         }
       </div>
-    </article>
+    </article>  
 
     <article class="panel upcoming">
       <h2>Próximos eventos</h2>
-      @for (event of events; track event.id) {
-        <app-event-card [event]="event" />
+      @if (loading()) {
+        <p>Cargando eventos...</p>
+      } @else {
+        @for (event of upcomingEvents(); track event.id) {
+          <app-event-card [event]="event" />
+        }
       }
     </article>
 
-    <article class="panel selected-day">
-      <div class="selected-header">
-        <h2>{{ selectedDateLabel() }}</h2>
-        <span class="day-state" [class]="'day-state ' + selectedDayState()">{{ dayStateLabel(selectedDayState()) }}</span>
-      </div>
-      @if (selectedDayEvents().length) {
-        @for (event of selectedDayEvents(); track event.id) {
-          <app-event-card [event]="event" />
-        }
-      } @else {
-        <p>No hay eventos para esta fecha.</p>
-      }
-    </article>
   </div>
 </section>

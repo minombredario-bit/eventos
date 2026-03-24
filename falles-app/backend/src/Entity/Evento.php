@@ -17,6 +17,10 @@ use App\Enum\EstadoEventoEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 
 #[ORM\Entity(repositoryClass: EventoRepository::class)]
 #[ORM\Table(name: 'evento')]
@@ -29,8 +33,22 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('EVENTO_EDIT', object)"),
-    ]
+    ], 
+    order: ['fechaEvento' => 'ASC']
 )]
+
+#[ApiFilter(DateFilter::class, properties: ['fechaEvento' => DateFilter::EXCLUDE_NULL])]
+#[ApiFilter(SearchFilter::class, properties: [
+    'estado'    => 'exact',
+    'visible'   => 'exact',
+    'publicado' => 'exact',
+    'entidad'   => 'exact',
+])]
+#[ApiFilter(
+    OrderFilter::class, properties: ['fechaEvento', 'horaInicio', 'createdAt'], 
+    arguments: ['orderParameterName' => 'order']
+)]
+
 class Evento
 {
     #[ORM\Id]

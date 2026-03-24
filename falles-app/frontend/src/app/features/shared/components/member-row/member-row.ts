@@ -4,7 +4,7 @@ import { FamilyMember, MenuOption } from '../../../eventos/models/ui';
 
 interface MenuChangePayload {
   memberId: string;
-  menuId: string;
+  menuId: string | null;
   slot: string | null;
 }
 
@@ -38,7 +38,7 @@ export class MemberRow {
     const target = event.target as HTMLSelectElement;
     this.menuChanged.emit({
       memberId: this.member().id,
-      menuId: target.value,
+      menuId: target.value || null,
       slot: this.slot(),
     });
   }

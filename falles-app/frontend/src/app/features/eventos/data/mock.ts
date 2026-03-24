@@ -124,8 +124,8 @@ export const CREDENTIAL_DATA: CredentialData = {
 };
 
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
-  { label: 'Inicio', icon: '🏠', route: '/eventos/inicio' },
-  { label: 'Detalle', icon: '📅', route: `/eventos/${DEFAULT_EVENT_ID}/detalle` },
-  { label: 'Menús', icon: '🍽️', route: `/eventos/${DEFAULT_EVENT_ID}/menus` },
-  { label: 'Credencial', icon: '🎟️', route: `/eventos/${DEFAULT_EVENT_ID}/credencial` },
+  { key: 'inicio', label: 'Inicio', icon: '🏠', route: '/eventos/inicio' },
+  { key: 'detalle', label: 'Detalle', icon: '📅', route: `/eventos/${DEFAULT_EVENT_ID}/detalle` },
+  { key: 'menus', label: 'Menús', icon: '🍽️', route: `/eventos/${DEFAULT_EVENT_ID}/menus` },
+  { key: 'credencial', label: 'Credencial', icon: '🎟️', route: `/eventos/${DEFAULT_EVENT_ID}/credencial` },
 ];

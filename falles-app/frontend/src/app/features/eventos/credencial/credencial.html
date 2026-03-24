@@ -10,16 +10,7 @@
   />
 
   <div class="content">
-    @if (loading()) {
-      <article class="ticket" aria-label="Cargando credencial">
-        <p class="event-name">Cargando credencial...</p>
-      </article>
-    } @else if (errorMessage()) {
-      <article class="ticket error-card" aria-label="Error de credencial">
-        <p class="event-name">No disponible</p>
-        <p>{{ errorMessage() }}</p>
-      </article>
-    } @else if (credential(); as data) {
+    @if (credential(); as data) {
       <article class="ticket" aria-label="Credencial del evento">
         <header class="ticket-header">
           <div>
@@ -41,19 +32,22 @@
             <div class="line-item">
               <p>
                 <span>{{ line.nombrePersonaSnapshot }}</span>
-                <strong>{{ line.nombreMenuSnapshot }}</strong>
+                <strong>{{ lineMenuLabel(line) }}</strong>
               </p>
               @if (canCancelLine(line.estadoLinea)) {
                 <button
                   type="button"
-                  class="cancel-line"
-                  [disabled]="isProcessingLine(line.id)"
+                  class="line-remove-btn"
+                  [disabled]="processingLineId() !== null"
                   (click)="cancelLine(line.id)"
                 >
-                  {{ isProcessingLine(line.id) ? 'Cancelando...' : 'Eliminar línea' }}
+                  {{ isProcessingLine(line.id) ? 'Eliminando línea...' : 'Eliminar línea' }}
                 </button>
-              } @else if (line.estadoLinea === 'cancelada') {
-                <small class="line-status">Línea cancelada</small>
+                @if (isProcessingLine(line.id)) {
+                  <small class="line-status">Cancelando línea...</small>
+                }
+              } @else {
+                <small class="line-status">{{ lineStatusLabel(line.estadoLinea) }}</small>
               }
             </div>
           }
@@ -73,6 +67,15 @@
           </section>
           <p class="token" aria-live="polite">Token: {{ data.qrToken }}</p>
         </section>
+      </article>
+    } @else if (loading()) {
+      <article class="ticket" aria-label="Cargando credencial">
+        <p class="event-name">Cargando credencial...</p>
+      </article>
+    } @else if (errorMessage()) {
+      <article class="ticket error-card" aria-label="Error de credencial">
+        <p class="event-name">No disponible</p>
+        <p>{{ errorMessage() }}</p>
       </article>
     }
   </div>

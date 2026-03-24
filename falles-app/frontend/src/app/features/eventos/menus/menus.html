@@ -21,62 +21,72 @@
         <h2>Preparando datos del evento</h2>
         <p>Estamos trayendo menús y familiares disponibles.</p>
       </article>
-    } @else if (event(); as selectedEvent) {
-      <article class="panel event-summary">
-        <p class="eyebrow">Evento y menús</p>
-        <h2>{{ selectedEvent.titulo }}</h2>
-        <p>{{ selectedEvent.lugar ?? 'Sin ubicación definida' }}</p>
-        <small>La selección se organiza por franja: almuerzo, comida, merienda y cena.</small>
-        @if (!selectedEvent.inscripcionAbierta) {
-          <p class="closed-note">La inscripción está cerrada para este evento.</p>
-        }
-      </article>
+    } @else {
+      @if (event(); as selectedEvent) {
+        <article class="panel event-summary">
+          <p class="eyebrow">Evento y menús</p>
+          <h2>{{ selectedEvent.titulo }}</h2>
+          <p>{{ selectedEvent.lugar ?? 'Sin ubicación definida' }}</p>
+          <small>La selección se organiza por franja: almuerzo, comida, merienda y cena.</small>
+          <p class="participant-scope">{{ participantScopeMessage() }}</p>
+          @if (!selectedEvent.inscripcionAbierta) {
+            <p class="closed-note">La inscripción está cerrada para este evento.</p>
+          }
+        </article>
 
-      @for (slot of slots; track slot) {
-        @if (hasSlotForAnyMember(slot)) {
-          <article class="panel member-list" [attr.aria-label]="'Selector de menú por familiar para ' + slotLabel(slot)">
-            <h2>{{ slotLabel(slot) }}</h2>
-            @for (member of members(); track member.id) {
-              <app-member-row
-                [member]="member"
-                [showSelect]="true"
-                [selectorLabel]="'Menú ' + slotLabel(slot)"
-                [slot]="slot"
-                [menuOptions]="getMenusForSlotAndMember(slot, member)"
-                [selectedMenuId]="getSelectedMenu(member.id, slot)"
-                [emptyMessage]="'Sin menú compatible para esta franja'"
-                [disabled]="submitting() || !selectedEvent.inscripcionAbierta"
-                (menuChanged)="updateMenu($event)"
-              />
-            }
+        @if (!membersInScope().length) {
+          <article class="panel error-card">
+            <h2>No hay participantes para mostrar</h2>
+            <p>Volvé al detalle del evento y marcá al menos un familiar para continuar.</p>
           </article>
         }
-      }
 
-      <article class="panel total-card">
-        <h2>Total estimado</h2>
-        <p class="summary">Revisión rápida antes de confirmar.</p>
-        @for (item of selectionSummary(); track item.memberName + '-' + item.slot) {
-          <p>
-            <span>{{ item.memberName }} · {{ slotLabel(item.slot) }} · {{ item.menuLabel }}</span>
-            <strong>{{ item.price | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
-          </p>
+        @for (slot of slots; track slot) {
+          @if (hasSlotForAnyMember(slot)) {
+            <article class="panel member-list" [attr.aria-label]="'Selector de menú por familiar para ' + slotLabel(slot)">
+              <h2>{{ slotLabel(slot) }}</h2>
+              @for (member of membersInScope(); track member.id) {
+                <app-member-row
+                  [member]="member"
+                  [showSelect]="true"
+                  [selectorLabel]="'Menú ' + slotLabel(slot)"
+                  [slot]="slot"
+                  [menuOptions]="getMenusForSlotAndMember(slot, member)"
+                  [selectedMenuId]="getSelectedMenu(member.id, slot)"
+                  [emptyMessage]="'Sin menú compatible para esta franja'"
+                  [disabled]="submitting() || !selectedEvent.inscripcionAbierta"
+                  (menuChanged)="updateMenu($event)"
+                />
+              }
+            </article>
+          }
         }
-        <p class="grand-total">
-          <span>Total</span>
-          <strong>{{ totalPrice() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
-        </p>
-      </article>
 
-      @if (submitError()) {
-        <p class="submit-error" role="alert">{{ submitError() }}</p>
+        <article class="panel total-card">
+          <h2>Total estimado</h2>
+          <p class="summary">Revisión rápida antes de confirmar.</p>
+          @for (item of selectionSummary(); track item.memberName + '-' + item.slot) {
+            <p>
+              <span>{{ item.memberName }} · {{ slotLabel(item.slot) }} · {{ item.menuLabel }}</span>
+              <strong>{{ item.price | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+            </p>
+          }
+          <p class="grand-total">
+            <span>Total</span>
+            <strong>{{ totalPrice() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+          </p>
+        </article>
+
+        @if (submitError()) {
+          <p class="submit-error" role="alert">{{ submitError() }}</p>
+        }
+
+        <app-cta-button
+          [label]="confirmButtonLabel()"
+          [disabled]="!readyToConfirm() || submitting()"
+          (pressed)="confirmSelection()"
+        />
       }
-
-      <app-cta-button
-        [label]="confirmButtonLabel()"
-        [disabled]="!readyToConfirm() || submitting()"
-        (pressed)="confirmSelection()"
-      />
     }
   </div>
 </section>
