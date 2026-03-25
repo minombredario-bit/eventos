@@ -11,20 +11,29 @@
     <article class="panel intro" aria-label="Resumen de inicio">
       <p class="eyebrow">Agenda fallera</p>
       <h2>Consultá próximos eventos y elegí un día para ver disponibilidad.</h2>
+      <p class="supporting-copy">Vista mensual con marcadores por día y detalle de la fecha seleccionada.</p>
+    </article>
+
+    <article class="panel selected-day" aria-label="Eventos del día seleccionado">
+      <header class="selected-header">
+        <h2>{{ selectedDateLabel() }}</h2>
+        <span class="day-state" [class]="'day-state ' + selectedDayState()">{{ dayStateLabel(selectedDayState()) }}</span>
+      </header>
+
       @if (selectedDayEvents().length) {
         @for (event of selectedDayEvents(); track event.id) {
           <app-event-card [event]="event" />
         }
       } @else {
-        <p>No hay eventos para esta fecha.</p>
+        <p class="empty-copy">No hay eventos para esta fecha.</p>
       }
     </article>
 
     <article class="panel calendar" aria-label="Calendario de eventos">
       <header class="calendar-header">
-        <button type="button" aria-label="Mes anterior" (click)="moveMonth(-1)">‹</button>
+        <button class="month-nav" type="button" aria-label="Mes anterior" (click)="moveMonth(-1)">‹</button>
         <h2>{{ monthTitle() }}</h2>
-        <button type="button" aria-label="Mes siguiente" (click)="moveMonth(1)">›</button>
+        <button class="month-nav" type="button" aria-label="Mes siguiente" (click)="moveMonth(1)">›</button>
       </header>
 
       <div class="week-days">
@@ -53,13 +62,16 @@
     <article class="panel upcoming">
       <h2>Próximos eventos</h2>
       @if (loading()) {
-        <p>Cargando eventos...</p>
+        <p class="empty-copy">Cargando eventos...</p>
+      } @else if (errorMessage()) {
+        <p class="empty-copy" role="alert">{{ errorMessage() }}</p>
+      } @else if (upcomingEvents().length === 0) {
+        <p class="empty-copy">No hay eventos próximos dentro de la ventana actual.</p>
       } @else {
         @for (event of upcomingEvents(); track event.id) {
           <app-event-card [event]="event" />
         }
       }
     </article>
-
   </div>
 </section>

@@ -60,11 +60,11 @@ export class Login {
         },
         error: (error: HttpErrorResponse) => {
           if (error.status === 401) {
-            this.errorMessage.set('Email o contraseña incorrectos. Revisalos e intentá de nuevo.');
+            this.errorMessage.set('Email o contraseña incorrectos. Revisalos e intenta de nuevo.');
             return;
           }
 
-          this.errorMessage.set('No pudimos iniciar sesión ahora. Probá nuevamente en unos minutos.');
+          this.errorMessage.set('No pudimos iniciar sesión. Prueba nuevamente en unos minutos.');
         },
       });
   }

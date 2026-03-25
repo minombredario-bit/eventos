@@ -7,8 +7,9 @@ import { AuthService } from '../../../core/auth/auth';
 import { CtaButton } from '../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../shared/components/member-row/member-row';
 import { MobileHeader } from '../../shared/components/mobile-header/mobile-header';
-import { FamilyMember, MealSlot, MenuOption } from '../models/ui';
-import { EventoDetalleApi, EventosApi, MenuEventoApi, PersonaFamiliarApi } from '../services/eventos-api';
+import { FamilyMember, MealSlot, MenuOption, ParticipantOrigin } from '../models/ui';
+import { EventosMapper } from '../services/eventos-mapper';
+import { EventoDetalleApi, EventosApi } from '../services/eventos-api';
 
 interface MenuChangePayload {
   memberId: string;
@@ -18,11 +19,17 @@ interface MenuChangePayload {
 
 interface SelectionSummaryRow {
   memberId: string;
+  memberOrigin: ParticipantOrigin;
   menuId: string;
   memberName: string;
   slot: MealSlot;
   menuLabel: string;
   price: number;
+}
+
+interface ParticipantReference {
+  id: string;
+  origin: ParticipantOrigin;
 }
 
 @Component({
@@ -39,6 +46,7 @@ export class Menus {
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly eventosApi = inject(EventosApi);
+  private readonly eventosMapper = inject(EventosMapper);
 
   private readonly eventId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('id') ?? '')),
@@ -47,7 +55,7 @@ export class Menus {
 
   private readonly preselectedParticipantIds = toSignal(
     this.route.queryParamMap.pipe(map((params) => this.parseParticipantsParam(params.get('participants')))),
-    { initialValue: [] as string[] }
+    { initialValue: [] as ParticipantReference[] }
   );
 
   protected readonly loading = signal(true);
@@ -57,28 +65,47 @@ export class Menus {
   protected readonly submitError = signal<string | null>(null);
 
   protected readonly event = signal<EventoDetalleApi | null>(null);
-  protected readonly members = signal<FamilyMember[]>([]);
+  protected readonly familyMembers = signal<FamilyMember[]>([]);
+  protected readonly noFalleros = signal<FamilyMember[]>([]);
   protected readonly options = signal<MenuOption[]>([]);
+  protected readonly removedMemberIds = signal<string[]>([]);
+
+  protected readonly members = computed(() => {
+    return [...this.familyMembers(), ...this.noFalleros()];
+  });
 
   protected readonly membersInScope = computed(() => {
     const members = this.members();
     const preselectedIds = this.preselectedParticipantIds();
+    const removedSet = new Set(this.removedMemberIds());
 
     if (!preselectedIds.length) {
-      return members;
+      return members.filter((member) => !removedSet.has(this.participantKey(member.id, member.origin)));
     }
 
-    const selectedSet = new Set(preselectedIds);
-    return members.filter((member) => selectedSet.has(member.id));
+    const selectedSet = new Set(preselectedIds.map((participant) => this.participantKey(participant.id, participant.origin)));
+
+    return members.filter((member) => {
+      const memberKey = this.participantKey(member.id, member.origin);
+      return selectedSet.has(memberKey) && !removedSet.has(memberKey);
+    });
+  });
+
+  protected readonly removedMembers = computed(() => {
+    const removedSet = new Set(this.removedMemberIds());
+    return this.members().filter((member) => removedSet.has(this.participantKey(member.id, member.origin)));
   });
 
   protected readonly hasPreselection = computed(() => this.preselectedParticipantIds().length > 0);
 
   protected readonly participantScopeMessage = computed(() => {
     const visible = this.membersInScope().length;
+    const removed = this.removedMemberIds().length;
 
     if (!this.hasPreselection()) {
-      return 'No había selección previa en detalle. Mostramos todos tus familiares.';
+      return removed
+        ? `Mostrando ${visible} participantes. Quitaste ${removed} de esta inscripción.`
+        : 'No había selección previa en detalle. Mostramos todos tus familiares.';
     }
 
     if (visible === 0) {
@@ -86,10 +113,14 @@ export class Menus {
     }
 
     if (visible === 1) {
-      return 'Mostrando 1 familiar seleccionado desde detalle.';
+      return removed
+        ? 'Mostrando 1 familiar seleccionado desde detalle. También quitaste participantes en esta pantalla.'
+        : 'Mostrando 1 familiar seleccionado desde detalle.';
     }
 
-    return `Mostrando ${visible} familiares seleccionados desde detalle.`;
+    return removed
+      ? `Mostrando ${visible} familiares seleccionados desde detalle. Quitaste ${removed} en esta pantalla.`
+      : `Mostrando ${visible} familiares seleccionados desde detalle.`;
   });
 
   protected readonly slots: MealSlot[] = ['almuerzo', 'comida', 'merienda', 'cena'];
@@ -108,6 +139,7 @@ export class Menus {
       )
       .subscribe((id) => {
         void this.loadEvent(id);
+        void this.loadNoFalleros(id);
       });
 
     void this.loadMembers();
@@ -134,6 +166,7 @@ export class Menus {
 
         summary.push({
           memberId: member.id,
+          memberOrigin: member.origin,
           menuId: selectedOption.id,
           memberName: member.name,
           slot,
@@ -152,6 +185,15 @@ export class Menus {
     }
 
     return this.selectionSummary().length > 0;
+  });
+
+  protected readonly allMenusAreFree = computed(() => {
+    const options = this.options();
+    if (!options.length) {
+      return false;
+    }
+
+    return options.every((option) => !option.isPaid || option.price <= 0);
   });
 
   protected updateMenu(payload: MenuChangePayload): void {
@@ -192,6 +234,32 @@ export class Menus {
     return slot.charAt(0).toUpperCase() + slot.slice(1);
   }
 
+  protected clearMemberSlot(memberId: string, slot: MealSlot): void {
+    this.updateMenu({ memberId, slot, menuId: null });
+  }
+
+  protected removeMemberFromMenus(member: FamilyMember): void {
+    const memberKey = this.participantKey(member.id, member.origin);
+
+    this.removedMemberIds.update((current) => {
+      if (current.includes(memberKey)) {
+        return current;
+      }
+
+      return [...current, memberKey];
+    });
+
+    this.selectedMenus.update((state) => ({
+      ...state,
+      [member.id]: {},
+    }));
+  }
+
+  protected restoreMemberToMenus(member: FamilyMember): void {
+    const memberKey = this.participantKey(member.id, member.origin);
+    this.removedMemberIds.update((current) => current.filter((id) => id !== memberKey));
+  }
+
   private getAvailableSlotsForMember(member: FamilyMember): MealSlot[] {
     return this.slots.filter((slot) => this.getMenusForSlotAndMember(slot, member).length > 0);
   }
@@ -211,7 +279,7 @@ export class Menus {
 
     try {
       const payload = this.selectionSummary().map((row) => ({
-        persona: row.memberId,
+        persona: this.buildPersonaReference(row.memberId, row.memberOrigin),
         menu: row.menuId,
       }));
 
@@ -233,8 +301,24 @@ export class Menus {
   }
 
   protected readonly confirmButtonLabel = computed(() => {
+    if (!this.event()?.inscripcionAbierta) {
+      return 'Inscripción cerrada';
+    }
+
+    if (!this.membersInScope().length) {
+      return 'No hay participantes para registrar';
+    }
+
+    if (this.selectionSummary().length === 0) {
+      return 'Elegí al menos un menú para registrar';
+    }
+
     if (this.submitting()) {
       return 'Confirmando inscripción...';
+    }
+
+    if (this.allMenusAreFree()) {
+      return 'Aceptar y confirmar inscripción';
     }
 
     return `Confirmar menús · ${new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(this.totalPrice())}`;
@@ -247,15 +331,17 @@ export class Menus {
     try {
       const evento = await firstValueFrom(this.eventosApi.getEvento(id));
       this.event.set(evento);
+      this.removedMemberIds.set([]);
       this.options.set(
         evento.menus
           .filter((menu) => menu.activo !== false)
-          .map((menu) => this.toMenuOption(menu)),
+          .map((menu) => this.eventosMapper.toMenuOption(menu)),
       );
       this.reconcileSelectedMenus();
     } catch {
       this.errorMessage.set('No pudimos cargar el evento. Volvé a intentar en unos segundos.');
       this.event.set(null);
+      this.removedMemberIds.set([]);
       this.options.set([]);
       this.reconcileSelectedMenus();
     } finally {
@@ -268,14 +354,25 @@ export class Menus {
 
     try {
       const personas = await firstValueFrom(this.eventosApi.getPersonasMias());
-      this.members.set(personas.map((persona) => this.toFamilyMember(persona)));
+      this.familyMembers.set(personas.map((persona) => this.eventosMapper.toFamilyMember(persona)));
       this.reconcileSelectedMenus();
     } catch {
       this.errorMessage.set('No pudimos cargar tus familiares para la inscripción.');
-      this.members.set([]);
+      this.familyMembers.set([]);
       this.reconcileSelectedMenus();
     } finally {
       this.loadingPeople.set(false);
+    }
+  }
+
+  private async loadNoFalleros(eventId: string): Promise<void> {
+    try {
+      const noFalleros = await firstValueFrom(this.eventosApi.getNoFallerosByEvento(eventId));
+      this.noFalleros.set(noFalleros.map((persona) => this.eventosMapper.toFamilyMember(persona)));
+      this.reconcileSelectedMenus();
+    } catch {
+      this.noFalleros.set([]);
+      this.reconcileSelectedMenus();
     }
   }
 
@@ -305,38 +402,56 @@ export class Menus {
     });
   }
 
-  private parseParticipantsParam(rawValue: string | null): string[] {
+  private parseParticipantsParam(rawValue: string | null): ParticipantReference[] {
     if (!rawValue) {
       return [];
     }
 
-    return [...new Set(
-      rawValue
-        .split(',')
-        .map((id) => id.trim())
-        .filter((id) => id.length > 0),
-    )];
+    const parsed = rawValue
+      .split(',')
+      .map((token) => token.trim())
+      .filter((token) => token.length > 0)
+      .map<ParticipantReference>((token) => {
+        const [originRaw = '', ...idParts] = token.split(':');
+
+        if (idParts.length === 0) {
+          return {
+            id: originRaw,
+            origin: 'familiar' as const,
+          };
+        }
+
+        const origin: ParticipantOrigin = originRaw === 'no_fallero' ? 'no_fallero' : 'familiar';
+
+        return {
+          id: idParts.join(':').trim(),
+          origin,
+        };
+      })
+      .filter((participant) => participant.id.length > 0);
+
+    const seen = new Set<string>();
+    return parsed.filter((participant) => {
+      const key = this.participantKey(participant.id, participant.origin);
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
   }
 
-  private toFamilyMember(persona: PersonaFamiliarApi): FamilyMember {
-    return {
-      id: persona.id,
-      name: persona.nombreCompleto,
-      role: persona.parentesco,
-      personType: persona.tipoPersona,
-      avatarInitial: persona.nombre.charAt(0).toUpperCase(),
-      notes: persona.observaciones ?? undefined,
-    };
+  private participantKey(id: string, origin: ParticipantOrigin): string {
+    return `${origin === 'no_fallero' ? 'no_fallero' : 'familiar'}:${id}`;
   }
 
-  private toMenuOption(menu: MenuEventoApi): MenuOption {
-    return {
-      id: menu.id,
-      label: menu.nombre,
-      description: menu.descripcion ?? '',
-      slot: menu.franjaComida,
-      compatibility: menu.compatibilidadPersona,
-      price: menu.precioBase,
-    };
+  private buildPersonaReference(id: string, origin: ParticipantOrigin): string {
+    if (origin === 'no_fallero') {
+      return `/api/no_falleros/${id}`;
+    }
+
+    return `/api/persona_familiares/${id}`;
   }
+
 }

@@ -9,6 +9,15 @@
       @if (member().notes) {
         <small class="notes">{{ member().notes }}</small>
       }
+
+      @if (showEnrollmentInfo() && member().enrollment; as enrollment) {
+        <div class="enrollment-meta">
+          <small class="event-signup" [title]="enrollment.eventLabel">Apuntado: {{ enrollment.eventLabel }}</small>
+          <span class="payment-badge" [class]="'payment-badge ' + enrollment.paymentStatus">
+            {{ paymentBadgeLabel(enrollment.paymentStatus) }}
+          </span>
+        </div>
+      }
     </div>
   </div>
 

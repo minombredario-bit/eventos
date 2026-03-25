@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { FamilyMember, MenuOption } from '../../../eventos/models/ui';
+import { FamilyMember, MenuOption, PaymentBadgeStatus } from '../../../eventos/models/ui';
 
 interface MenuChangePayload {
   memberId: string;
@@ -25,6 +25,7 @@ export class MemberRow {
   readonly menuOptions = input<MenuOption[]>([]);
   readonly selectedMenuId = input<string | null>(null);
   readonly emptyMessage = input('No hay menús disponibles para esta persona');
+  readonly showEnrollmentInfo = input(false);
   readonly disabled = input(false);
 
   readonly actionPressed = output<string>();
@@ -41,5 +42,21 @@ export class MemberRow {
       menuId: target.value || null,
       slot: this.slot(),
     });
+  }
+
+  protected paymentBadgeLabel(status: PaymentBadgeStatus): string {
+    if (status === 'pagado') {
+      return 'Pagado';
+    }
+
+    if (status === 'parcial') {
+      return 'Parcial';
+    }
+
+    if (status === 'no_requiere') {
+      return 'No requiere';
+    }
+
+    return 'Pendiente';
   }
 }

@@ -10,27 +10,33 @@
   />
 
   <div class="content">
-    @if (credential(); as data) {
+    @if (credential()) {
       <article class="ticket" aria-label="Credencial del evento">
+        <span class="ticket-cut ticket-cut-left" aria-hidden="true"></span>
+        <span class="ticket-cut ticket-cut-right" aria-hidden="true"></span>
         <header class="ticket-header">
           <div>
-            <p class="event-name">{{ data.eventTitle }}</p>
-            <strong>{{ data.eventDate | date: 'EEEE d MMM · HH:mm' }}</strong>
+            <p class="event-name">{{ credential()?.eventTitle }}</p>
+            <strong>{{ credential()?.eventDate | date: 'EEEE d MMM · HH:mm' }}</strong>
           </div>
           <span class="entry-pill">Acceso válido</span>
         </header>
 
         <section class="identity">
-          <p class="holder">Titular: {{ data.holderName }}</p>
-          <p class="zone">{{ data.eventZone }}</p>
+          <p class="holder">Titular: {{ credential()?.holderName }}</p>
+          <p class="zone">{{ credential()?.eventZone }}</p>
+          <p class="payment-summary">
+            {{ credential()?.paymentLabel }} · {{ credential()?.paymentAmount | currency: 'EUR' : 'symbol' : '1.0-0' }}
+          </p>
         </section>
 
         <div class="divider" aria-hidden="true"></div>
 
         <section class="lines">
-          @for (line of data.lines; track line.id) {
+          <p class="lines-label">Detalle de asistentes</p>
+          @for (line of credential()?.lines ?? []; track line.id) {
             <div class="line-item">
-              <p>
+              <p class="line-main">
                 <span>{{ line.nombrePersonaSnapshot }}</span>
                 <strong>{{ lineMenuLabel(line) }}</strong>
               </p>
@@ -58,6 +64,7 @@
         }
 
         <section class="qr-block">
+          <p class="qr-caption">Presentá este código al ingresar al evento.</p>
           <section class="qr" aria-label="Código QR visual">
             @for (row of qrRows(); track $index; let rowIndex = $index) {
               @for (pixel of row; track $index; let pixelIndex = $index) {
@@ -65,8 +72,10 @@
               }
             }
           </section>
-          <p class="token" aria-live="polite">Token: {{ data.qrToken }}</p>
+          <p class="token" aria-live="polite">Token: {{ credential()?.qrToken }}</p>
         </section>
+
+        <p class="ticket-footnote">Credencial personal e intransferible.</p>
       </article>
     } @else if (loading()) {
       <article class="ticket" aria-label="Cargando credencial">

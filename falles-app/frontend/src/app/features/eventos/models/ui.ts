@@ -13,8 +13,22 @@ export interface FamilyMember {
   name: string;
   role: string;
   personType: 'adulto' | 'infantil';
+  origin: ParticipantOrigin;
   avatarInitial: string;
   notes?: string;
+  enrollment?: MemberEnrollment;
+}
+
+export type ParticipantOrigin = 'familiar' | 'no_fallero';
+
+export type PaymentBadgeStatus = 'pagado' | 'pendiente' | 'no_requiere' | 'parcial';
+
+export interface MemberEnrollment {
+  eventId?: string;
+  eventTitle?: string;
+  eventLabel: string;
+  paymentStatus: PaymentBadgeStatus;
+  paymentStatusRaw: string;
 }
 
 export type MealSlot = 'almuerzo' | 'comida' | 'merienda' | 'cena';
@@ -26,6 +40,7 @@ export interface MenuOption {
   description: string;
   slot: MealSlot;
   compatibility: MenuCompatibility;
+  isPaid?: boolean;
   price: number;
   disabled?: boolean;
 }

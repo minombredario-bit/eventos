@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { firstValueFrom, map } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { combineLatest, distinctUntilChanged, filter, firstValueFrom, map } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth';
 import { MobileHeader } from '../../shared/components/mobile-header/mobile-header';
 import { EventosApi, InscripcionApi } from '../services/eventos-api';
@@ -12,7 +12,7 @@ const QR_SIZE = 21;
 @Component({
   selector: 'app-credencial',
   standalone: true,
-  imports: [MobileHeader, DatePipe],
+  imports: [MobileHeader, DatePipe, CurrencyPipe],
   templateUrl: './credencial.html',
   styleUrl: './credencial.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,18 +20,11 @@ const QR_SIZE = 21;
 export class Credencial {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly eventosApi = inject(EventosApi);
 
-  private readonly eventId = toSignal(
-    this.route.paramMap.pipe(map((params) => params.get('id') ?? '')),
-    { initialValue: '' }
-  );
-
-  private readonly inscriptionIdFromQuery = toSignal(
-    this.route.queryParamMap.pipe(map((params) => params.get('inscripcionId'))),
-    { initialValue: null }
-  );
+  protected readonly eventId = signal('');
 
   protected readonly loading = signal(true);
   protected readonly processingLineId = signal<string | null>(null);
@@ -39,16 +32,25 @@ export class Credencial {
   protected readonly actionError = signal<string | null>(null);
   protected readonly inscription = signal<InscripcionApi | null>(null);
 
-  private readonly loadInscriptionEffect = effect(() => {
-    const eventId = this.eventId();
-    const inscriptionId = this.inscriptionIdFromQuery();
-
-    if (!eventId) {
-      return;
-    }
-
-    void this.loadInscription(eventId, inscriptionId);
-  });
+  constructor() {
+    combineLatest([
+      this.route.paramMap.pipe(map((params) => params.get('id') ?? '')),
+      this.route.queryParamMap.pipe(map((params) => params.get('inscripcionId'))),
+    ])
+      .pipe(
+        filter(([eventId]) => Boolean(eventId)),
+        distinctUntilChanged(
+          ([prevEventId, prevInscriptionId], [nextEventId, nextInscriptionId]) => {
+            return prevEventId === nextEventId && prevInscriptionId === nextInscriptionId;
+          },
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(([eventId, inscriptionId]) => {
+        this.eventId.set(eventId);
+        void this.loadInscription(eventId, inscriptionId);
+      });
+  }
 
   protected readonly credential = computed(() => {
     const inscription = this.inscription();
@@ -67,6 +69,8 @@ export class Credencial {
       holderName,
       eventZone: inscription.evento.lugar ?? 'Acceso principal',
       qrToken: inscription.codigo,
+      paymentLabel: this.paymentStatusLabel(inscription.estadoPago),
+      paymentAmount: inscription.importeTotal,
       lines: inscription.lineas,
     };
   });
@@ -119,6 +123,26 @@ export class Credencial {
     }
 
     return 'Estado no editable';
+  }
+
+  private paymentStatusLabel(status: string): string {
+    if (status === 'pagado') {
+      return 'Pago confirmado';
+    }
+
+    if (status === 'pendiente') {
+      return 'Pago pendiente';
+    }
+
+    if (status === 'parcial') {
+      return 'Pago parcial';
+    }
+
+    if (status === 'no_requiere_pago') {
+      return 'Sin coste';
+    }
+
+    return 'Estado de pago';
   }
 
   protected async cancelLine(lineId: string): Promise<void> {

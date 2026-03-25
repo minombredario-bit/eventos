@@ -10,47 +10,124 @@
   />
 
   <div class="content">
-    @if (eventSummary(); as event) {
-      <article class="panel event-hero">
-        <p class="eyebrow">Evento seleccionado</p>
-        <h2>{{ event.title }}</h2>
-        <div class="meta-grid">
-          <p>{{ event.date }} · {{ event.time }}</p>
-          <p>{{ event.location }}</p>
-        </div>
-        <p class="description">{{ event.description }}</p>
-        <span class="status-chip" [class]="'status-chip ' + event.status">{{ eventStatusLabel() }}</span>
-      </article>
-    } @else if (loading()) {
-      <article class="panel event-hero">
-        <p class="eyebrow">Evento seleccionado</p>
-        <h2>Cargando detalle...</h2>
-      </article>
-    }
+    <div class="detail-layout">
+      @if (eventSummary()) {
+        <article class="panel event-hero">
+          <p class="eyebrow">Evento seleccionado</p>
+          <h2>{{ eventSummary()?.title }}</h2>
+          <div class="meta-grid">
+            <p>{{ eventSummary()?.date }} · {{ eventSummary()?.time }}</p>
+            <p>{{ eventSummary()?.location }}</p>
+          </div>
+          <p class="description">{{ eventSummary()?.description }}</p>
+          <span class="status-chip" [class]="'status-chip ' + eventSummary()?.status">{{ eventStatusLabel() }}</span>
+        </article>
+      } @else if (loading()) {
+        <article class="panel event-hero">
+          <p class="eyebrow">Evento seleccionado</p>
+          <h2>Cargando detalle...</h2>
+        </article>
+      }
+
+      <div class="detail-panels">
+        <article class="panel family-list" aria-label="Listado de familiares">
+          <h2>Inscripciones y familiares</h2>
+          <p class="supporting-copy">Tocá en “Inscribir” para elegir quiénes pasan a la pantalla de menús.</p>
+          <p class="selection-summary">{{ selectedCountLabel() }}</p>
+          @if (loadingPeople()) {
+            <p>Cargando familiares...</p>
+          } @else if (participants().length === 0) {
+            <p class="supporting-copy">No tenés personas disponibles para este evento.</p>
+          } @else {
+            @for (member of participants(); track participantTrackKey(member)) {
+              <app-member-row
+                [member]="member"
+                [actionLabel]="participantActionLabel(member)"
+                [showEnrollmentInfo]="true"
+                aria-label="Fila de persona para inscribir"
+                (actionPressed)="toggleMemberSelection(member)"
+              />
+            }
+          }
+        </article>
+
+        <article class="panel no-falleros" aria-label="Gestión de no falleros">
+          <h2>No falleros del evento</h2>
+          <p class="supporting-copy">Alta y baja rápida de invitados externos para este evento.</p>
+
+          <form class="no-falleros-form" [formGroup]="noFalleroForm" (ngSubmit)="submitNoFallero()" novalidate>
+            <div class="field-grid">
+              <label>
+                Nombre
+                <input type="text" formControlName="nombre" placeholder="Nombre" />
+              </label>
+
+              <label>
+                Apellidos
+                <input type="text" formControlName="apellidos" placeholder="Apellidos" />
+              </label>
+            </div>
+
+            <div class="field-grid">
+              <label>
+                Tipo
+                <select formControlName="tipoPersona">
+                  <option value="adulto">Adulto</option>
+                  <option value="infantil">Infantil</option>
+                </select>
+              </label>
+
+              <label>
+                Relación
+                <input type="text" formControlName="parentesco" placeholder="Invitado/a" />
+              </label>
+            </div>
+
+            <label>
+              Observaciones
+              <textarea formControlName="observaciones" rows="2" placeholder="Alergias, notas, etc. (opcional)"></textarea>
+            </label>
+
+            <app-cta-button
+              class="form-cta"
+              label="Dar de alta no fallero"
+              loadingLabel="Guardando..."
+              type="submit"
+              [loading]="submittingNoFallero()"
+              [disabled]="submittingNoFallero()"
+            />
+          </form>
+
+          @if (noFallerosError()) {
+            <p class="inline-error" role="alert">{{ noFallerosError() }}</p>
+          }
+
+          @if (loadingNoFalleros()) {
+            <p class="supporting-copy">Cargando no falleros...</p>
+          } @else if (noFallerosRows().length === 0) {
+            <p class="supporting-copy">Todavía no hay no falleros cargados para este evento.</p>
+          } @else {
+            <div class="no-falleros-list">
+              @for (member of noFallerosRows(); track participantTrackKey(member)) {
+                <app-member-row
+                  [member]="member"
+                  [showEnrollmentInfo]="true"
+                  [actionLabel]="isDeletingNoFallero(member.id) ? 'Dando de baja...' : 'Dar de baja'"
+                  [disabled]="isDeletingNoFallero(member.id)"
+                  (actionPressed)="removeNoFallero($event)"
+                />
+              }
+            </div>
+          }
+        </article>
+      </div>
+    </div>
 
     @if (errorMessage(); as error) {
       <article class="panel">
         <p>{{ error }}</p>
       </article>
     }
-
-    <article class="panel family-list" aria-label="Listado de familiares">
-      <h2>Inscripciones y familiares</h2>
-      <p class="supporting-copy">Toca en “Inscribir” para elegir quiénes pasan a la pantalla de menús.</p>
-      <p class="selection-summary">{{ selectedCountLabel() }}</p>
-      @if (loadingPeople()) {
-        <p>Cargando familiares...</p>
-      } @else {
-        @for (member of members(); track member.id) {
-          <app-member-row
-            [member]="member"
-            [actionLabel]="isMemberSelected(member.id) ? 'Quitar' : 'Inscribir'"
-            aria-label="Fila de persona para inscribir"
-            (actionPressed)="toggleMemberSelection($event)"
-          />
-        }
-      }
-    </article>
 
     <div class="cta-wrap">
       <app-cta-button [label]="menusButtonLabel()" [disabled]="!canContinueToMenus()" (pressed)="openMenus()" />

@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/auth/auth';
 import { EventCard } from '../../shared/components/event-card/event-card';
 import { MobileHeader } from '../../shared/components/mobile-header/mobile-header';
 import { EventSummary } from '../models/ui';
+import { EventosMapper } from '../services/eventos-mapper';
 import { EventoResumenApi, EventosApi } from '../services/eventos-api';
 
 interface CalendarCell {
@@ -28,6 +29,7 @@ export class Inicio {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly eventosApi = inject(EventosApi);
+  private readonly eventosMapper = inject(EventosMapper);
 
   protected readonly weekDays = WEEK_DAYS;
   protected readonly events = signal<EventSummary[]>([]);          // todos — calendario
@@ -47,13 +49,11 @@ export class Inicio {
     const map = this.events().reduce(
       (acc, event) => {
         const key = this.normalizeApiDateKey(event.date);
-        console.log('evento:', event.title, '| date raw:', event.date, '| key:', key);
         acc[key] = [...(acc[key] ?? []), event];
         return acc;
       },
       {} as Record<string, EventSummary[]>
     );
-    console.log('eventsByDate keys:', Object.keys(map));
     return map;
   });
 
@@ -158,12 +158,14 @@ export class Inicio {
       const eventos = await firstValueFrom(this.eventosApi.getEventos());
       const now = new Date();
 
-      const allSummaries = eventos
-        .map((evento) => this.toEventSummary(evento));
+      const sortedEventos = [...eventos].sort((a, b) => this.compareEventsByDateTime(a, b));
 
-      const upcomingSummaries = eventos  // ← sobre el array original, no sobre allSummaries
+      const allSummaries = sortedEventos
+        .map((evento) => this.eventosMapper.toEventSummary(evento));
+
+      const upcomingSummaries = sortedEventos
         .filter((evento) => !this.isPastEvent(evento, now) && this.isWithinNextMonth(evento, now))
-        .map((evento) => this.toEventSummary(evento));
+        .map((evento) => this.eventosMapper.toEventSummary(evento));
 
       this.events.set(allSummaries);
       this.upcomingEvents.set(upcomingSummaries);
@@ -175,30 +177,6 @@ export class Inicio {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  private toEventSummary(evento: EventoResumenApi): EventSummary {
-    return {
-      id: evento.id,
-      title: evento.titulo,
-      date: evento.fechaEvento,
-      time: evento.horaInicio ?? 'Sin hora',
-      location: evento.lugar ?? 'Lugar por confirmar',
-      status: this.toUiStatus(evento),
-      description: evento.descripcion ?? 'Sin descripción disponible.',
-    };
-  }
-
-  private toUiStatus(evento: EventoResumenApi): EventSummary['status'] {
-    if (evento.inscripcionAbierta) {
-      return 'abierto';
-    }
-
-    if (evento.estado === 'publicado') {
-      return 'ultimas_plazas';
-    }
-
-    return 'cerrado';
   }
 
   private formatDateKey(date: Date): string {

@@ -1,6 +1,7 @@
 <main class="login-page">
   <section class="login-card">
     <header class="login-header">
+      <p class="brand-pill">FestApp</p>
       <h1>Ingresa a FestApp</h1>
       <p>Usa tu email y contraseña para continuar.</p>
     </header>
@@ -19,7 +20,7 @@
           <small class="error">El email es obligatorio.</small>
         }
         @if (hasError('email', 'email')) {
-          <small class="error">Ingresá un email válido.</small>
+          <small class="error">Ingresa un email válido.</small>
         }
       </div>
 
@@ -37,22 +38,24 @@
         }
       </div>
 
-      @if (errorMessage(); as message) {
-        <p class="error-box" role="alert" aria-live="polite">{{ message }}</p>
+      @if (errorMessage()) {
+        <p class="error-box" role="alert" aria-live="polite">{{ errorMessage() }}</p>
       }
 
-      <app-cta-button
-        label="Ingresar"
-        loadingLabel="Ingresando..."
-        type="submit"
-        [loading]="loading()"
-        [disabled]="loading()"
-        ariaLabel="Ingresar a la aplicación"
-      />
+      <div class="cta-wrap">
+        <app-cta-button
+          label="Ingresar"
+          loadingLabel="Ingresando..."
+          type="submit"
+          [loading]="loading()"
+          [disabled]="loading()"
+          ariaLabel="Ingresar a la aplicación"
+        />
+      </div>
     </form>
 
     <p id="login-help" class="help-text">
-      Si no podés acceder, contactá al administrador de tu entidad.
+      Si no puedes acceder, contacta con el administrador de tu entidad.
     </p>
     <a routerLink="/auth/login" class="help-link">Recargar formulario</a>
   </section>

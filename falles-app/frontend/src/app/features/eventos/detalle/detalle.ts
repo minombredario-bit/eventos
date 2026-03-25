@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { distinctUntilChanged, filter, firstValueFrom, map } from 'rxjs';
@@ -7,12 +8,13 @@ import { CtaButton } from '../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../shared/components/member-row/member-row';
 import { MobileHeader } from '../../shared/components/mobile-header/mobile-header';
 import { EventSummary, FamilyMember } from '../models/ui';
-import { EventoDetalleApi, EventosApi, PersonaFamiliarApi } from '../services/eventos-api';
+import { EventosMapper } from '../services/eventos-mapper';
+import { AltaNoFalleroPayload, EventoDetalleApi, EventosApi } from '../services/eventos-api';
 
 @Component({
   selector: 'app-detalle',
   standalone: true,
-  imports: [MobileHeader, MemberRow, CtaButton],
+  imports: [MobileHeader, MemberRow, CtaButton, ReactiveFormsModule],
   templateUrl: './detalle.html',
   styleUrl: './detalle.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,8 +23,10 @@ export class Detalle {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly eventosApi = inject(EventosApi);
+  private readonly eventosMapper = inject(EventosMapper);
 
   private readonly eventId = toSignal(
     this.route.paramMap.pipe(map((params) => params.get('id') ?? '')),
@@ -31,10 +35,54 @@ export class Detalle {
 
   protected readonly loading = signal(true);
   protected readonly loadingPeople = signal(true);
+  protected readonly loadingNoFalleros = signal(true);
+  protected readonly submittingNoFallero = signal(false);
+  protected readonly deletingNoFalleroId = signal<string | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly noFallerosError = signal<string | null>(null);
 
   protected readonly event = signal<EventoDetalleApi | null>(null);
   protected readonly members = signal<FamilyMember[]>([]);
+  protected readonly noFalleros = signal<FamilyMember[]>([]);
+
+  protected readonly noFallerosRows = computed<FamilyMember[]>(() => {
+    const summary = this.eventSummary();
+
+    return this.noFalleros().map((member) => {
+      if (member.enrollment || !summary) {
+        return member;
+      }
+
+      return {
+        ...member,
+        enrollment: {
+          eventId: summary.id,
+          eventTitle: summary.title,
+          eventLabel: summary.time === 'Sin hora'
+            ? `${summary.title} · ${summary.date}`
+            : `${summary.title} · ${summary.date} ${summary.time}`,
+          paymentStatus: this.eventosMapper.toPaymentBadgeStatus('pendiente'),
+          paymentStatusRaw: 'pendiente',
+        },
+      };
+    });
+  });
+
+  protected readonly noFalleroForm = this.fb.nonNullable.group({
+    nombre: ['', [Validators.required, Validators.minLength(2)]],
+    apellidos: ['', [Validators.required, Validators.minLength(2)]],
+    tipoPersona: this.fb.nonNullable.control<'adulto' | 'infantil'>('adulto'),
+    parentesco: ['Invitado/a', [Validators.required, Validators.minLength(2)]],
+    observaciones: [''],
+  });
+
+  protected readonly participants = computed(() => {
+    return [...this.members(), ...this.noFallerosRows()];
+  });
+
+  protected participantTrackKey(member: FamilyMember): string {
+    return this.participantKey(member);
+  }
 
   constructor() {
     this.route.paramMap
@@ -47,6 +95,7 @@ export class Detalle {
       .subscribe((id) => {
         this.selectedMemberIds.set([]);
         void this.loadEvent(id);
+        void this.loadNoFalleros(id);
       });
 
     void this.loadMembers();
@@ -58,13 +107,22 @@ export class Detalle {
       return null;
     }
 
+    let status: EventSummary['status'] = 'cerrado';
+    if (event.inscripcionAbierta === true) {
+      status = 'abierto';
+    } else if (event.inscripcionAbierta === false) {
+      status = 'cerrado';
+    } else if (event.estado === 'publicado') {
+      status = 'ultimas_plazas';
+    }
+
     return {
       id: event.id,
       title: event.titulo,
       date: this.formatEventDate(event.fechaEvento),
       time: this.formatEventTime(event.horaInicio),
       location: event.lugar ?? 'Lugar por confirmar',
-      status: event.inscripcionAbierta ? 'abierto' : 'cerrado',
+      status,
       description: event.descripcion ?? 'Sin descripción disponible.',
     };
   });
@@ -88,14 +146,14 @@ export class Detalle {
     const count = this.selectedMemberIds().length;
 
     if (count === 0) {
-      return 'Todavía no seleccionaste familiares para inscribir.';
+      return 'Todavía no seleccionaste personas para inscribir.';
     }
 
     if (count === 1) {
-      return '1 familiar seleccionado para pasar a menús.';
+      return '1 persona seleccionada para pasar a menús.';
     }
 
-    return `${count} familiares seleccionados para pasar a menús.`;
+    return `${count} personas seleccionadas para pasar a menús.`;
   });
 
   protected readonly canContinueToMenus = computed(() => {
@@ -113,17 +171,36 @@ export class Detalle {
     return `Seleccionar menús (${count})`;
   });
 
-  protected isMemberSelected(memberId: string): boolean {
-    return this.selectedMemberIds().includes(memberId);
+  protected isMemberSelected(member: FamilyMember): boolean {
+    return this.selectedMemberIds().includes(this.participantKey(member));
   }
 
-  protected toggleMemberSelection(memberId: string): void {
+  protected isAlreadyEnrolled(member: FamilyMember): boolean {
+    const currentEventId = this.eventSummary()?.id;
+    if (!currentEventId) {
+      return false;
+    }
+
+    return member.enrollment?.eventId === currentEventId;
+  }
+
+  protected participantActionLabel(member: FamilyMember): string {
+    if (this.isAlreadyEnrolled(member) && !this.isMemberSelected(member)) {
+      return 'Eliminar';
+    }
+
+    return this.isMemberSelected(member) ? 'Quitar' : 'Inscribir';
+  }
+
+  protected toggleMemberSelection(member: FamilyMember): void {
+    const memberKey = this.participantKey(member);
+
     this.selectedMemberIds.update((current) => {
-      if (current.includes(memberId)) {
-        return current.filter((id) => id !== memberId);
+      if (current.includes(memberKey)) {
+        return current.filter((id) => id !== memberKey);
       }
 
-      return [...current, memberId];
+      return [...current, memberKey];
     });
   }
 
@@ -174,7 +251,7 @@ export class Detalle {
 
     try {
       const personas = await firstValueFrom(this.eventosApi.getPersonasMias());
-      this.members.set(personas.map((persona) => this.toFamilyMember(persona)));
+      this.members.set(personas.map((persona) => this.eventosMapper.toFamilyMember(persona)));
     } catch {
       this.errorMessage.set('No pudimos cargar tus familiares para la inscripción.');
       this.members.set([]);
@@ -183,15 +260,84 @@ export class Detalle {
     }
   }
 
-  private toFamilyMember(persona: PersonaFamiliarApi): FamilyMember {
-    return {
-      id: persona.id,
-      name: persona.nombreCompleto,
-      role: persona.parentesco,
-      personType: persona.tipoPersona,
-      avatarInitial: persona.nombre.charAt(0).toUpperCase(),
-      notes: persona.observaciones ?? undefined,
+  protected async submitNoFallero(): Promise<void> {
+    if (this.noFalleroForm.invalid || this.submittingNoFallero()) {
+      this.noFalleroForm.markAllAsTouched();
+      return;
+    }
+
+    const eventId = this.eventId();
+    if (!eventId) {
+      return;
+    }
+
+    this.noFallerosError.set(null);
+    this.submittingNoFallero.set(true);
+
+    const value = this.noFalleroForm.getRawValue();
+    const payload: AltaNoFalleroPayload = {
+      nombre: value.nombre.trim(),
+      apellidos: value.apellidos.trim(),
+      tipoPersona: value.tipoPersona,
+      parentesco: value.parentesco.trim(),
+      observaciones: value.observaciones.trim(),
     };
+
+    try {
+      await firstValueFrom(this.eventosApi.altaNoFalleroEnEvento(eventId, payload));
+      await this.loadNoFalleros(eventId);
+      this.noFalleroForm.patchValue({
+        nombre: '',
+        apellidos: '',
+        tipoPersona: 'adulto',
+        parentesco: 'Invitado/a',
+        observaciones: '',
+      });
+      this.noFalleroForm.markAsPristine();
+      this.noFalleroForm.markAsUntouched();
+    } catch {
+      this.noFallerosError.set('No pudimos dar de alta al no fallero. Probá nuevamente.');
+    } finally {
+      this.submittingNoFallero.set(false);
+    }
+  }
+
+  protected async removeNoFallero(memberId: string): Promise<void> {
+    const eventId = this.eventId();
+    if (!eventId || this.deletingNoFalleroId()) {
+      return;
+    }
+
+    this.noFallerosError.set(null);
+    this.deletingNoFalleroId.set(memberId);
+
+    try {
+      await firstValueFrom(this.eventosApi.bajaNoFalleroEnEvento(eventId, memberId));
+      this.selectedMemberIds.update((current) => current.filter((id) => id !== `no_fallero:${memberId}`));
+      await this.loadNoFalleros(eventId);
+    } catch {
+      this.noFallerosError.set('No se pudo dar de baja al no fallero seleccionado.');
+    } finally {
+      this.deletingNoFalleroId.set(null);
+    }
+  }
+
+  protected isDeletingNoFallero(memberId: string): boolean {
+    return this.deletingNoFalleroId() === memberId;
+  }
+
+  private async loadNoFalleros(eventId: string): Promise<void> {
+    this.loadingNoFalleros.set(true);
+
+    try {
+      const noFalleros = await firstValueFrom(this.eventosApi.getNoFallerosByEvento(eventId));
+      this.noFalleros.set(noFalleros.map((persona) => this.eventosMapper.toFamilyMember(persona)));
+    } catch {
+      this.noFallerosError.set('No pudimos cargar no falleros para este evento.');
+      this.noFalleros.set([]);
+    } finally {
+      this.loadingNoFalleros.set(false);
+    }
   }
 
   private formatEventDate(rawDate: string): string {
@@ -234,5 +380,9 @@ export class Detalle {
     }
 
     return 'Sin hora';
+  }
+
+  private participantKey(member: FamilyMember): string {
+    return `${member.origin === 'no_fallero' ? 'no_fallero' : 'familiar'}:${member.id}`;
   }
 }

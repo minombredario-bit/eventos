@@ -8,10 +8,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\ApiProperty;
 use App\Enum\TipoEventoEnum;
 use App\Enum\EstadoEventoEnum;
 use Ramsey\Uuid\Uuid;
@@ -29,8 +28,6 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
     normalizationContext: ['groups' => ['evento:read']],
     denormalizationContext: ['groups' => ['evento:write']],
     operations: [
-        new Get(security: "is_granted('EVENTO_VIEW', object)"),
-        new GetCollection(),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('EVENTO_EDIT', object)"),
     ], 
@@ -164,6 +161,10 @@ class Evento
     /** @var Collection<int, Inscripcion> */
     #[ORM\OneToMany(targetEntity: Inscripcion::class, mappedBy: 'evento')]
     private Collection $inscripciones;
+
+    #[ApiProperty(readable: true, writable: false)]
+    #[Groups(['evento:read', 'evento:read:collection', 'evento:read:item'])]
+    private ?bool $inscripcionAbierta = null;
 
     public function __construct()
     {
@@ -454,11 +455,23 @@ class Evento
         return $this->inscripciones;
     }
 
-    public function estaInscripcionAbierta(): bool
+    public function getInscripcionAbierta(): bool
+    {
+        return $this->isInscripcionAbierta();
+    }
+
+    public function isInscripcionAbierta(): bool
     {
         $ahora = new \DateTimeImmutable();
-        return $ahora >= $this->fechaInicioInscripcion 
-            && $ahora <= $this->fechaFinInscripcion
+        $fechaFinInclusiva = $this->fechaFinInscripcion->setTime(23, 59, 59, 999999);
+
+        return $ahora >= $this->fechaInicioInscripcion
+            && $ahora <= $fechaFinInclusiva;
+    }
+
+    public function estaInscripcionAbierta(): bool
+    {
+        return $this->getInscripcionAbierta()
             && $this->estado === EstadoEventoEnum::PUBLICADO;
     }
 }
