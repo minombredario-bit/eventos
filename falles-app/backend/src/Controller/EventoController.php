@@ -18,15 +18,23 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/api')]
 class EventoController extends AbstractController
 {
+    public function __construct(
+        private readonly EventoRepository $eventoRepository,
+        private readonly InscripcionService $inscripcionService,
+        private readonly ?SeleccionParticipantesEventoRepository $seleccionParticipantesEventoRepository = null,
+        private readonly ?EntityManagerInterface $entityManager = null,
+    ) {
+    }
+
     /**
      * List published events for the user's entity.
      */
     #[Route('/eventos', name: 'api_eventos_list', methods: ['GET'])]
-    public function list(EventoRepository $eventoRepository): JsonResponse
+    public function list(): JsonResponse
     {
         /** @var Usuario $user */
         $user = $this->getUser();
-        $eventos = $eventoRepository->findPublicadosByEntidad($user->getEntidad());
+        $eventos = $this->eventoRepository->findPublicadosByEntidad($user->getEntidad());
 
         $data = array_map(fn(Evento $evento) => [
             'id' => $evento->getId(),
@@ -326,5 +334,33 @@ class EventoController extends AbstractController
         }
 
         return $this->json([], 204);
+    }
+
+    private function getSeleccionParticipantesEventoRepository(): SeleccionParticipantesEventoRepository
+    {
+        if ($this->seleccionParticipantesEventoRepository instanceof SeleccionParticipantesEventoRepository) {
+            return $this->seleccionParticipantesEventoRepository;
+        }
+
+        $repository = $this->container?->get(SeleccionParticipantesEventoRepository::class);
+        if (!$repository instanceof SeleccionParticipantesEventoRepository) {
+            throw new \LogicException('SeleccionParticipantesEventoRepository no disponible.');
+        }
+
+        return $repository;
+    }
+
+    private function getEntityManager(): EntityManagerInterface
+    {
+        if ($this->entityManager instanceof EntityManagerInterface) {
+            return $this->entityManager;
+        }
+
+        $entityManager = $this->container?->get(EntityManagerInterface::class);
+        if (!$entityManager instanceof EntityManagerInterface) {
+            throw new \LogicException('EntityManagerInterface no disponible.');
+        }
+
+        return $entityManager;
     }
 }
