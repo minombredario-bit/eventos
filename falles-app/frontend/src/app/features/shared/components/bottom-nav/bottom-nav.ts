@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { NavItem } from '../../../eventos/models/ui';
+import { NavItem } from '../../../eventos/domain/eventos.models';
 
 @Component({
   selector: 'app-bottom-nav',

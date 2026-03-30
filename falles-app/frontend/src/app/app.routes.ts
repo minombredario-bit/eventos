@@ -23,19 +23,28 @@ export const routes: Routes = [
       },
       {
         path: 'inicio',
-        loadComponent: () => import('./features/eventos/inicio/inicio').then((m) => m.Inicio),
+        loadComponent: () =>
+          import('./features/eventos/ui/inicio/inicio').then((m) => m.Inicio),
+      },
+      {
+        path: 'inscripciones',
+        loadComponent: () =>
+          import('./features/eventos/ui/inscripciones/inscripciones').then((m) => m.Inscripciones),
       },
       {
         path: ':id/detalle',
-        loadComponent: () => import('./features/eventos/detalle/detalle').then((m) => m.Detalle),
+        loadComponent: () =>
+          import('./features/eventos/ui/detalle/detalle').then((m) => m.Detalle),
       },
       {
         path: ':id/menus',
-        loadComponent: () => import('./features/eventos/menus/menus').then((m) => m.Menus),
+        loadComponent: () =>
+          import('./features/eventos/ui/menus/menus').then((m) => m.Menus),
       },
       {
         path: ':id/credencial',
-        loadComponent: () => import('./features/eventos/credencial/credencial').then((m) => m.Credencial),
+        loadComponent: () =>
+          import('./features/eventos/ui/credencial/credencial').then((m) => m.Credencial),
       },
     ],
   },

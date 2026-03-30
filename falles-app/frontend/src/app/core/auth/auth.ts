@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { AuthStore } from './auth-store';
-import { AuthUser, LoginPayload, LoginResponse } from '../models/auth';
+import { AuthUser, LoginPayload, LoginResponse } from '../models/auth.models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -20,15 +20,16 @@ export class AuthService {
     this.authStore.logout();
   }
 
-  isAuthenticated(): boolean {
-    return this.authStore.isAuthenticated();
-  }
-
-  getToken(): string | null {
-    return this.authStore.getToken();
-  }
-
   getUser(): AuthUser | null {
     return this.authStore.user();
+  }
+
+  get currentUserId(): string | null {
+    const id = this.authStore.user()?.id;
+    return id != null ? String(id) : null;
+  }
+
+  get userSignal() {
+    return this.authStore.user;
   }
 }

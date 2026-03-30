@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { FamilyMember, MenuOption, PaymentBadgeStatus } from '../../../eventos/models/ui';
+import { FamilyMember, MenuOption, PaymentBadgeStatus } from '../../../eventos/domain/eventos.models';
 
 interface MenuChangePayload {
   memberId: string;
@@ -45,18 +45,12 @@ export class MemberRow {
   }
 
   protected paymentBadgeLabel(status: PaymentBadgeStatus): string {
-    if (status === 'pagado') {
-      return 'Pagado';
-    }
-
-    if (status === 'parcial') {
-      return 'Parcial';
-    }
-
-    if (status === 'no_requiere') {
-      return 'No requiere';
-    }
-
-    return 'Pendiente';
+    const labels: Record<PaymentBadgeStatus, string> = {
+      pagado: 'Pagado',
+      parcial: 'Parcial',
+      no_requiere: 'No requiere',
+      pendiente: 'Pendiente',
+    };
+    return labels[status] ?? 'Pendiente';
   }
 }

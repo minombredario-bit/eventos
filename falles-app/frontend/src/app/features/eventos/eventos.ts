@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import { BottomNav } from '../shared/components/bottom-nav/bottom-nav';
-import { NavItem } from './models/ui';
+import { NavItem } from './domain/eventos.models';
 
 @Component({
   selector: 'app-eventos',
@@ -33,17 +33,12 @@ export class Eventos {
 
   protected readonly navItems = computed<NavItem[]>(() => {
     const eventId = this.currentEventId();
-
     return [
-      { key: 'inicio', label: 'Inicio', icon: '🏠', route: '/eventos/inicio' },
-      { key: 'detalle', label: 'Detalle', icon: '📅', route: eventId ? `/eventos/${eventId}/detalle` : '/eventos/inicio' },
-      { key: 'menus', label: 'Menús', icon: '🍽️', route: eventId ? `/eventos/${eventId}/menus` : '/eventos/inicio' },
-      {
-        key: 'credencial',
-        label: 'Credencial',
-        icon: '🎟️',
-        route: eventId ? `/eventos/${eventId}/credencial` : '/eventos/inicio',
-      },
+      { key: 'inicio',     label: 'Inicio',     icon: '🏠',  route: '/eventos/inicio' },
+      { key: 'inscripciones', label: 'Eventos',  icon: '🎫',  route: '/eventos/inscripciones' },
+      { key: 'detalle',    label: 'Detalle',     icon: '📅',  route: eventId ? `/eventos/${eventId}/detalle`    : '/eventos/inicio' },
+      { key: 'menus',      label: 'Menús',       icon: '🍽️', route: eventId ? `/eventos/${eventId}/menus`      : '/eventos/inicio' },
+      { key: 'credencial', label: 'Credencial',  icon: '🎟️', route: eventId ? `/eventos/${eventId}/credencial` : '/eventos/inicio' },
     ];
   });
 }

@@ -3,6 +3,7 @@ export interface AuthUser {
   email: string;
   nombre?: string;
   apellidos?: string;
+  fechaNacimiento?: string | null;
   roles?: string[];
   [key: string]: unknown;
 }

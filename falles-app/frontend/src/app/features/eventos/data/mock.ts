@@ -1,4 +1,4 @@
-import { CredentialData, EventSummary, FamilyMember, MenuOption, NavItem } from '../models/ui';
+import { CredentialData, EventSummary, FamilyMember, MenuOption, NavItem } from '../domain/eventos.models';
 
 export const DEFAULT_EVENT_ID = 'mascleta-2026';
 

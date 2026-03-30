@@ -4,8 +4,8 @@ import {
   MenuEventoApi,
   NoFalleroApi,
   PersonaFamiliarApi,
-} from './eventos-api';
-import { EventSummary, FamilyMember, MenuOption, ParticipantOrigin, PaymentBadgeStatus } from '../models/ui';
+} from './eventos.api';
+import { EventSummary, FamilyMember, MenuOption, ParticipantOrigin, PaymentBadgeStatus } from '../domain/eventos.models';
 
 interface NoFalleroDeleteMapped {
   id: string;
