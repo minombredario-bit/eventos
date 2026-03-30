@@ -10,7 +10,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-pdo_mysql": "*",
-        "api-platform/core": "^3.4",
+        "api-platform/core": "4.2.6",
         "doctrine/doctrine-bundle": "^2.11",
         "doctrine/doctrine-migrations-bundle": "^3.3",
         "doctrine/orm": "^3.0",
@@ -37,6 +37,7 @@
         "phpunit/phpunit": "^11.0",
         "symfony/browser-kit": "^7.3",
         "symfony/css-selector": "^7.3",
+        "symfony/maker-bundle": "*",
         "symfony/phpunit-bridge": "^7.3"
     },
     "config": {

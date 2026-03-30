@@ -34,11 +34,10 @@ class InscripcionLinea
     #[ORM\JoinColumn(nullable: false)]
     private Inscripcion $inscripcion;
 
-    #[ORM\ManyToOne(targetEntity: PersonaFamiliar::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\ManyToOne(targetEntity: Invitado::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
     #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write'])]
-    #[Assert\NotNull]
-    private PersonaFamiliar $persona;
+    private ?Invitado $invitado = null;
 
     #[ORM\ManyToOne(targetEntity: MenuEvento::class)]
     #[ORM\JoinColumn(nullable: false)]
@@ -46,7 +45,7 @@ class InscripcionLinea
     #[Assert\NotNull]
     private MenuEvento $menu;
 
-    // Snapshot fields (immutable after creation)
+    // Snapshot fields
     #[ORM\Column(type: Types::STRING, length: 255)]
     #[Groups(['inscripcion-linea:read'])]
     private string $nombrePersonaSnapshot;
@@ -55,13 +54,13 @@ class InscripcionLinea
     #[Groups(['inscripcion-linea:read'])]
     private string $tipoPersonaSnapshot;
 
-    #[ORM\Column(type: Types::STRING, length: 50)]
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
     #[Groups(['inscripcion-linea:read'])]
-    private string $tipoRelacionEconomicaSnapshot;
+    private ?string $tipoRelacionEconomicaSnapshot = null;
 
-    #[ORM\Column(type: Types::STRING, length: 50)]
+    #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
     #[Groups(['inscripcion-linea:read'])]
-    private string $estadoValidacionSnapshot;
+    private ?string $estadoValidacionSnapshot = null;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
     #[Groups(['inscripcion-linea:read'])]
@@ -93,176 +92,168 @@ class InscripcionLinea
 
     public function __construct()
     {
-        $this->id = Uuid::uuid4();
-        $this->createdAt = new \DateTimeImmutable();
+        $this->id         = Uuid::uuid4();
+        $this->createdAt  = new \DateTimeImmutable();
         $this->estadoLinea = EstadoLineaInscripcionEnum::PENDIENTE;
     }
 
-    public function getId(): ?string
+    // --- Validación: exactamente una persona o invitado ---
+
+    #[Assert\IsTrue(message: 'La línea debe tener exactamente una persona: familiar o invitado, nunca ambos ni ninguno.')]
+    public function isPersonaValida(): bool
     {
-        return $this->id;
+        return ($this->persona === null) !== ($this->invitado === null);
     }
 
-    public function getInscripcion(): Inscripcion
-    {
-        return $this->inscripcion;
-    }
+    // --- Helper para obtener el nombre independientemente del tipo ---
 
-    public function setInscripcion(Inscripcion $inscripcion): static
+    public function getNombreParticipante(): string
     {
-        $this->inscripcion = $inscripcion;
-        return $this;
-    }
+        if ($this->persona !== null) {
+            return $this->persona->getNombreCompleto();
+        }
 
-    public function getPersona(): PersonaFamiliar
-    {
-        return $this->persona;
-    }
+        if ($this->invitado !== null) {
+            return $this->invitado->getNombreCompleto();
+        }
 
-    public function setPersona(PersonaFamiliar $persona): static
-    {
-        $this->persona = $persona;
-        return $this;
-    }
-
-    public function getMenu(): MenuEvento
-    {
-        return $this->menu;
-    }
-
-    public function setMenu(MenuEvento $menu): static
-    {
-        $this->menu = $menu;
-        return $this;
-    }
-
-    public function getNombrePersonaSnapshot(): string
-    {
         return $this->nombrePersonaSnapshot;
     }
 
-    public function setNombrePersonaSnapshot(string $nombrePersonaSnapshot): static
+    public function esDeInvitado(): bool
     {
-        $this->nombrePersonaSnapshot = $nombrePersonaSnapshot;
-        return $this;
+        return $this->invitado !== null;
     }
 
-    public function getTipoPersonaSnapshot(): string
-    {
-        return $this->tipoPersonaSnapshot;
-    }
+    // --- Snapshot ---
 
-    public function setTipoPersonaSnapshot(string $tipoPersonaSnapshot): static
-    {
-        $this->tipoPersonaSnapshot = $tipoPersonaSnapshot;
-        return $this;
-    }
-
-    public function getTipoRelacionEconomicaSnapshot(): string
-    {
-        return $this->tipoRelacionEconomicaSnapshot;
-    }
-
-    public function setTipoRelacionEconomicaSnapshot(string $tipoRelacionEconomicaSnapshot): static
-    {
-        $this->tipoRelacionEconomicaSnapshot = $tipoRelacionEconomicaSnapshot;
-        return $this;
-    }
-
-    public function getEstadoValidacionSnapshot(): string
-    {
-        return $this->estadoValidacionSnapshot;
-    }
-
-    public function setEstadoValidacionSnapshot(string $estadoValidacionSnapshot): static
-    {
-        $this->estadoValidacionSnapshot = $estadoValidacionSnapshot;
-        return $this;
-    }
-
-    public function getNombreMenuSnapshot(): string
-    {
-        return $this->nombreMenuSnapshot;
-    }
-
-    public function setNombreMenuSnapshot(string $nombreMenuSnapshot): static
-    {
-        $this->nombreMenuSnapshot = $nombreMenuSnapshot;
-        return $this;
-    }
-
-    public function getFranjaComidaSnapshot(): string
-    {
-        return $this->franjaComidaSnapshot;
-    }
-
-    public function setFranjaComidaSnapshot(string $franjaComidaSnapshot): static
-    {
-        $this->franjaComidaSnapshot = $franjaComidaSnapshot;
-        return $this;
-    }
-
-    public function isEsDePagoSnapshot(): bool
-    {
-        return $this->esDePagoSnapshot;
-    }
-
-    public function setEsDePagoSnapshot(bool $esDePagoSnapshot): static
-    {
-        $this->esDePagoSnapshot = $esDePagoSnapshot;
-        return $this;
-    }
-
-    public function getPrecioUnitario(): float
-    {
-        return (float) $this->precioUnitario;
-    }
-
-    public function setPrecioUnitario(float $precioUnitario): static
-    {
-        $this->precioUnitario = (string) $precioUnitario;
-        return $this;
-    }
-
-    public function getEstadoLinea(): EstadoLineaInscripcionEnum
-    {
-        return $this->estadoLinea;
-    }
-
-    public function setEstadoLinea(EstadoLineaInscripcionEnum $estadoLinea): static
-    {
-        $this->estadoLinea = $estadoLinea;
-        return $this;
-    }
-
-    public function getObservaciones(): ?string
-    {
-        return $this->observaciones;
-    }
-
-    public function setObservaciones(?string $observaciones): static
-    {
-        $this->observaciones = $observaciones;
-        return $this;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    /**
-     * Creates snapshot values from the current state of persona and menu.
-     * This should be called right before persisting the line.
-     */
     public function crearSnapshot(): void
     {
-        $this->nombrePersonaSnapshot = $this->persona->getNombreCompleto();
-        $this->tipoPersonaSnapshot = $this->persona->getTipoPersona()->value;
-        $this->tipoRelacionEconomicaSnapshot = $this->persona->getTipoRelacionEconomica()->value;
-        $this->estadoValidacionSnapshot = $this->persona->getEstadoValidacion()->value;
-        $this->nombreMenuSnapshot = $this->menu->getNombre();
+        if ($this->persona !== null) {
+            $this->nombrePersonaSnapshot          = $this->persona->getNombreCompleto();
+            $this->tipoPersonaSnapshot            = $this->persona->getTipoPersona()->value;
+            $this->tipoRelacionEconomicaSnapshot  = $this->persona->getTipoRelacionEconomica()->value;
+            $this->estadoValidacionSnapshot       = $this->persona->getEstadoValidacion()->value;
+        } elseif ($this->invitado !== null) {
+            $this->nombrePersonaSnapshot         = $this->invitado->getNombreCompleto();
+            $this->tipoPersonaSnapshot           = $this->invitado->getTipoPersona()->value;
+            $this->tipoRelacionEconomicaSnapshot = null; // Los invitados no tienen relación económica
+            $this->estadoValidacionSnapshot      = null; // Los invitados no tienen validación
+        }
+
+        $this->nombreMenuSnapshot  = $this->menu->getNombre();
         $this->franjaComidaSnapshot = $this->menu->getFranjaComida()->value;
-        $this->esDePagoSnapshot = $this->menu->isEsDePago();
+        $this->esDePagoSnapshot    = $this->menu->isEsDePago();
+    }
+
+    // --- Getters y setters ---
+
+    public function getId(): ?string { 
+        return $this->id; }
+
+    public function getInscripcion(): Inscripcion 
+    { 
+        return $this->inscripcion; 
+    }
+
+    public function setInscripcion(Inscripcion $inscripcion): static 
+    { 
+        $this->inscripcion = $inscripcion; return $this; 
+    }
+
+    
+    public function getInvitado(): ?Invitado 
+    { 
+        return $this->invitado; 
+    }
+
+    public function setInvitado(?Invitado $invitado): static 
+    { 
+        $this->invitado = $invitado; 
+        return $this; 
+    }
+
+    public function getMenu(): MenuEvento 
+    { 
+        return $this->menu; 
+    }
+
+
+    public function setMenu(MenuEvento $menu): static 
+    { 
+        $this->menu = $menu; 
+        return $this; 
+    }
+
+    public function getNombrePersonaSnapshot(): string 
+    { 
+        return $this->nombrePersonaSnapshot; 
+    }
+
+    public function getTipoPersonaSnapshot(): string 
+    { 
+        return $this->tipoPersonaSnapshot; 
+    }
+
+    public function getTipoRelacionEconomicaSnapshot(): ?string 
+    { 
+        return $this->tipoRelacionEconomicaSnapshot; 
+    }
+
+    public function getEstadoValidacionSnapshot(): ?string 
+    { 
+        return $this->estadoValidacionSnapshot; 
+    }
+
+    public function getNombreMenuSnapshot(): string 
+    { 
+        return $this->nombreMenuSnapshot; 
+    }
+
+    public function getFranjaComidaSnapshot(): string 
+    { 
+        return $this->franjaComidaSnapshot; 
+    }
+
+    public function isEsDePagoSnapshot(): bool 
+    { 
+        return $this->esDePagoSnapshot; 
+    }
+
+    public function getPrecioUnitario(): float 
+    { 
+        return (float) $this->precioUnitario; 
+    }
+
+    public function setPrecioUnitario(float $precioUnitario): static 
+    { 
+        $this->precioUnitario = (string) $precioUnitario; 
+        return $this; 
+    }
+
+    public function getEstadoLinea(): EstadoLineaInscripcionEnum 
+    { 
+        return $this->estadoLinea; 
+    }
+    
+    public function setEstadoLinea(EstadoLineaInscripcionEnum $estadoLinea): static 
+    { 
+        $this->estadoLinea = $estadoLinea; 
+        return $this;
+    }
+
+    public function getObservaciones(): ?string 
+    { 
+        return $this->observaciones; 
+    }
+    public function setObservaciones(?string $observaciones): static 
+    { 
+        $this->observaciones = $observaciones; 
+        return $this; 
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable 
+    { 
+        return $this->createdAt; 
     }
 }

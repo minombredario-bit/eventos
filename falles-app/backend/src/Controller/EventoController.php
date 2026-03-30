@@ -2,11 +2,12 @@
 
 namespace App\Controller;
 
-use App\Entity\Evento;
 use App\Entity\SeleccionParticipantesEvento;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
+use App\Repository\InscripcionRepository;
 use App\Repository\SeleccionParticipantesEventoRepository;
+use App\Repository\UsuarioRepository;
 use App\Service\InscripcionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,98 +22,11 @@ class EventoController extends AbstractController
     public function __construct(
         private readonly EventoRepository $eventoRepository,
         private readonly InscripcionService $inscripcionService,
-        private readonly ?SeleccionParticipantesEventoRepository $seleccionParticipantesEventoRepository = null,
-        private readonly ?EntityManagerInterface $entityManager = null,
+        private readonly InscripcionRepository $inscripcionRepository,
+        private readonly UsuarioRepository $usuarioRepository,
+        private readonly SeleccionParticipantesEventoRepository $seleccionParticipantesEventoRepository,
+        private readonly EntityManagerInterface $entityManager,
     ) {
-    }
-
-    /**
-     * List published events for the user's entity.
-     */
-    #[Route('/eventos', name: 'api_eventos_list', methods: ['GET'])]
-    public function list(): JsonResponse
-    {
-        /** @var Usuario $user */
-        $user = $this->getUser();
-        $eventos = $this->eventoRepository->findPublicadosByEntidad($user->getEntidad());
-
-        $data = array_map(fn(Evento $evento) => [
-            'id' => $evento->getId(),
-            'titulo' => $evento->getTitulo(),
-            'slug' => $evento->getSlug(),
-            'descripcion' => $evento->getDescripcion(),
-            'tipoEvento' => $evento->getTipoEvento()->value,
-            'fechaEvento' => $evento->getFechaEvento()->format('Y-m-d'),
-            'horaInicio' => $evento->getHoraInicio()?->format('H:i'),
-            'horaFin' => $evento->getHoraFin()?->format('H:i'),
-            'lugar' => $evento->getLugar(),
-            'aforo' => $evento->getAforo(),
-            'fechaInicioInscripcion' => $evento->getFechaInicioInscripcion()->format('c'),
-            'fechaFinInscripcion' => $evento->getFechaFinInscripcion()->format('c'),
-            'admitePago' => $evento->isAdmitePago(),
-            'estado' => $evento->getEstado()->value,
-            'inscripcionAbierta' => $evento->getInscripcionAbierta(),
-            'menus' => array_map(fn($menu) => [
-                'id' => $menu->getId(),
-                'nombre' => $menu->getNombre(),
-                'tipoMenu' => $menu->getTipoMenu()->value,
-                'franjaComida' => $menu->getFranjaComida()->value,
-                'compatibilidadPersona' => $menu->getCompatibilidadPersona()->value,
-                'esDePago' => $menu->isEsDePago(),
-                'precioBase' => $menu->getPrecioBase(),
-                'precioAdultoInterno' => $menu->getPrecioAdultoInterno(),
-                'precioAdultoExterno' => $menu->getPrecioAdultoExterno(),
-                'precioInfantil' => $menu->getPrecioInfantil(),
-            ], $evento->getMenus()->toArray()),
-        ], $eventos);
-
-        return $this->json(['hydra:member' => $data]);
-    }
-
-    /**
-     * Get event detail.
-     */
-    #[Route('/eventos/{id}', name: 'api_eventos_detail', methods: ['GET'], priority: 100)]
-    public function detail(string $id): JsonResponse
-    {
-        $evento = $this->eventoRepository->find($id);
-
-        if (!$evento) {
-            return $this->json(['error' => 'Evento no encontrado'], 404);
-        }
-
-        return $this->json([
-            'id' => $evento->getId(),
-            'titulo' => $evento->getTitulo(),
-            'slug' => $evento->getSlug(),
-            'descripcion' => $evento->getDescripcion(),
-            'tipoEvento' => $evento->getTipoEvento()->value,
-            'fechaEvento' => $evento->getFechaEvento()->format('Y-m-d'),
-            'horaInicio' => $evento->getHoraInicio()?->format('H:i'),
-            'horaFin' => $evento->getHoraFin()?->format('H:i'),
-            'lugar' => $evento->getLugar(),
-            'aforo' => $evento->getAforo(),
-            'fechaInicioInscripcion' => $evento->getFechaInicioInscripcion()->format('c'),
-            'fechaFinInscripcion' => $evento->getFechaFinInscripcion()->format('c'),
-            'visible' => $evento->isVisible(),
-            'publicado' => $evento->isPublicado(),
-            'admitePago' => $evento->isAdmitePago(),
-            'estado' => $evento->getEstado()->value,
-            'inscripcionAbierta' => $evento->getInscripcionAbierta(),
-            'menus' => array_map(fn($menu) => [
-                'id' => $menu->getId(),
-                'nombre' => $menu->getNombre(),
-                'descripcion' => $menu->getDescripcion(),
-                'tipoMenu' => $menu->getTipoMenu()->value,
-                'franjaComida' => $menu->getFranjaComida()->value,
-                'compatibilidadPersona' => $menu->getCompatibilidadPersona()->value,
-                'esDePago' => $menu->isEsDePago(),
-                'precioBase' => $menu->getPrecioBase(),
-                'precioAdultoInterno' => $menu->getPrecioAdultoInterno(),
-                'precioAdultoExterno' => $menu->getPrecioAdultoExterno(),
-                'precioInfantil' => $menu->getPrecioInfantil(),
-            ], $evento->getMenus()->toArray()),
-        ]);
     }
 
     /**
@@ -180,8 +94,8 @@ class EventoController extends AbstractController
         try {
             $inscripcion = $this->inscripcionService->crearInscripcion($evento, $user, $data['personas']);
 
-            $seleccionParticipantesEventoRepository = $this->getSeleccionParticipantesEventoRepository();
-            $entityManager = $this->getEntityManager();
+            $seleccionParticipantesEventoRepository = $this->seleccionParticipantesEventoRepository;
+            $entityManager = $this->entityManager;
 
             $seleccionExistente = $seleccionParticipantesEventoRepository->findOneByUsuarioAndEvento($user, $evento);
             if ($seleccionExistente !== null) {
@@ -227,7 +141,7 @@ class EventoController extends AbstractController
             return $this->json(['error' => 'No tienes acceso a este evento'], 403);
         }
 
-        $seleccion = $this->getSeleccionParticipantesEventoRepository()->findOneByUsuarioAndEvento($user, $evento);
+        $seleccion = $this->seleccionParticipantesEventoRepository->findOneByUsuarioAndEvento($user, $evento);
 
         if ($seleccion === null) {
             return $this->json([
@@ -239,7 +153,7 @@ class EventoController extends AbstractController
 
         return $this->json([
             'eventoId' => $evento->getId(),
-            'participantes' => $seleccion->getParticipantes(),
+            'participantes' => $this->buildParticipantesSeleccionResponse($evento->getId(), $seleccion->getParticipantes()),
             'updatedAt' => $seleccion->getUpdatedAt()->format('c'),
         ]);
     }
@@ -288,8 +202,8 @@ class EventoController extends AbstractController
             $participantes[] = $participante;
         }
 
-        $seleccionParticipantesEventoRepository = $this->getSeleccionParticipantesEventoRepository();
-        $entityManager = $this->getEntityManager();
+        $seleccionParticipantesEventoRepository = $this->seleccionParticipantesEventoRepository;
+        $entityManager = $this->entityManager;
 
         $seleccion = $seleccionParticipantesEventoRepository->findOneByUsuarioAndEvento($user, $evento);
 
@@ -325,42 +239,74 @@ class EventoController extends AbstractController
             return $this->json(['error' => 'No tienes acceso a este evento'], 403);
         }
 
-        $seleccion = $this->getSeleccionParticipantesEventoRepository()->findOneByUsuarioAndEvento($user, $evento);
+        $seleccion = $this->seleccionParticipantesEventoRepository->findOneByUsuarioAndEvento($user, $evento);
 
         if ($seleccion !== null) {
-            $entityManager = $this->getEntityManager();
-            $entityManager->remove($seleccion);
-            $entityManager->flush();
+            $this->entityManager->remove($seleccion);
+            $this->entityManager->flush();
         }
 
         return $this->json([], 204);
     }
 
-    private function getSeleccionParticipantesEventoRepository(): SeleccionParticipantesEventoRepository
+    /**
+     * @param list<array<string, mixed>> $participantes
+     * @return list<array<string, mixed>>
+     */
+    private function buildParticipantesSeleccionResponse(string $eventoId, array $participantes): array
     {
-        if ($this->seleccionParticipantesEventoRepository instanceof SeleccionParticipantesEventoRepository) {
-            return $this->seleccionParticipantesEventoRepository;
+        $response = [];
+
+        foreach ($participantes as $participante) {
+            if (!is_array($participante)) {
+                continue;
+            }
+
+            $origen = ($participante['origen'] ?? null) === 'no_fallero' ? 'no_fallero' : 'familiar';
+            $participanteId = is_string($participante['id'] ?? null) ? trim($participante['id']) : '';
+
+            if ($participanteId === '') {
+                continue;
+            }
+
+            $item = [
+                'id' => $participanteId,
+                'origen' => $origen,
+            ];
+
+            if ($origen === 'familiar') {
+                $usuario = $this->usuarioRepository->find($participanteId);
+                if ($usuario !== null) {
+                    $item['nombre'] = $usuario->getNombre();
+                    $item['apellidos'] = $usuario->getApellidos();
+
+                    $inscripcion = $this->inscripcionRepository->findOneByUsuarioAndEvento($usuario->getId(), $eventoId);
+                    if ($inscripcion !== null) {
+                        $lineas = [];
+                        foreach ($inscripcion->getLineas() as $linea) {
+                            $lineas[] = [
+                                'id' => $linea->getId(),
+                                'nombreMenuSnapshot' => $linea->getNombreMenuSnapshot(),
+                                'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
+                                'estadoLinea' => $linea->getEstadoLinea()->value,
+                                'precioUnitario' => $linea->getPrecioUnitario(),
+                            ];
+                        }
+
+                        $item['inscripcionRelacion'] = [
+                            'id' => $inscripcion->getId(),
+                            'codigo' => $inscripcion->getCodigo(),
+                            'estadoPago' => $inscripcion->getEstadoPago()->value,
+                            'lineas' => $lineas,
+                        ];
+                    }
+                }
+            }
+
+            $response[] = $item;
         }
 
-        $repository = $this->container?->get(SeleccionParticipantesEventoRepository::class);
-        if (!$repository instanceof SeleccionParticipantesEventoRepository) {
-            throw new \LogicException('SeleccionParticipantesEventoRepository no disponible.');
-        }
-
-        return $repository;
+        return $response;
     }
 
-    private function getEntityManager(): EntityManagerInterface
-    {
-        if ($this->entityManager instanceof EntityManagerInterface) {
-            return $this->entityManager;
-        }
-
-        $entityManager = $this->container?->get(EntityManagerInterface::class);
-        if (!$entityManager instanceof EntityManagerInterface) {
-            throw new \LogicException('EntityManagerInterface no disponible.');
-        }
-
-        return $entityManager;
-    }
 }

@@ -8,7 +8,7 @@ use App\Entity\Evento;
 use App\Entity\Usuario;
 use App\Repository\InscripcionRepository;
 use App\Repository\EventoRepository;
-use App\Repository\PersonaFamiliarRepository;
+use App\Repository\RelacionUsuarioRepository;
 use App\Repository\MenuEventoRepository;
 use App\Repository\UsuarioRepository;
 use App\Enum\FranjaComidaEnum;
@@ -24,7 +24,7 @@ class InscripcionService
         private PriceCalculatorService $priceCalculator,
         private InscripcionRepository $inscripcionRepository,
         private EventoRepository $eventoRepository,
-        private PersonaFamiliarRepository $personaFamiliarRepository,
+        private RelacionUsuarioRepository $relacionUsuarioRepository,
         private MenuEventoRepository $menuEventoRepository,
         private UsuarioRepository $usuarioRepository,
     ) {}
@@ -95,7 +95,7 @@ class InscripcionService
                 throw new BadRequestHttpException('Se requiere persona y menú');
             }
 
-            $persona = $this->personaFamiliarRepository->find($personaId);
+            $persona = $this->relacionUsuarioRepository->findRelacionadosByUsuario($personaId);
             $menu = $this->menuEventoRepository->find($menuId);
 
             if (!$persona) {

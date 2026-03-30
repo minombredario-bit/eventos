@@ -45,14 +45,18 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private Entidad $entidad;
 
     #[ORM\Column(type: Types::STRING, length: 100)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups(['usuario:read', 'usuario:write', 'relacion:read'])]
     #[Assert\NotBlank]
     private string $nombre;
 
     #[ORM\Column(type: Types::STRING, length: 150)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups(['usuario:read', 'usuario:write', 'relacion:read'])]
     #[Assert\NotBlank]
     private string $apellidos;
+
+    #[ORM\Column(type: Types::STRING, length: 255)]
+    #[Groups(['usuario:read'])]
+    private string $nombreCompleto;
 
     #[ORM\Column(type: Types::STRING, length: 180, unique: true)]
     #[Groups(['usuario:read', 'usuario:write'])]
@@ -101,11 +105,11 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private ?self $censoEntradaRef = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['usuario:read'])]
+    #[Groups(['usuario:read', 'usuario:write'])]
     private ?\DateTimeImmutable $fechaSolicitudAlta = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['usuario:read'])]
+    #[Groups(['usuario:read', 'usuario:write'])]
     private ?\DateTimeImmutable $fechaAltaCenso = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -113,6 +117,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private ?\DateTimeImmutable $fechaBajaCenso = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['usuario:write'])]
     private ?string $motivoBajaCenso = null;
 
     #[ORM\ManyToOne(targetEntity: self::class)]
@@ -132,10 +137,6 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['usuario:read'])]
     private \DateTimeImmutable $updatedAt;
 
-    /** @var Collection<int, PersonaFamiliar> */
-    #[ORM\OneToMany(targetEntity: PersonaFamiliar::class, mappedBy: 'usuarioPrincipal')]
-    private Collection $familiares;
-
     /** @var Collection<int, Inscripcion> */
     #[ORM\OneToMany(targetEntity: Inscripcion::class, mappedBy: 'usuario')]
     private Collection $inscripciones;
@@ -143,6 +144,18 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     /** @var Collection<int, Entidad> */
     #[ORM\ManyToMany(targetEntity: Entidad::class, mappedBy: 'admins')]
     private Collection $entidadesAdmin;
+
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    #[Groups(['usuario:read', 'usuario:write'])]
+    private ?\DateTimeImmutable $fechaNacimiento = null;
+
+    /** @var Collection<int, RelacionUsuario> */
+    #[ORM\OneToMany(targetEntity: RelacionUsuario::class, mappedBy: 'usuarioOrigen', cascade: ['persist', 'remove'])]
+    private Collection $relacionesOrigen;
+
+    /** @var Collection<int, RelacionUsuario> */
+    #[ORM\OneToMany(targetEntity: RelacionUsuario::class, mappedBy: 'usuarioDestino', cascade: ['persist', 'remove'])]
+    private Collection $relacionesDestino;
 
     public function __construct()
     {
@@ -154,11 +167,20 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         $this->updatedAt = new \DateTimeImmutable();
         $this->estadoValidacion = EstadoValidacionEnum::PENDIENTE_VALIDACION;
         $this->tipoUsuarioEconomico = TipoRelacionEconomicaEnum::INTERNO;
+        $this->relacionesOrigen  = new ArrayCollection();
+        $this->relacionesDestino = new ArrayCollection();
     }
 
     public function getId(): ?string
     {
         return $this->id;
+    }
+
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function syncNombreCompleto(): void
+    {
+        $this->nombreCompleto = trim($this->nombre . ' ' . $this->apellidos);
     }
 
     public function getEntidad(): Entidad
@@ -192,6 +214,10 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->apellidos = $apellidos;
         return $this;
+    }
+
+    public function getNombreCompleto(): string { 
+        return $this->nombreCompleto; 
     }
 
     public function getEmail(): string
@@ -431,5 +457,71 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials(): void
     {
         // No sensitive data to clear
+    }
+
+    public function getFechaNacimiento(): ?\DateTimeImmutable
+    {
+        return $this->fechaNacimiento;
+    }
+
+    public function setFechaNacimiento(?\DateTimeImmutable $fechaNacimiento): static
+    {
+        $this->fechaNacimiento = $fechaNacimiento;
+        return $this;
+    }
+
+    /** @return Collection<int, RelacionUsuario> */
+    public function getRelacionesOrigen(): Collection
+    {
+        return $this->relacionesOrigen;
+    }
+
+    public function addRelacionOrigen(RelacionUsuario $relacion): static
+    {
+        if (!$this->relacionesOrigen->contains($relacion)) {
+            $this->relacionesOrigen->add($relacion);
+            $relacion->setUsuarioOrigen($this);
+        }
+        return $this;
+    }
+
+    public function removeRelacionOrigen(RelacionUsuario $relacion): static
+    {
+        $this->relacionesOrigen->removeElement($relacion);
+        return $this;
+    }
+
+    // --- Relaciones Destino ---
+
+    /** @return Collection<int, RelacionUsuario> */
+    public function getRelacionesDestino(): Collection
+    {
+        return $this->relacionesDestino;
+    }
+
+    public function addRelacionDestino(RelacionUsuario $relacion): static
+    {
+        if (!$this->relacionesDestino->contains($relacion)) {
+            $this->relacionesDestino->add($relacion);
+            $relacion->setUsuarioDestino($this);
+        }
+        return $this;
+    }
+
+    public function removeRelacionDestino(RelacionUsuario $relacion): static
+    {
+        $this->relacionesDestino->removeElement($relacion);
+        return $this;
+    }
+
+    // --- Helper: todos los relacionados ---
+
+    /** @return array<RelacionUsuario> */
+    public function getRelacionados(): array
+    {
+        return array_merge(
+            $this->relacionesOrigen->toArray(),
+            $this->relacionesDestino->toArray()
+        );
     }
 }

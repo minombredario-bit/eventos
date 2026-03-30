@@ -2,6 +2,19 @@ api_platform:
     title: Entidades Festivas API
     description: API for managing festive entity events, registrations and payments
     version: 1.0.0
+
+    eager_loading:
+        max_joins: 100
+        fetch_partial: false
+        force_eager: false
+
+    defaults:
+        stateless: true
+        cache_headers:
+            vary: ['Content-Type', 'Authorization']
+        normalization_context:
+            groups: ['evento:read']
+            enable_max_depth: true
     
     collection:
         pagination:
@@ -17,11 +30,6 @@ api_platform:
         jsonhal:
             mime_types:
                 - application/hal+json
-    
-    defaults:
-        stateless: true
-        cache_headers:
-            vary: ['Content-Type', 'Authorization']
     
     exception_to_status:
         ApiPlatform\Exception\InvalidArgumentException: 400

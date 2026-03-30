@@ -10,29 +10,6 @@ use App\Entity\Usuario;
 
 class AuthController extends AbstractController
 {
-    #[Route('/api/login', name: 'api_login', methods: ['POST'])]
-    public function login(#[CurrentUser] ?Usuario $user): JsonResponse
-    {
-        if (null === $user) {
-            return new JsonResponse([
-                'message' => 'Credenciales inválidas'
-            ], JsonResponse::HTTP_UNAUTHORIZED);
-        }
-
-        $token = $this->container->get('request_stack')->getCurrentRequest()->attributes->get('jwt_token');
-        
-        return new JsonResponse([
-            'token' => $token,
-            'user' => [
-                'id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'roles' => $user->getRoles(),
-                'nombre' => $user->getNombre(),
-                'apellidos' => $user->getApellidos(),
-            ],
-        ]);
-    }
-
     #[Route('/api/me', name: 'api_me', methods: ['GET'])]
     public function me(#[CurrentUser] ?Usuario $user): JsonResponse
     {

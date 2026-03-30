@@ -15,6 +15,7 @@
           formControlName="email"
           autocomplete="email"
           placeholder="nombre@ejemplo.com"
+          value="juan.perez@example.com"
         />
         @if (hasError('email', 'required')) {
           <small class="error">El email es obligatorio.</small>
@@ -32,6 +33,7 @@
           formControlName="password"
           autocomplete="current-password"
           placeholder="••••••••"
+          value="user123"
         />
         @if (hasError('password', 'required')) {
           <small class="error">La contraseña es obligatoria.</small>

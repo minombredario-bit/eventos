@@ -21,3 +21,12 @@ services:
     App\EventSubscriber\ApiCorsSubscriber:
         arguments:
             $allowedOrigins: '%app.cors.allowed_origins%'
+
+
+    App\EventListener\JwtCreatedListener:
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_created, method: onJWTCreated }
+
+    App\EventListener\JWTAuthenticationSuccessListener:
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_authentication_success, method: onAuthenticationSuccess }

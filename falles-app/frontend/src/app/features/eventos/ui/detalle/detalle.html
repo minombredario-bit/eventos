@@ -30,14 +30,16 @@
       }
 
       <div class="detail-panels">
+
         <article class="panel family-list" aria-label="Listado de familiares">
           <h2>Inscripciones y familiares</h2>
-          <p class="supporting-copy">Tocá en “Inscribir” para elegir quiénes pasan a la pantalla de menús.</p>
+          <p class="supporting-copy">Toca en "Inscribir" para elegir quiénes pasan a la pantalla de menús.</p>
           <p class="selection-summary">{{ selectedCountLabel() }}</p>
-          @if (loadingPeople()) {
+
+          @if (loadingPeople() || loadingRelaciones()) {
             <p>Cargando familiares...</p>
           } @else if (participants().length === 0) {
-            <p class="supporting-copy">No tenés personas disponibles para este evento.</p>
+            <p class="supporting-copy">No tienes personas disponibles para este evento.</p>
           } @else {
             @for (member of participants(); track participantTrackKey(member)) {
               <app-member-row
@@ -90,7 +92,7 @@
 
             <app-cta-button
               class="form-cta"
-              label="Dar de alta no fallero"
+              label="Dar de alta invitado"
               loadingLabel="Guardando..."
               type="submit"
               [loading]="submittingNoFallero()"
@@ -103,9 +105,9 @@
           }
 
           @if (loadingNoFalleros()) {
-            <p class="supporting-copy">Cargando no falleros...</p>
+            <p class="supporting-copy">Cargando invitados...</p>
           } @else if (noFallerosRows().length === 0) {
-            <p class="supporting-copy">Todavía no hay no falleros cargados para este evento.</p>
+            <p class="supporting-copy">Todavía no hay invitados cargados para este evento.</p>
           } @else {
             <div class="no-falleros-list">
               @for (member of noFallerosRows(); track participantTrackKey(member)) {
@@ -120,6 +122,7 @@
             </div>
           }
         </article>
+
       </div>
     </div>
 
@@ -130,7 +133,11 @@
     }
 
     <div class="cta-wrap">
-      <app-cta-button [label]="menusButtonLabel()" [disabled]="!canContinueToMenus()" (pressed)="openMenus()" />
+      <app-cta-button
+        [label]="menusButtonLabel()"
+        [disabled]="!canContinueToMenus()"
+        (pressed)="openMenus()"
+      />
     </div>
   </div>
 </section>

@@ -110,11 +110,17 @@ h2 {
 
 .family-list {
   display: grid;
-  gap: 0.68rem;
+  gap: 0.45rem;
+  padding-bottom: 0.45rem;
+  align-content: start;
 
   h2 {
     font-size: 1.05rem;
   }
+}
+
+.family-list app-member-row + app-member-row {
+  margin-top: 0.25rem;
 }
 
 .detail-layout {
@@ -144,20 +150,22 @@ h2 {
 .selection-summary {
   margin: 0;
   color: #9a3412;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
   text-transform: uppercase;
   background: #fff1e1;
   border: 1px solid #fdba74;
   border-radius: 999px;
-  padding: 0.35rem 0.74rem;
+  padding: 0.2rem 0.55rem;
   width: fit-content;
 }
 
 .no-falleros {
   display: grid;
   gap: 0.68rem;
+  align-content: start;
 }
 
 .no-falleros-form {

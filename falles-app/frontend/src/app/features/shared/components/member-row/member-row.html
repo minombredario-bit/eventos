@@ -9,7 +9,6 @@
       @if (member().notes) {
         <small class="notes">{{ member().notes }}</small>
       }
-
       @if (showEnrollmentInfo() && member().enrollment; as enrollment) {
         <div class="enrollment-meta">
           <small class="event-signup" [title]="enrollment.eventLabel">Apuntado: {{ enrollment.eventLabel }}</small>
@@ -45,8 +44,22 @@
   }
 
   @if (actionLabel()) {
-    <button type="button" class="row-action" (click)="onActionClick()" [disabled]="disabled()">
-      {{ actionLabel() }}
+    <button
+      type="button"
+      class="row-action"
+      [class.row-action--remove]="actionLabel() === 'Eliminar'"
+      [class.row-action--selected]="actionLabel() === 'Quitar'"
+      (click)="onActionClick()"
+      [disabled]="disabled()"
+      [title]="actionLabel()"
+    >
+      @if (actionLabel() === 'Eliminar') {
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      } @else if (actionLabel() === 'Quitar') {
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      } @else {
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      }
     </button>
   }
 </article>

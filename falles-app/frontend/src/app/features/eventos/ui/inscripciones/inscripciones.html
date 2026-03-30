@@ -1,0 +1,62 @@
+<section class="screen inscripciones-screen">
+  <app-mobile-header
+    title="Mis eventos"
+    subtitle="Eventos en los que ya estás inscrito"
+    actionLabel="Salir"
+    actionAriaLabel="Cerrar sesión"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (errorMessage()) {
+      <article class="panel error-card">
+        <h2>No pudimos cargar tus inscripciones</h2>
+        <p>{{ errorMessage() }}</p>
+      </article>
+    } @else if (loading()) {
+      <article class="panel loading-card">
+        <p class="eyebrow">Cargando</p>
+        <h2>Preparando tus eventos inscritos</h2>
+        <p>Estamos trayendo el detalle de cada inscripción.</p>
+      </article>
+    } @else if (!inscripciones().length) {
+      <article class="panel empty-card">
+        <p class="eyebrow">Sin inscripciones</p>
+        <h2>Todavía no tenés eventos registrados</h2>
+        <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a los menús.</p>
+      </article>
+    } @else {
+      <article class="panel list-card">
+        <div class="card-head">
+          <div>
+            <p class="eyebrow">Inscripciones activas</p>
+            <h2>Seleccioná un evento para revisar sus menús</h2>
+          </div>
+          <span class="count-chip">{{ inscripciones().length }}</span>
+        </div>
+
+        <div class="inscriptions-list">
+          @for (inscripcion of inscripciones(); track inscripcion.id) {
+            <a
+              class="inscription-card"
+              [routerLink]="['/eventos', inscripcion.evento.id, 'menus']"
+              [attr.aria-label]="'Ver menús de ' + inscripcion.evento.titulo"
+            >
+              <div class="inscription-copy">
+                <h3>{{ inscripcion.evento.titulo }}</h3>
+                <p>{{ eventDate(inscripcion) }} · {{ eventTime(inscripcion) }} · {{ inscripcion.evento.lugar ?? 'Lugar por confirmar' }}</p>
+              </div>
+
+              <div class="inscription-meta">
+                <span>{{ lineasLabel(inscripcion) }}</span>
+                <span>{{ estadoInscripcionLabel(inscripcion.estadoInscripcion) }}</span>
+                <span>{{ estadoPagoLabel(inscripcion.estadoPago) }}</span>
+                <small>{{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.0-0' }}</small>
+              </div>
+            </a>
+          }
+        </div>
+      </article>
+    }
+  </div>
+</section>

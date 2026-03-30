@@ -2,22 +2,30 @@
 
 namespace App\EventListener;
 
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
-use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
-use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
+use App\Entity\Usuario;
+use Lexik\Bundle\JWTAuthenticationBundle\Event\AuthenticationSuccessEvent;
 
-#[AsEventListener(event: LoginSuccessEvent::class, method: '__invoke', priority: 100)]
 class JWTAuthenticationSuccessListener
 {
-    public function __construct(
-        private readonly JWTTokenManagerInterface $jwtManager,
-    ) {}
-
-    public function __invoke(LoginSuccessEvent $event): void
+    public function onAuthenticationSuccess(AuthenticationSuccessEvent $event): void
     {
         $user = $event->getUser();
-        $token = $this->jwtManager->create($user);
-        
-        $event->getRequest()->attributes->set('jwt_token', $token);
+
+        if (!$user instanceof Usuario) {
+            return;
+        }
+
+        $data = $event->getData();
+
+        $data['user'] = [
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'nombre' => $user->getNombre(),
+            'apellidos' => $user->getApellidos(),
+            'fechaNacimiento' => $user->getFechaNacimiento()?->format('Y-m-d'),
+            'roles' => $user->getRoles(),
+        ];
+
+        $event->setData($data);
     }
 }

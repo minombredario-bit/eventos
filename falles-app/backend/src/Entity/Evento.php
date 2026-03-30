@@ -8,6 +8,8 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\ApiProperty;
@@ -15,6 +17,7 @@ use App\Enum\TipoEventoEnum;
 use App\Enum\EstadoEventoEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
@@ -25,9 +28,19 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 #[ORM\Table(name: 'evento')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['evento:read']],
+    normalizationContext: ['groups' => ['evento:read'], 'enable_max_depth' => 1],
     denormalizationContext: ['groups' => ['evento:write']],
     operations: [
+        new Get(
+            uriTemplate: '/eventos/{id}',
+            security: "is_granted('EVENTO_VIEW', object)",
+            normalizationContext: ['groups' => ['evento:read', 'evento:read:item'], 'enable_max_depth' => 1]
+        ),
+        new GetCollection(
+            uriTemplate: '/eventos',
+            security: "is_granted('ROLE_USER')",
+            normalizationContext: ['groups' => ['evento:collection'], 'enable_max_depth' => 1]
+        ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('EVENTO_EDIT', object)"),
     ], 
@@ -50,41 +63,42 @@ class Evento
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['evento:read'])]
+    #[Groups(['evento:read', 'evento:collection'])]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: Entidad::class, inversedBy: 'eventos')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:read:item'])]
+    #[MaxDepth(1)]
     #[Assert\NotNull]
     private Entidad $entidad;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     #[Assert\NotBlank]
     private string $titulo;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     #[Assert\NotBlank]
     private string $slug;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoEventoEnum::class)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     #[Assert\NotNull]
     private TipoEventoEnum $tipoEvento;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     #[Assert\NotNull]
     private \DateTimeImmutable $fechaEvento;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     private ?\DateTimeImmutable $horaInicio = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
@@ -92,7 +106,7 @@ class Evento
     private ?\DateTimeImmutable $horaFin = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     private ?string $lugar = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
@@ -122,7 +136,7 @@ class Evento
     private bool $admitePago = true;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: EstadoEventoEnum::class)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
     private EstadoEventoEnum $estado;
 
     #[ORM\Column(type: Types::BOOLEAN)]
@@ -146,24 +160,23 @@ class Evento
     private ?string $codigoVisual = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    #[Groups(['evento:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    #[Groups(['evento:read'])]
     private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, MenuEvento> */
-    #[ORM\OneToMany(targetEntity: MenuEvento::class, mappedBy: 'evento', cascade: ['persist', 'remove'])]
-    #[Groups(['evento:read'])]
+    #[ORM\OneToMany(targetEntity: MenuEvento::class, mappedBy: 'evento', cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
+    #[Groups(['evento:read', 'menu-evento:read'])]
+    #[MaxDepth(2)]
     private Collection $menus;
 
     /** @var Collection<int, Inscripcion> */
-    #[ORM\OneToMany(targetEntity: Inscripcion::class, mappedBy: 'evento')]
+    #[ORM\OneToMany(targetEntity: Inscripcion::class, mappedBy: 'evento', fetch: 'EXTRA_LAZY')]
     private Collection $inscripciones;
 
     #[ApiProperty(readable: true, writable: false)]
-    #[Groups(['evento:read', 'evento:read:collection', 'evento:read:item'])]
+    #[Groups(['evento:read', 'evento:collection', 'evento:read:item'])]
     private ?bool $inscripcionAbierta = null;
 
     public function __construct()

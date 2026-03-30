@@ -195,6 +195,99 @@
     color: var(--text-primary);
     font-weight: 600;
   }
+
+  small {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+}
+
+.event-item--active {
+  border-color: #fb923c;
+  background: #fff1e6;
+}
+
+.line-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+
+  span,
+  small {
+    grid-column: 1;
+  }
+
+  button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+.existing-inscription-card {
+  .summary {
+    margin: 0;
+  }
+}
+
+.inscription-user {
+  display: grid;
+  gap: 0.7rem;
+  align-items: stretch;
+}
+
+.inscription-user__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+
+  span {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  small {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+}
+
+.inscription-user__lines {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.inscription-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.66rem 0.72rem;
+  border-radius: 0.78rem;
+  border: 1px solid #fed7aa;
+  background: #fffaf5;
+
+  span {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  small {
+    display: block;
+    margin-top: 0.16rem;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+  }
+
+  button {
+    justify-self: end;
+  }
 }
 
 .remove-participant,
