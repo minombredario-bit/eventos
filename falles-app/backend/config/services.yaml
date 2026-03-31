@@ -30,3 +30,7 @@ services:
     App\EventListener\JWTAuthenticationSuccessListener:
         tags:
             - { name: kernel.event_listener, event: lexik_jwt_authentication.on_authentication_success, method: onAuthenticationSuccess }
+
+    App\ApiPlatform\Doctrine\Extension\InscripcionOwnerExtension:
+        tags:
+            - { name: api_platform.doctrine.orm.query_extension.collection }

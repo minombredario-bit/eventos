@@ -21,6 +21,7 @@ class JwtCreatedListener
         $payload['id'] = (string) $user->getId();
         $payload['nombre'] = $user->getNombre();
         $payload['apellidos'] = $user->getApellidos();
+        $payload['roles'] = $user->getRoles();
         
         $fechaNacimiento = $user->getFechaNacimiento();
         $payload['fechaNacimiento'] = $fechaNacimiento ? $fechaNacimiento->format('Y-m-d') : null;

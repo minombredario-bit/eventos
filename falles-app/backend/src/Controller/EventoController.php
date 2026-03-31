@@ -158,6 +158,47 @@ class EventoController extends AbstractController
         ]);
     }
 
+    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
+    public function getApuntados(string $id, Request $request): JsonResponse
+    {
+        /** @var Usuario $user */
+        $user = $this->getUser();
+
+        $evento = $this->eventoRepository->find($id);
+        if (!$evento) {
+            return $this->json(['error' => 'Evento no encontrado'], 404);
+        }
+
+        if ($evento->getEntidad()->getId() !== $user->getEntidad()->getId()) {
+            return $this->json(['error' => 'No tienes acceso a este evento'], 403);
+        }
+
+        $search = $request->query->get('q');
+        $inscripciones = $this->inscripcionRepository->findApuntadosByEvento(
+            $evento,
+            is_string($search) ? $search : null,
+        );
+
+        $member = array_map(static function (\App\Entity\Inscripcion $inscripcion): array {
+            $usuario = $inscripcion->getUsuario();
+
+            return [
+                'inscripcionId' => $inscripcion->getId(),
+                'usuarioId' => $usuario->getId(),
+                'nombreUsuario' => trim(sprintf('%s %s', $usuario->getNombre(), $usuario->getApellidos())),
+                'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
+                'estadoPago' => $inscripcion->getEstadoPago()->value,
+                'totalLineas' => $inscripcion->getLineas()->count(),
+                'importeTotal' => $inscripcion->getImporteTotal(),
+            ];
+        }, $inscripciones);
+
+        return $this->json([
+            'eventoId' => $evento->getId(),
+            'member' => $member,
+        ]);
+    }
+
     #[Route('/eventos/{id}/seleccion_participantes', name: 'api_eventos_put_seleccion_participantes', methods: ['PUT'])]
     public function putSeleccionParticipantes(string $id, Request $request): JsonResponse
     {

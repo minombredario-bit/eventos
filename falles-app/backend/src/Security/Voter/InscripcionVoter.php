@@ -6,6 +6,7 @@ use App\Entity\Inscripcion;
 use App\Entity\Usuario;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Voter para controlar acceso a Inscripciones.
@@ -30,32 +31,30 @@ class InscripcionVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [
-            self::VIEW,
-            self::EDIT,
-            self::DELETE,
-            self::LEGACY_VIEW,
-            self::LEGACY_EDIT,
-            self::LEGACY_DELETE,
-        ], true)
-            && $subject instanceof Inscripcion;
+        return $subject instanceof Inscripcion
+            && null !== $this->normalizeAttribute($attribute);
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
     {
-        $user = $token->getUser();
-        
-        if (!$user instanceof Usuario) {
+        $normalizedAttribute = $this->normalizeAttribute($attribute);
+        if (null === $normalizedAttribute) {
             return false;
         }
+
+        $user = $token->getUser();
 
         /** @var Inscripcion $inscripcion */
         $inscripcion = $subject;
 
-        return match ($attribute) {
-            self::VIEW, self::LEGACY_VIEW => $this->canView($inscripcion, $user),
-            self::EDIT, self::LEGACY_EDIT => $this->canEdit($inscripcion, $user),
-            self::DELETE, self::LEGACY_DELETE => $this->canDelete($inscripcion, $user),
+        $roles = $token->getRoleNames();
+        $isAdminEntidad = in_array('ROLE_ADMIN_ENTIDAD', $roles, true);
+        $isSuperadmin = in_array('ROLE_SUPERADMIN', $roles, true);
+
+        return match ($normalizedAttribute) {
+            self::VIEW, self::LEGACY_VIEW => $this->canView($inscripcion, $user, $isAdminEntidad || $isSuperadmin),
+            self::EDIT, self::LEGACY_EDIT => $this->canEdit($isAdminEntidad || $isSuperadmin),
+            self::DELETE, self::LEGACY_DELETE => $this->canDelete($isAdminEntidad || $isSuperadmin),
             default => false,
         };
     }
@@ -66,20 +65,18 @@ class InscripcionVoter extends Voter
      * - Es admin de la entidad
      * - Es superadmin
      */
-    private function canView(Inscripcion $inscripcion, Usuario $user): bool
+    private function canView(Inscripcion $inscripcion, mixed $user, bool $hasPrivilegedRole): bool
     {
+        if ($hasPrivilegedRole) {
+            return true;
+        }
+
+        if (!$user instanceof Usuario && !$user instanceof UserInterface) {
+            return false;
+        }
+
         // El usuario dueño puede ver su propia inscripción
-        if ($inscripcion->getUsuario()->getId() === $user->getId()) {
-            return true;
-        }
-
-        // Los admins de la entidad pueden ver todas las inscripciones de su entidad
-        if ($this->isAdminOfEntidad($user, $inscripcion->getEntidad()->getId())) {
-            return true;
-        }
-
-        // Los superadmins pueden ver todo
-        if ($this->isSuperadmin($user)) {
+        if ($this->isOwner($inscripcion, $user)) {
             return true;
         }
 
@@ -91,19 +88,9 @@ class InscripcionVoter extends Voter
      * - Es admin de la entidad
      * - Es superadmin
      */
-    private function canEdit(Inscripcion $inscripcion, Usuario $user): bool
+    private function canEdit(bool $hasPrivilegedRole): bool
     {
-        // Los admins de la entidad pueden editar
-        if ($this->isAdminOfEntidad($user, $inscripcion->getEntidad()->getId())) {
-            return true;
-        }
-
-        // Los superadmins pueden editar todo
-        if ($this->isSuperadmin($user)) {
-            return true;
-        }
-
-        return false;
+        return $hasPrivilegedRole;
     }
 
     /**
@@ -111,31 +98,96 @@ class InscripcionVoter extends Voter
      * - Es admin de la entidad
      * - Es superadmin
      */
-    private function canDelete(Inscripcion $inscripcion, Usuario $user): bool
+    private function canDelete(bool $hasPrivilegedRole): bool
     {
-        // Solo admins y superadmins pueden eliminar
-        if ($this->isAdminOfEntidad($user, $inscripcion->getEntidad()->getId())) {
+        return $hasPrivilegedRole;
+    }
+
+    private function isOwner(Inscripcion $inscripcion, Usuario|UserInterface $user): bool
+    {
+        $owner = $inscripcion->getUsuario();
+        $ownerId = $this->normalizeComparableValue($owner->getId());
+        $userId = $this->extractUserId($user);
+
+        if (null !== $ownerId && null !== $userId && $ownerId === $userId) {
             return true;
         }
 
-        if ($this->isSuperadmin($user)) {
-            return true;
+        $ownerIdentifiers = array_filter([
+            $this->normalizeIdentifier($owner->getUserIdentifier()),
+            $this->normalizeIdentifier($owner->getEmail()),
+        ]);
+
+        $userIdentifiers = array_filter([
+            $this->normalizeIdentifier($user->getUserIdentifier()),
+            method_exists($user, 'getEmail') ? $this->normalizeIdentifier((string) $user->getEmail()) : null,
+        ]);
+
+        foreach ($userIdentifiers as $userIdentifier) {
+            if (in_array($userIdentifier, $ownerIdentifiers, true)) {
+                return true;
+            }
         }
 
         return false;
     }
 
-    private function isAdminOfEntidad(Usuario $user, string $entidadId): bool
+    private function normalizeAttribute(string $attribute): ?string
     {
-        if (!in_array('ROLE_ADMIN_ENTIDAD', $user->getRoles(), true)) {
-            return false;
-        }
-
-        return $user->getEntidad()?->getId() === $entidadId;
+        return match (strtoupper(trim($attribute))) {
+            self::VIEW => self::VIEW,
+            self::EDIT => self::EDIT,
+            self::DELETE => self::DELETE,
+            self::LEGACY_VIEW => self::LEGACY_VIEW,
+            self::LEGACY_EDIT => self::LEGACY_EDIT,
+            self::LEGACY_DELETE => self::LEGACY_DELETE,
+            default => null,
+        };
     }
 
-    private function isSuperadmin(Usuario $user): bool
+    private function extractUserId(Usuario|UserInterface $user): ?string
     {
-        return in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+        if ($user instanceof Usuario) {
+            return $this->normalizeComparableValue($user->getId());
+        }
+
+        if (!is_callable([$user, 'getId'])) {
+            return null;
+        }
+
+        /** @var mixed $id */
+        $id = $user->{'getId'}();
+
+        return $this->normalizeComparableValue($id);
+    }
+
+    private function normalizeComparableValue(mixed $value): ?string
+    {
+        if (null === $value) {
+            return null;
+        }
+
+        if (is_scalar($value)) {
+            $normalized = trim((string) $value);
+            return '' === $normalized ? null : $normalized;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            $normalized = trim((string) $value);
+            return '' === $normalized ? null : $normalized;
+        }
+
+        return null;
+    }
+
+    private function normalizeIdentifier(?string $identifier): ?string
+    {
+        if (null === $identifier) {
+            return null;
+        }
+
+        $normalized = mb_strtolower(trim($identifier));
+
+        return '' === $normalized ? null : $normalized;
     }
 }

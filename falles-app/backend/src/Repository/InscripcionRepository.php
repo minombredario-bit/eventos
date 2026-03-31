@@ -45,6 +45,34 @@ class InscripcionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * @return Inscripcion[]
+     */
+    public function findApuntadosByEvento(Evento $evento, ?string $search = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('i')
+            ->innerJoin('i.usuario', 'u')
+            ->addSelect('u')
+            ->where('i.evento = :evento')
+            ->andWhere('i.estadoInscripcion != :cancelada')
+            ->setParameter('evento', $evento)
+            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->orderBy('u.nombre', 'ASC')
+            ->addOrderBy('u.apellidos', 'ASC');
+
+        $normalizedSearch = trim((string) $search);
+        if ($normalizedSearch !== '') {
+            $likeSearch = '%' . mb_strtolower($normalizedSearch) . '%';
+
+            $queryBuilder
+                ->andWhere('LOWER(CONCAT(u.nombre, :space, u.apellidos)) LIKE :search OR LOWER(u.nombre) LIKE :search OR LOWER(u.apellidos) LIKE :search')
+                ->setParameter('space', ' ')
+                ->setParameter('search', $likeSearch);
+        }
+
+        return $queryBuilder->getQuery()->getResult();
+    }
+
     public function existeInscripcionPersonaEnEvento(int $personaId, Evento $evento): bool
     {
         $qb = $this->createQueryBuilder('i')

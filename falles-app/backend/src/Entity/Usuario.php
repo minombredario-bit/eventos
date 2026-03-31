@@ -255,9 +255,14 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        $roles = $this->roles;
+        $roles = array_filter(
+            $this->roles,
+            static fn (mixed $role): bool => is_string($role) && $role !== ''
+        );
+
         $roles[] = 'ROLE_USER';
-        return array_unique($roles);
+
+        return array_values(array_unique($roles));
     }
 
     public function setRoles(array $roles): static

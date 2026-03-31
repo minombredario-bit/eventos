@@ -17,6 +17,8 @@ use App\Enum\MetodoPagoEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
 #[ORM\Entity(repositoryClass: InscripcionRepository::class)]
 #[ORM\Table(name: 'inscripcion')]
@@ -26,10 +28,18 @@ use Symfony\Component\Validator\Constraints as Assert;
     denormalizationContext: ['groups' => ['inscripcion:write']],
     operations: [
         new Get(security: "is_granted('INSCRIPCION_VIEW', object)"),
-        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new GetCollection(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
         new Patch(security: "is_granted('INSCRIPCION_EDIT', object)"),
     ]
 )]
+
+#[ApiFilter(SearchFilter::class, properties: [
+    'usuario' => 'exact',
+    'usuario.id' => 'exact',
+    'evento' => 'exact',
+    'evento.id' => 'exact',
+])]
+
 class Inscripcion
 {
     #[ORM\Id]
