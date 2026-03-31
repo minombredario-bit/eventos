@@ -28,8 +28,11 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
     denormalizationContext: ['groups' => ['inscripcion:write']],
     operations: [
         new Get(security: "is_granted('INSCRIPCION_VIEW', object)"),
-        new GetCollection(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
-        new Patch(security: "is_granted('INSCRIPCION_EDIT', object)"),
+        new GetCollection(
+            normalizationContext: ['groups' => ['inscripcion:collection']],
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"
+            ),
+        new Patch(security: "is_granted('INSCRIPCION_EDIT', object) and object.getEvento().estaInscripcionAbierta()"),
     ]
 )]
 
@@ -44,11 +47,10 @@ class Inscripcion
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['inscripcion:read'])]
+    #[Groups(['inscripcion:read', 'inscripcion:collection'])]
     private ?string $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 50)]
-    #[Groups(['inscripcion:read'])]
     private string $codigo;
 
     #[ORM\ManyToOne(targetEntity: Entidad::class)]
@@ -58,7 +60,7 @@ class Inscripcion
 
     #[ORM\ManyToOne(targetEntity: Evento::class, inversedBy: 'inscripciones')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['inscripcion:read', 'inscripcion:write'])]
+    #[Groups(['inscripcion:read', 'inscripcion:write', 'inscripcion:collection'])]
     #[Assert\NotNull]
     private Evento $evento;
 
@@ -69,15 +71,15 @@ class Inscripcion
     private Usuario $usuario;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: EstadoInscripcionEnum::class)]
-    #[Groups(['inscripcion:read', 'inscripcion:write'])]
+    #[Groups(['inscripcion:read', 'inscripcion:write', 'inscripcion:collection'])]
     private EstadoInscripcionEnum $estadoInscripcion;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: EstadoPagoEnum::class)]
-    #[Groups(['inscripcion:read', 'inscripcion:write'])]
+    #[Groups(['inscripcion:read', 'inscripcion:write', 'inscripcion:collection'])]
     private EstadoPagoEnum $estadoPago;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
-    #[Groups(['inscripcion:read'])]
+    #[Groups(['inscripcion:read', 'inscripcion:collection'])]
     private string $importeTotal = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
@@ -85,7 +87,7 @@ class Inscripcion
     private string $importePagado = '0.00';
 
     #[ORM\Column(type: Types::STRING, length: 3)]
-    #[Groups(['inscripcion:read'])]
+    #[Groups(['inscripcion:read', 'inscripcion:collection'])]
     private string $moneda = 'EUR';
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: MetodoPagoEnum::class, nullable: true)]
@@ -114,7 +116,7 @@ class Inscripcion
 
     /** @var Collection<int, InscripcionLinea> */
     #[ORM\OneToMany(targetEntity: InscripcionLinea::class, mappedBy: 'inscripcion', cascade: ['persist', 'remove'])]
-    #[Groups(['inscripcion:read'])]
+    #[Groups(['inscripcion:read', 'inscripcion:collection'])]
     private Collection $lineas;
 
     /** @var Collection<int, Pago> */

@@ -14,11 +14,11 @@
         <p>{{ errorMessage() }}</p>
       </article>
     } @else if (loading()) {
-      <article class="panel loading-card">
-        <p class="eyebrow">Cargando</p>
-        <h2>Preparando tus eventos inscritos</h2>
-        <p>Estamos trayendo el detalle de cada inscripción.</p>
-      </article>
+        <article class="panel loading-card">
+          <p class="eyebrow">Cargando</p>
+          <h2>Preparando tus eventos inscritos</h2>
+          <p>Estamos trayendo tus inscripciones.</p>
+        </article>
     } @else if (!inscripciones().length) {
       <article class="panel empty-card">
         <p class="eyebrow">Sin inscripciones</p>
@@ -40,13 +40,17 @@
             <article class="inscription-card">
               <a
                 class="inscription-main-link"
-                [routerLink]="['/eventos', inscripcion.evento.id, 'detalle']"
-                [attr.aria-label]="'Ver detalle de ' + inscripcion.evento.titulo"
+                [routerLink]="['/eventos', eventRouteId(inscripcion), 'detalle']"
+                [attr.aria-label]="'Ver detalle de ' + eventTitle(inscripcion)"
               >
                 <div class="inscription-copy">
-                  <h3>{{ inscripcion.evento.titulo }}</h3>
-                  <p>{{ eventDate(inscripcion) }} · {{ eventTime(inscripcion) }} · {{ inscripcion.evento.lugar ?? 'Lugar por confirmar' }}</p>
+                  <h3>{{ eventTitle(inscripcion) }}</h3>
+                  <span class="status-badge" [class.closed]="isEventoCerrado(inscripcion)">
+                    {{ estadoInscripcionEventoLabel(inscripcion) }}
+                  </span>
+                  <p>{{ eventDate(inscripcion) }} · {{ eventTime(inscripcion) }} · {{ eventLocation(inscripcion) }}</p>
                   <p class="description">{{ eventDescription(inscripcion) }}</p>
+                  <p class="status-hint" [class.closed]="isEventoCerrado(inscripcion)">{{ cierreEventoHint(inscripcion) }}</p>
                 </div>
 
                 <div class="inscription-meta">
@@ -58,20 +62,24 @@
               </a>
 
               <div class="inscription-actions" aria-label="Acciones del evento inscrito">
-                <a
-                  class="action-link"
-                  [routerLink]="['/eventos', inscripcion.evento.id, 'menus']"
-                  [attr.aria-label]="'Abrir menús de ' + inscripcion.evento.titulo"
-                >
-                  Menús
-                </a>
-                <a
-                  class="action-link secondary"
-                  [routerLink]="['/eventos', inscripcion.evento.id, 'apuntados']"
-                  [attr.aria-label]="'Ver apuntados en ' + inscripcion.evento.titulo"
-                >
-                  Apuntados
-                </a>
+                @if (isEventoCerrado(inscripcion)) {
+                  <span class="action-link disabled" aria-disabled="true">Cambios bloqueados</span>
+                } @else {
+                  <a
+                    class="action-link"
+                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'menus']"
+                    [attr.aria-label]="'Abrir menús de ' + eventTitle(inscripcion)"
+                  >
+                    Menús
+                  </a>
+                  <a
+                    class="action-link secondary"
+                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'apuntados']"
+                    [attr.aria-label]="'Ver apuntados en ' + eventTitle(inscripcion)"
+                  >
+                    Apuntados
+                  </a>
+                }
               </div>
             </article>
           }

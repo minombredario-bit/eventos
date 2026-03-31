@@ -103,6 +103,8 @@ export interface InscripcionApi {
     horaInicio?: string | null;
     lugar?: string | null;
     inscripcionAbierta?: boolean;
+    fechaLimiteInscripcion?: string | null;
+    fechaFinInscripcion?: string | null;
   };
   estadoInscripcion: string;
   estadoPago: string;
@@ -134,9 +136,42 @@ export interface EventoApuntadoApi {
 }
 
 interface InscripcionResumenCollectionItem {
-  id: string;
+  id?: string | number;
+  '@id'?: string;
   codigo?: string;
-  evento?: { id?: string } | string;
+  evento?: { id?: string | number; '@id'?: string } | string | null;
+}
+
+interface InscripcionLineaCollectionItem {
+  id?: string | number;
+  '@id'?: string;
+  nombrePersonaSnapshot?: string;
+  nombreMenuSnapshot?: string;
+  precioUnitario?: number | string | null;
+  estadoLinea?: string;
+}
+
+interface InscripcionCollectionItem {
+  id?: string | number;
+  '@id'?: string;
+  codigo?: string;
+    evento?: {
+      id?: string | number;
+      '@id'?: string;
+      titulo?: string;
+      descripcion?: string | null;
+      fechaEvento?: string;
+      horaInicio?: string | null;
+      lugar?: string | null;
+      inscripcionAbierta?: boolean;
+      fechaLimiteInscripcion?: string | null;
+      fechaFinInscripcion?: string | null;
+    } | string | null;
+  estadoInscripcion?: string;
+  estadoPago?: string;
+  importeTotal?: number | string | null;
+  importePagado?: number | string | null;
+  lineas?: InscripcionLineaCollectionItem[];
 }
 
 export interface CrearInscripcionResponse {
@@ -238,7 +273,27 @@ export class EventosApi {
       .get<ApiCollection<InscripcionResumenCollectionItem>>(`${this.apiBaseUrl}/api/inscripcions`, { params })
       .pipe(
         map((r) => r.member ?? r['hydra:member'] ?? []),
-        map((items) => items.map((item) => this.toInscripcionResumen(item)).filter((item) => item.id.length > 0)),
+        map((items) => items
+          .map((item) => this.toInscripcionResumen(item))
+          .filter((item): item is InscripcionResumenApi => item !== null)),
+      );
+  }
+
+  getInscripcionesMiasCollection(): Observable<InscripcionApi[]> {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      return of([]);
+    }
+
+    const params = new HttpParams().set('usuario.id', currentUserId.trim());
+
+    return this.http
+      .get<ApiCollection<InscripcionCollectionItem>>(`${this.apiBaseUrl}/api/inscripcions`, { params })
+      .pipe(
+        map((r) => r.member ?? r['hydra:member'] ?? []),
+        map((items) => items
+          .map((item) => this.toInscripcionCollection(item))
+          .filter((item): item is InscripcionApi => item !== null)),
       );
   }
 
@@ -418,24 +473,129 @@ export class EventosApi {
     window.localStorage.setItem(this.noFallerosStorageKey, JSON.stringify(entries));
   }
 
-  private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumenApi {
+  private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumenApi | null {
+    const inscripcionId = this.extractResourceId(
+      item.id ?? item['@id'] ?? '',
+      '/api/inscripcions/',
+    );
+    const eventoId = this.extractResourceId(item.evento, '/api/eventos/');
+
+    if (inscripcionId.length === 0 || eventoId.length === 0) {
+      return null;
+    }
+
     return {
-      id: String(item.id ?? ''),
+      id: inscripcionId,
       codigo: String(item.codigo ?? ''),
       evento: {
-        id: this.extractResourceId(item.evento, '/api/eventos/'),
+        id: eventoId,
       },
     };
   }
 
-  private extractResourceId(resource: { id?: string } | string | undefined, prefix: string): string {
-    if (typeof resource === 'string') {
-      return resource.startsWith(prefix) ? resource.slice(prefix.length) : resource;
+  private toInscripcionCollection(item: InscripcionCollectionItem): InscripcionApi | null {
+    const inscripcionId = this.extractResourceId(
+      item.id ?? item['@id'] ?? '',
+      '/api/inscripcions/',
+    );
+
+    const eventoPayload = typeof item.evento === 'string'
+      ? { '@id': item.evento }
+      : (item.evento ?? {});
+
+    const eventoId = this.extractResourceId(eventoPayload, '/api/eventos/');
+
+    if (inscripcionId.length === 0 || eventoId.length === 0) {
+      return null;
     }
 
-    const id = resource?.id;
-    if (!id) return '';
+    return {
+      id: inscripcionId,
+      codigo: String(item.codigo ?? ''),
+      evento: {
+        id: eventoId,
+        titulo: String(eventoPayload.titulo ?? ''),
+        descripcion: eventoPayload.descripcion ?? null,
+        fechaEvento: String(eventoPayload.fechaEvento ?? ''),
+        horaInicio: eventoPayload.horaInicio ?? null,
+        lugar: eventoPayload.lugar ?? null,
+        inscripcionAbierta: eventoPayload.inscripcionAbierta,
+        fechaLimiteInscripcion: eventoPayload.fechaLimiteInscripcion ?? eventoPayload.fechaFinInscripcion ?? null,
+      },
+      estadoInscripcion: String(item.estadoInscripcion ?? ''),
+      estadoPago: String(item.estadoPago ?? ''),
+      importeTotal: this.toNumber(item.importeTotal),
+      importePagado: this.toNumber(item.importePagado),
+      lineas: Array.isArray(item.lineas)
+        ? item.lineas.map((linea) => ({
+          id: this.extractResourceId(linea.id ?? linea['@id'] ?? '', '/api/inscripcion_lineas/') || String(linea.id ?? ''),
+          nombrePersonaSnapshot: String(linea.nombrePersonaSnapshot ?? ''),
+          nombreMenuSnapshot: String(linea.nombreMenuSnapshot ?? ''),
+          precioUnitario: this.toNumber(linea.precioUnitario),
+          estadoLinea: String(linea.estadoLinea ?? ''),
+        }))
+        : [],
+    };
+  }
 
-    return id.startsWith(prefix) ? id.slice(prefix.length) : id;
+  private extractResourceId(
+    resource: { id?: string | number; '@id'?: string } | string | number | null | undefined,
+    prefix: string,
+  ): string {
+    if (typeof resource === 'number') {
+      return String(resource);
+    }
+
+    if (typeof resource === 'string') {
+      return this.normalizeResourceValue(resource, prefix);
+    }
+
+    const id = resource?.id ?? resource?.['@id'];
+    if (id === undefined || id === null) {
+      return '';
+    }
+
+    return this.normalizeResourceValue(String(id), prefix);
+  }
+
+  private normalizeResourceValue(value: string, prefix: string): string {
+    const normalized = this.safeDecode(value).trim();
+    if (!normalized.length) {
+      return '';
+    }
+
+    if (normalized.startsWith(prefix)) {
+      return normalized.slice(prefix.length).trim();
+    }
+
+    if (normalized.startsWith('/')) {
+      const prefixWithoutSlash = prefix.startsWith('/') ? prefix.slice(1) : prefix;
+      if (normalized.startsWith(`/${prefixWithoutSlash}`)) {
+        return normalized.slice(prefixWithoutSlash.length + 1).trim();
+      }
+    }
+
+    return normalized;
+  }
+
+  private safeDecode(value: string): string {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+
+  private toNumber(value: number | string | null | undefined): number {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
   }
 }

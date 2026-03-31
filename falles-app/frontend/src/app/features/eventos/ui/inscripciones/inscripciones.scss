@@ -128,6 +128,28 @@ h3 {
   display: grid;
   gap: 0.22rem;
 
+  .status-badge {
+    justify-self: start;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.12rem 0.52rem;
+    background: #dcfce7;
+    border: 1px solid #4ade80;
+    color: #166534;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .status-badge.closed {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #991b1b;
+  }
+
   h3 {
     font-size: 0.98rem;
     line-height: 1.28;
@@ -148,6 +170,16 @@ h3 {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .status-hint {
+    margin-top: 0.1rem;
+    color: #166534;
+    font-size: 0.78rem;
+  }
+
+  .status-hint.closed {
+    color: #b91c1c;
   }
 }
 
@@ -209,4 +241,11 @@ h3 {
 .action-link:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+.action-link.disabled {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  pointer-events: none;
 }

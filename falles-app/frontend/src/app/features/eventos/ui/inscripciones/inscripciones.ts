@@ -2,9 +2,9 @@ import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin, map, of, switchMap } from 'rxjs';
+import { map } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
-import { formatLocalDate, formatTime, normalizeDateKey } from '../../../../core/utils/date.utils';
+import { formatLocalDate, formatTime, hasValidTime, normalizeDateKey } from '../../../../core/utils/date.utils';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { EventosApi, InscripcionApi } from '../../data/eventos.api';
 
@@ -35,17 +35,74 @@ export class Inscripciones {
     void this.router.navigateByUrl('/auth/login');
   }
 
+  protected eventRouteId(inscripcion: InscripcionApi): string {
+    return this.normalizeEventoId(inscripcion.evento.id ?? '');
+  }
+
+  protected eventTitle(inscripcion: InscripcionApi): string {
+    const title = inscripcion.evento.titulo?.trim();
+    if (title?.length) {
+      return title;
+    }
+
+    return 'Evento';
+  }
+
   protected eventDate(inscripcion: InscripcionApi): string {
-    return formatLocalDate(inscripcion.evento.fechaEvento);
+    const date = inscripcion.evento.fechaEvento?.trim();
+    if (date?.length) {
+      return formatLocalDate(date);
+    }
+
+    return 'Fecha por confirmar';
   }
 
   protected eventTime(inscripcion: InscripcionApi): string {
-    return formatTime(inscripcion.evento.horaInicio);
+    const time = inscripcion.evento.horaInicio?.trim();
+    if (time?.length) {
+      return formatTime(time);
+    }
+
+    return 'Sin hora';
+  }
+
+  protected eventLocation(inscripcion: InscripcionApi): string {
+    const location = inscripcion.evento.lugar?.trim();
+    if (location?.length) {
+      return location;
+    }
+
+    return 'Lugar por confirmar';
   }
 
   protected eventDescription(inscripcion: InscripcionApi): string {
     const description = inscripcion.evento.descripcion?.trim();
-    return description?.length ? description : 'Sin descripción disponible.';
+    if (description?.length) {
+      return description;
+    }
+
+    return 'Descripción no disponible.';
+  }
+
+  protected isEventoCerrado(inscripcion: InscripcionApi): boolean {
+    return inscripcion.evento.inscripcionAbierta === false;
+  }
+
+  protected estadoInscripcionEventoLabel(inscripcion: InscripcionApi): string {
+    return this.isEventoCerrado(inscripcion) ? 'Cerrada (caducada)' : 'Abierta';
+  }
+
+  protected cierreEventoHint(inscripcion: InscripcionApi): string {
+    if (!this.isEventoCerrado(inscripcion)) {
+      return 'Podés gestionar tu inscripción.';
+    }
+
+    const fechaLimite = inscripcion.evento.fechaLimiteInscripcion?.trim();
+    if (!fechaLimite?.length) {
+      return 'Plazo de inscripción vencido.';
+    }
+
+    return `Plazo vencido: ${formatLocalDate(fechaLimite)}.`;
   }
 
   protected lineasLabel(inscripcion: InscripcionApi): string {
@@ -80,16 +137,11 @@ export class Inscripciones {
     this.errorMessage.set(null);
 
     this.eventosApi
-      .getInscripcionesMias()
+      .getInscripcionesMiasCollection()
       .pipe(
-        switchMap((inscripciones) => {
-          if (!inscripciones.length) {
-            return of([] as InscripcionApi[]);
-          }
-
-          return forkJoin(inscripciones.map((inscripcion) => this.eventosApi.getInscripcion(inscripcion.id)));
-        }),
-        map((inscripciones) => [...inscripciones].sort((a, b) => this.compareInscripciones(a, b))),
+        map((inscripciones) => inscripciones
+          .map((inscripcion) => this.normalizeInscripcion(inscripcion))
+          .sort((a, b) => this.compareInscripciones(a, b))),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
@@ -106,8 +158,39 @@ export class Inscripciones {
   }
 
   private compareInscripciones(a: InscripcionApi, b: InscripcionApi): number {
-    const dateA = `${normalizeDateKey(a.evento.fechaEvento)}T${a.evento.horaInicio ?? '00:00'}:00`;
-    const dateB = `${normalizeDateKey(b.evento.fechaEvento)}T${b.evento.horaInicio ?? '00:00'}:00`;
-    return new Date(dateA).getTime() - new Date(dateB).getTime();
+    const dateA = this.resolveSortDateTime(a);
+    const dateB = this.resolveSortDateTime(b);
+    if (dateA !== dateB) {
+      return dateA.localeCompare(dateB);
+    }
+    return a.id.localeCompare(b.id);
+  }
+
+  private resolveSortDateTime(inscripcion: InscripcionApi): string {
+    const rawDate = (inscripcion.evento.fechaEvento ?? '').trim();
+    const normalizedDate = rawDate.length ? normalizeDateKey(rawDate) : '9999-12-31';
+
+    const rawTime = (inscripcion.evento.horaInicio ?? '').trim();
+    const normalizedTime = hasValidTime(rawTime) ? rawTime.slice(0, 5) : '23:59';
+
+    return `${normalizedDate}T${normalizedTime}:00`;
+  }
+
+  private normalizeInscripcion(inscripcion: InscripcionApi): InscripcionApi {
+    const normalizedEventoId = this.normalizeEventoId(inscripcion.evento.id || '');
+    return {
+      ...inscripcion,
+      evento: {
+        ...inscripcion.evento,
+        id: normalizedEventoId,
+      },
+    };
+  }
+
+  private normalizeEventoId(eventoId: string): string {
+    const clean = eventoId.trim();
+    return clean.startsWith('/api/eventos/')
+      ? clean.slice('/api/eventos/'.length)
+      : clean;
   }
 }

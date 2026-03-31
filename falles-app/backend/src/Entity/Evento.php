@@ -18,6 +18,7 @@ use App\Enum\EstadoEventoEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
@@ -63,7 +64,7 @@ class Evento
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['evento:read', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:collection', 'inscripcion:read', 'inscripcion:collection'])]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: Entidad::class, inversedBy: 'eventos')]
@@ -74,7 +75,7 @@ class Evento
     private Entidad $entidad;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection'])]
     #[Assert\NotBlank]
     private string $titulo;
 
@@ -84,7 +85,7 @@ class Evento
     private string $slug;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection'])]
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoEventoEnum::class)]
@@ -93,12 +94,12 @@ class Evento
     private TipoEventoEnum $tipoEvento;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection'])]
     #[Assert\NotNull]
     private \DateTimeImmutable $fechaEvento;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection'])]
     private ?\DateTimeImmutable $horaInicio = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
@@ -106,7 +107,7 @@ class Evento
     private ?\DateTimeImmutable $horaFin = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection'])]
     private ?string $lugar = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
@@ -119,7 +120,7 @@ class Evento
     private \DateTimeImmutable $fechaInicioInscripcion;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'inscripcion:read'])]
     #[Assert\NotNull]
     private \DateTimeImmutable $fechaFinInscripcion;
 
@@ -136,7 +137,7 @@ class Evento
     private bool $admitePago = true;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: EstadoEventoEnum::class)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:collection'])]
     private EstadoEventoEnum $estado;
 
     #[ORM\Column(type: Types::BOOLEAN)]
@@ -176,7 +177,7 @@ class Evento
     private Collection $inscripciones;
 
     #[ApiProperty(readable: true, writable: false)]
-    #[Groups(['evento:read', 'evento:collection', 'evento:read:item'])]
+    #[Groups(['evento:read', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'inscripcion:collection'])]
     private ?bool $inscripcionAbierta = null;
 
     public function __construct()
@@ -471,6 +472,13 @@ class Evento
     public function getInscripcionAbierta(): bool
     {
         return $this->isInscripcionAbierta();
+    }
+
+    #[Groups(['evento:read', 'evento:collection', 'evento:read:item', 'inscripcion:read'])]
+    #[SerializedName('fechaLimiteInscripcion')]
+    public function getFechaLimiteInscripcion(): \DateTimeImmutable
+    {
+        return $this->getFechaFinInscripcion();
     }
 
     public function isInscripcionAbierta(): bool

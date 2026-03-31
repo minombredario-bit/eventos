@@ -14,6 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/api')]
@@ -121,6 +122,11 @@ class EventoController extends AbstractController
                     'estadoLinea' => $linea->getEstadoLinea()->value,
                 ], $inscripcion->getLineas()->toArray()),
             ], 201);
+        } catch (UnprocessableEntityHttpException $e) {
+            return $this->json([
+                'error' => $e->getMessage(),
+                'code' => InscripcionService::ERROR_CODE_INSCRIPCION_CERRADA,
+            ], 422);
         } catch (BadRequestHttpException $e) {
             return $this->json(['error' => $e->getMessage()], 400);
         }

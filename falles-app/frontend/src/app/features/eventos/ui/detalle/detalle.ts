@@ -212,9 +212,7 @@ export class Detalle {
     const event = this.event();
     if (!event) return null;
 
-    let status: EventSummary['status'] = 'cerrado';
-    if (event.inscripcionAbierta === true) status = 'abierto';
-    else if (event.estado === 'publicado') status = 'ultimas_plazas';
+    const status: EventSummary['status'] = event.inscripcionAbierta === true ? 'abierto' : 'cerrado';
 
     return {
       id: event.id,
@@ -229,11 +227,13 @@ export class Detalle {
 
   protected readonly eventStatusLabel = computed(() => {
     const labels: Record<string, string> = {
-      abierto: 'Inscripción abierta',
-      ultimas_plazas: 'Últimas plazas',
+      abierto: 'Abierto',
+      cerrado: 'Cerrado',
     };
-    return labels[this.eventSummary()?.status ?? ''] ?? 'Inscripción cerrada';
+    return labels[this.eventSummary()?.status ?? ''] ?? 'Cerrado';
   });
+
+  protected readonly inscripcionCerrada = computed(() => this.event()?.inscripcionAbierta === false);
 
   protected readonly selectedCountLabel = computed(() => {
     const count = this.selectedMemberIds().length;
@@ -243,7 +243,7 @@ export class Detalle {
   });
 
   protected readonly canContinueToMenus = computed(() =>
-    Boolean(this.eventSummary()?.status === 'abierto' && this.selectedMemberIds().length > 0),
+    Boolean(this.event()?.inscripcionAbierta === true && this.selectedMemberIds().length > 0),
   );
 
   protected readonly menusButtonLabel = computed(() => {
@@ -256,7 +256,6 @@ export class Detalle {
   constructor() {
     this.eventId$
       .pipe(
-        tap(() => this.selectedMemberIds.set([])),
         tap((id) => this.loadEvent(id)),
         tap(() => this.loadPersonasMias()),
         tap((id) => this.loadNoFalleros(id)),
@@ -312,7 +311,7 @@ export class Detalle {
   protected openMenus(): void {
     const selected = this.selectedMemberIds();
     const eventId = this.eventId();
-    if (!selected.length || !eventId) return;
+    if (!selected.length || !eventId || this.event()?.inscripcionAbierta !== true) return;
 
     const participantes = this.toParticipantesSeleccion(selected);
 
@@ -493,6 +492,7 @@ export class Detalle {
   private loadInscritos(eventId: string): void {
     this.loadingInscritos.set(true);
     this.inscritosError.set(null);
+    this.selectedMemberIds.set([]);
 
     this.eventosStore
       .getSeleccionParticipantes(eventId)
@@ -500,10 +500,12 @@ export class Detalle {
       .subscribe({
         next: (inscritos) => {
           this.inscritos.set(inscritos);
+          this.selectedMemberIds.set(toSelectedMemberKeys(inscritos));
           this.loadingInscritos.set(false);
         },
         error: () => {
           this.inscritos.set([]);
+          this.selectedMemberIds.set([]);
           this.inscritosError.set('No pudimos cargar a quiénes ya apuntaste en este evento.');
           this.loadingInscritos.set(false);
         },
@@ -537,4 +539,25 @@ export class Detalle {
 
     return participantes;
   }
+}
+
+export function toSelectedMemberKeys(participantes: ParticipanteSeleccionApi[]): string[] {
+  if (!participantes.length) return [];
+
+  const selected: string[] = [];
+  const seen = new Set<string>();
+
+  for (const participante of participantes) {
+    const id = participante.id?.trim();
+    if (!id) continue;
+
+    const origin = participante.origen === 'no_fallero' ? 'no_fallero' : 'familiar';
+    const key = `${origin}:${id}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    selected.push(key);
+  }
+
+  return selected;
 }

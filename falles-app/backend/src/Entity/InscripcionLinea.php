@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     denormalizationContext: ['groups' => ['inscripcion-linea:write']],
     operations: [
         new Get(),
-        new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD') and object.getInscripcion().getEvento().estaInscripcionAbierta()"),
     ]
 )]
 class InscripcionLinea

@@ -16,9 +16,13 @@ use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\EstadoInscripcionEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class InscripcionService
 {
+    public const ERROR_CODE_INSCRIPCION_CERRADA = 'INSCRIPCION_CERRADA_POR_CADUCIDAD';
+    public const ERROR_MESSAGE_INSCRIPCION_CERRADA = 'La inscripción está cerrada por caducidad de la fecha límite';
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private PriceCalculatorService $priceCalculator,
@@ -59,7 +63,7 @@ class InscripcionService
         }
 
         if (!$evento->estaInscripcionAbierta()) {
-            throw new BadRequestHttpException('Las inscripciones no están abiertas');
+            throw new UnprocessableEntityHttpException(self::ERROR_MESSAGE_INSCRIPCION_CERRADA);
         }
 
         // 2. Verificar que no existe ya una inscripción para este usuario-evento
@@ -238,6 +242,10 @@ class InscripcionService
      */
     public function cancelarInscripcion(Inscripcion $inscripcion): void
     {
+        if (!$inscripcion->getEvento()->estaInscripcionAbierta()) {
+            throw new UnprocessableEntityHttpException(self::ERROR_MESSAGE_INSCRIPCION_CERRADA);
+        }
+
         $inscripcion->setEstadoInscripcion(EstadoInscripcionEnum::CANCELADA);
         $this->entityManager->flush();
     }
@@ -252,7 +260,7 @@ class InscripcionService
         }
 
         if (!$inscripcion->getEvento()->estaInscripcionAbierta()) {
-            throw new BadRequestHttpException('No puedes cancelar líneas fuera del plazo de inscripción');
+            throw new UnprocessableEntityHttpException(self::ERROR_MESSAGE_INSCRIPCION_CERRADA);
         }
 
         if ($inscripcion->getImportePagado() > 0.0) {
