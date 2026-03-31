@@ -37,23 +37,43 @@
 
         <div class="inscriptions-list">
           @for (inscripcion of inscripciones(); track inscripcion.id) {
-            <a
-              class="inscription-card"
-              [routerLink]="['/eventos', inscripcion.evento.id, 'menus']"
-              [attr.aria-label]="'Ver menús de ' + inscripcion.evento.titulo"
-            >
-              <div class="inscription-copy">
-                <h3>{{ inscripcion.evento.titulo }}</h3>
-                <p>{{ eventDate(inscripcion) }} · {{ eventTime(inscripcion) }} · {{ inscripcion.evento.lugar ?? 'Lugar por confirmar' }}</p>
-              </div>
+            <article class="inscription-card">
+              <a
+                class="inscription-main-link"
+                [routerLink]="['/eventos', inscripcion.evento.id, 'detalle']"
+                [attr.aria-label]="'Ver detalle de ' + inscripcion.evento.titulo"
+              >
+                <div class="inscription-copy">
+                  <h3>{{ inscripcion.evento.titulo }}</h3>
+                  <p>{{ eventDate(inscripcion) }} · {{ eventTime(inscripcion) }} · {{ inscripcion.evento.lugar ?? 'Lugar por confirmar' }}</p>
+                  <p class="description">{{ eventDescription(inscripcion) }}</p>
+                </div>
 
-              <div class="inscription-meta">
-                <span>{{ lineasLabel(inscripcion) }}</span>
-                <span>{{ estadoInscripcionLabel(inscripcion.estadoInscripcion) }}</span>
-                <span>{{ estadoPagoLabel(inscripcion.estadoPago) }}</span>
-                <small>{{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.0-0' }}</small>
+                <div class="inscription-meta">
+                  <span>{{ lineasLabel(inscripcion) }}</span>
+                  <span>{{ estadoInscripcionLabel(inscripcion.estadoInscripcion) }}</span>
+                  <span>{{ estadoPagoLabel(inscripcion.estadoPago) }}</span>
+                  <small>{{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.0-0' }}</small>
+                </div>
+              </a>
+
+              <div class="inscription-actions" aria-label="Acciones del evento inscrito">
+                <a
+                  class="action-link"
+                  [routerLink]="['/eventos', inscripcion.evento.id, 'menus']"
+                  [attr.aria-label]="'Abrir menús de ' + inscripcion.evento.titulo"
+                >
+                  Menús
+                </a>
+                <a
+                  class="action-link secondary"
+                  [routerLink]="['/eventos', inscripcion.evento.id, 'apuntados']"
+                  [attr.aria-label]="'Ver apuntados en ' + inscripcion.evento.titulo"
+                >
+                  Apuntados
+                </a>
               </div>
-            </a>
+            </article>
           }
         </div>
       </article>

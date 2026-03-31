@@ -1,0 +1,52 @@
+<section class="screen apuntados-screen">
+  <app-mobile-header
+    title="Apuntados"
+    [subtitle]="eventDate() ? eventTitle() + ' · ' + eventDate() : eventTitle()"
+    [showBack]="true"
+    actionLabel="Salir"
+    actionAriaLabel="Cerrar sesión"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    <article class="panel">
+      <p class="eyebrow">Participantes</p>
+      <h2>Listado de apuntados</h2>
+      <p class="supporting-copy">{{ summary() }}</p>
+
+      <label class="search-field" for="search-apuntados">
+        Buscar por nombre de usuario
+        <input
+          id="search-apuntados"
+          type="search"
+          [value]="searchTerm()"
+          placeholder="Ej: María García"
+          (input)="onSearch($any($event.target).value)"
+        />
+      </label>
+
+      @if (errorMessage()) {
+        <p class="inline-error" role="alert">{{ errorMessage() }}</p>
+      } @else if (loading()) {
+        <p class="supporting-copy">Cargando participantes...</p>
+      } @else if (!apuntados().length && isSearching()) {
+        <p class="supporting-copy">No encontramos coincidencias para tu búsqueda.</p>
+      } @else if (!apuntados().length) {
+        <p class="supporting-copy">Todavía no hay apuntados para este evento.</p>
+      } @else {
+        <div class="rows" aria-live="polite">
+          @for (item of apuntados(); track item.inscripcionId) {
+            <article class="row">
+              <div>
+                <h3>{{ item.nombreUsuario }}</h3>
+                <p>{{ item.totalLineas }} línea{{ item.totalLineas === 1 ? '' : 's' }} · {{ item.estadoPago }}</p>
+              </div>
+              <span class="chip">{{ item.estadoInscripcion }}</span>
+            </article>
+          }
+        </div>
+      }
+    </article>
+  </div>
+</section>

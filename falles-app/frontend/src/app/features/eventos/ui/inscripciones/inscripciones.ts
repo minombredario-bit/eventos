@@ -43,6 +43,11 @@ export class Inscripciones {
     return formatTime(inscripcion.evento.horaInicio);
   }
 
+  protected eventDescription(inscripcion: InscripcionApi): string {
+    const description = inscripcion.evento.descripcion?.trim();
+    return description?.length ? description : 'Sin descripción disponible.';
+  }
+
   protected lineasLabel(inscripcion: InscripcionApi): string {
     const count = inscripcion.lineas.length;
     return count === 1 ? '1 línea' : `${count} líneas`;

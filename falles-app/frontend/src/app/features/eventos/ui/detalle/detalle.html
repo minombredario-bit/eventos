@@ -31,6 +31,28 @@
 
       <div class="detail-panels">
 
+        <article class="panel family-list" aria-label="Participantes ya apuntados">
+          <h2>A quién he apuntado</h2>
+          <p class="supporting-copy">Participantes ya guardados para este evento.</p>
+          <p class="selection-summary">{{ inscritosSummary() }}</p>
+
+          @if (loadingInscritos()) {
+            <p>Cargando participantes inscritos...</p>
+          } @else if (inscritosError()) {
+            <p class="supporting-copy">{{ inscritosError() }}</p>
+          } @else if (!inscritosRows().length) {
+            <p class="supporting-copy">Todavía no hay participantes inscritos para mostrar.</p>
+          } @else {
+            @for (member of inscritosRows(); track inscritoTrackKey(member)) {
+              <app-member-row
+                [member]="member"
+                [showEnrollmentInfo]="true"
+                aria-label="Fila de participante inscrito"
+              />
+            }
+          }
+        </article>
+
         <article class="panel family-list" aria-label="Listado de familiares">
           <h2>Inscripciones y familiares</h2>
           <p class="supporting-copy">Toca en "Inscribir" para elegir quiénes pasan a la pantalla de menús.</p>

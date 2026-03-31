@@ -42,6 +42,11 @@ export const routes: Routes = [
           import('./features/eventos/ui/menus/menus').then((m) => m.Menus),
       },
       {
+        path: ':id/apuntados',
+        loadComponent: () =>
+          import('./features/eventos/ui/apuntados/apuntados').then((m) => m.Apuntados),
+      },
+      {
         path: ':id/credencial',
         loadComponent: () =>
           import('./features/eventos/ui/credencial/credencial').then((m) => m.Credencial),

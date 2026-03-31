@@ -57,16 +57,19 @@ export class Detalle {
   protected readonly loadingPeople        = signal(true);
   protected readonly loadingNoFalleros    = signal(true);
   protected readonly loadingRelaciones    = signal(false);
+  protected readonly loadingInscritos     = signal(true);
   protected readonly submittingNoFallero  = signal(false);
   protected readonly deletingNoFalleroId  = signal<string | null>(null);
   protected readonly errorMessage         = signal<string | null>(null);
   protected readonly noFallerosError      = signal<string | null>(null);
   protected readonly relacionesError      = signal<string | null>(null);
+  protected readonly inscritosError       = signal<string | null>(null);
 
   protected readonly event        = signal<EventoDetalleApi | null>(null);
   protected readonly members      = signal<FamilyMember[]>([]);
   protected readonly noFalleros   = signal<FamilyMember[]>([]);
   protected readonly relaciones   = signal<RelacionUsuarioApi[]>([]);
+  protected readonly inscritos    = signal<ParticipanteSeleccionApi[]>([]);
   protected readonly selectedMemberIds = signal<string[]>([]);
 
   // ── Form ──────────────────────────────────────────────────────────────
@@ -134,6 +137,67 @@ export class Detalle {
     });
   });
 
+  protected readonly inscritosRows = computed<FamilyMember[]>(() => {
+    const eventSummary = this.eventSummary();
+
+    return this.inscritos().map((inscrito) => {
+      const key = this.inscritoKey(inscrito);
+      const knownMember = this.participantsLookup().get(key);
+      const fullName = [inscrito.nombre?.trim() ?? '', inscrito.apellidos?.trim() ?? '']
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      const name = fullName || knownMember?.name || `Participante ${inscrito.id}`;
+      const rawPaymentStatus = inscrito.inscripcionRelacion?.estadoPago ?? 'pendiente';
+      const menuNames = inscrito.inscripcionRelacion?.lineas
+        ?.map((linea) => linea.nombreMenuSnapshot.trim())
+        .filter(Boolean)
+        .join(', ');
+
+      return {
+        id: String(inscrito.id),
+        name,
+        role: inscrito.origen === 'no_fallero' ? 'Invitado/a' : (knownMember?.role ?? 'Familiar'),
+        personType: knownMember?.personType ?? 'adulto',
+        origin: inscrito.origen,
+        avatarInitial: name.charAt(0).toUpperCase() || '?',
+        notes: menuNames ? `Menús: ${menuNames}` : undefined,
+        enrollment: eventSummary
+          ? {
+            eventId: eventSummary.id,
+            eventTitle: eventSummary.title,
+            eventLabel: eventSummary.time === 'Sin hora'
+              ? `${eventSummary.title} · ${eventSummary.date}`
+              : `${eventSummary.title} · ${eventSummary.date} ${eventSummary.time}`,
+            paymentStatus: this.eventosMapper.toPaymentBadgeStatus(rawPaymentStatus),
+            paymentStatusRaw: rawPaymentStatus,
+          }
+          : undefined,
+      } satisfies FamilyMember;
+    });
+  });
+
+  protected readonly inscritosSummary = computed(() => {
+    const count = this.inscritosRows().length;
+    if (count === 0) return 'Todavía no guardaste participantes para este evento.';
+    if (count === 1) return 'Tenés 1 persona apuntada en este evento.';
+    return `Tenés ${count} personas apuntadas en este evento.`;
+  });
+
+  protected readonly participantsLookup = computed(() => {
+    const lookup = new Map<string, FamilyMember>();
+
+    for (const participant of this.participants()) {
+      lookup.set(this.participantKey(participant), participant);
+    }
+
+    for (const noFallero of this.noFallerosRows()) {
+      lookup.set(this.participantKey(noFallero), noFallero);
+    }
+
+    return lookup;
+  });
+
   protected readonly participants = computed<FamilyMember[]>(() => {
     const titular = this.usuarioLogado();
     return [
@@ -197,6 +261,7 @@ export class Detalle {
         tap(() => this.loadPersonasMias()),
         tap((id) => this.loadNoFalleros(id)),
         tap(() => this.loadRelaciones()),
+        tap((id) => this.loadInscritos(id)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe();
@@ -206,6 +271,10 @@ export class Detalle {
 
   protected participantTrackKey(member: FamilyMember): string {
     return this.participantKey(member);
+  }
+
+  protected inscritoTrackKey(member: FamilyMember): string {
+    return `${member.origin}:${member.id}`;
   }
 
   protected isMemberSelected(member: FamilyMember): boolean {
@@ -421,8 +490,32 @@ export class Detalle {
       });
   }
 
+  private loadInscritos(eventId: string): void {
+    this.loadingInscritos.set(true);
+    this.inscritosError.set(null);
+
+    this.eventosStore
+      .getSeleccionParticipantes(eventId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (inscritos) => {
+          this.inscritos.set(inscritos);
+          this.loadingInscritos.set(false);
+        },
+        error: () => {
+          this.inscritos.set([]);
+          this.inscritosError.set('No pudimos cargar a quiénes ya apuntaste en este evento.');
+          this.loadingInscritos.set(false);
+        },
+      });
+  }
+
   private participantKey(member: FamilyMember): string {
     return `${member.origin === 'no_fallero' ? 'no_fallero' : 'familiar'}:${member.id}`;
+  }
+
+  private inscritoKey(inscrito: ParticipanteSeleccionApi): string {
+    return `${inscrito.origen}:${inscrito.id}`;
   }
 
   private toParticipantesSeleccion(selectedKeys: string[]): ParticipanteSeleccionApi[] {

@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, map, Observable, of } from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
+import { AuthService } from '../../../core/auth/auth';
 
 interface ApiCollection<T> {
   member: T[];
@@ -97,6 +98,7 @@ export interface InscripcionApi {
   evento: {
     id: string;
     titulo: string;
+    descripcion?: string | null;
     fechaEvento: string;
     horaInicio?: string | null;
     lugar?: string | null;
@@ -119,6 +121,22 @@ export interface InscripcionResumenApi {
   id: string;
   codigo: string;
   evento: { id: string };
+}
+
+export interface EventoApuntadoApi {
+  inscripcionId: string;
+  usuarioId: string;
+  nombreUsuario: string;
+  estadoInscripcion: string;
+  estadoPago: string;
+  totalLineas: number;
+  importeTotal: number;
+}
+
+interface InscripcionResumenCollectionItem {
+  id: string;
+  codigo?: string;
+  evento?: { id?: string } | string;
 }
 
 export interface CrearInscripcionResponse {
@@ -166,6 +184,7 @@ interface NoFalleroStorageEntry extends NoFalleroApi {
 export class EventosApi {
   private readonly http = inject(HttpClient);
   private readonly mapper = inject(EventosMapper);
+  private readonly authService = inject(AuthService);
   private readonly apiBaseUrl = 'http://localhost:8080';
   private readonly noFallerosStorageKey = 'asociacion:invitados';
 
@@ -208,18 +227,41 @@ export class EventosApi {
   }
 
   getInscripcionesMias(): Observable<InscripcionResumenApi[]> {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      return of([]);
+    }
+
+    const params = new HttpParams().set('usuario.id', currentUserId.trim());
+
     return this.http
-      .get<ApiCollection<InscripcionResumenApi>>(`${this.apiBaseUrl}/api/inscripciones/mias`)
-      .pipe(map((r) => r.member ?? []));
+      .get<ApiCollection<InscripcionResumenCollectionItem>>(`${this.apiBaseUrl}/api/inscripcions`, { params })
+      .pipe(
+        map((r) => r.member ?? r['hydra:member'] ?? []),
+        map((items) => items.map((item) => this.toInscripcionResumen(item)).filter((item) => item.id.length > 0)),
+      );
   }
 
   getInscripcion(id: string): Observable<InscripcionApi> {
-    return this.http.get<InscripcionApi>(`${this.apiBaseUrl}/api/inscripciones/${id}`);
+    return this.http.get<InscripcionApi>(`${this.apiBaseUrl}/api/inscripcions/${id}`);
+  }
+
+  getApuntadosByEvento(eventoId: string, search?: string): Observable<EventoApuntadoApi[]> {
+    let params = new HttpParams();
+    const query = search?.trim();
+
+    if (query) {
+      params = params.set('q', query);
+    }
+
+    return this.http
+      .get<ApiCollection<EventoApuntadoApi>>(`${this.eventoBasePath(eventoId)}/apuntados`, { params })
+      .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
   }
 
   cancelarLineaInscripcion(inscripcionId: string, lineaId: string): Observable<unknown> {
     return this.http.post(
-      `${this.apiBaseUrl}/api/inscripciones/${inscripcionId}/lineas/${lineaId}/cancelar`,
+      `${this.apiBaseUrl}/api/inscripcions/${inscripcionId}/lineas/${lineaId}/cancelar`,
       {},
     );
   }
@@ -374,5 +416,26 @@ export class EventosApi {
   private setNoFallerosStorageEntries(entries: NoFalleroStorageEntry[]): void {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(this.noFallerosStorageKey, JSON.stringify(entries));
+  }
+
+  private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumenApi {
+    return {
+      id: String(item.id ?? ''),
+      codigo: String(item.codigo ?? ''),
+      evento: {
+        id: this.extractResourceId(item.evento, '/api/eventos/'),
+      },
+    };
+  }
+
+  private extractResourceId(resource: { id?: string } | string | undefined, prefix: string): string {
+    if (typeof resource === 'string') {
+      return resource.startsWith(prefix) ? resource.slice(prefix.length) : resource;
+    }
+
+    const id = resource?.id;
+    if (!id) return '';
+
+    return id.startsWith(prefix) ? id.slice(prefix.length) : id;
   }
 }

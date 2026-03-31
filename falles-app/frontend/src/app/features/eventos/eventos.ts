@@ -35,7 +35,7 @@ export class Eventos {
     const eventId = this.currentEventId();
     return [
       { key: 'inicio',     label: 'Inicio',     icon: '🏠',  route: '/eventos/inicio' },
-      { key: 'inscripciones', label: 'Eventos',  icon: '🎫',  route: '/eventos/inscripciones' },
+      { key: 'eventos',    label: 'Eventos',     icon: '🎫',  route: '/eventos/inscripciones' },
       { key: 'detalle',    label: 'Detalle',     icon: '📅',  route: eventId ? `/eventos/${eventId}/detalle`    : '/eventos/inicio' },
       { key: 'menus',      label: 'Menús',       icon: '🍽️', route: eventId ? `/eventos/${eventId}/menus`      : '/eventos/inicio' },
       { key: 'credencial', label: 'Credencial',  icon: '🎟️', route: eventId ? `/eventos/${eventId}/credencial` : '/eventos/inicio' },

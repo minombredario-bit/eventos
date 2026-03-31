@@ -1,6 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
-import { EventosApi, EventoResumenApi, NoFalleroApi, AltaInvitadoPayload } from '../data/eventos.api';
+import {
+  AltaInvitadoPayload,
+  EventoResumenApi,
+  EventosApi,
+  NoFalleroApi,
+  ParticipanteSeleccionApi,
+} from '../data/eventos.api';
 import { EventosMapper } from '../data/eventos.mapper';
 import { EventSummary, FamilyMember } from '../domain/eventos.models';
 import { formatDateKey, hasValidTime, normalizeDateKey } from '../../../core/utils/date.utils';
@@ -84,6 +90,10 @@ export class EventosStore {
 
   getNoFallerosByEvento(eventoId: string): Observable<NoFalleroApi[]> {
     return this.api.getNoFallerosByEvento(eventoId);
+  }
+
+  getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccionApi[]> {
+    return this.api.getSeleccionParticipantes(eventoId);
   }
 
   altaNoFalleroEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<NoFalleroApi> {
