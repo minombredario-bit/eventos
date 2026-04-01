@@ -9,6 +9,26 @@ interface ApiCollection<T> {
   'hydra:member'?: T[];
 }
 
+interface EventoApuntadosCollectionItem {
+  inscripcionId: string;
+  nombreCompleto: string;
+  opciones?: string[];
+}
+
+interface EventoApuntadosCollectionResponse {
+  evento?: {
+    id?: string | number;
+    titulo?: string;
+    descripcion?: string | null;
+    fechaEvento?: string;
+  };
+  member?: EventoApuntadosCollectionItem[];
+  'hydra:member'?: EventoApuntadosCollectionItem[];
+  'hydra:totalItems'?: number;
+  'hydra:currentPage'?: number;
+  'hydra:itemsPerPage'?: number;
+}
+
 export interface PersonaFamiliarApi {
   id: string;
   nombre: string;
@@ -127,12 +147,21 @@ export interface InscripcionResumenApi {
 
 export interface EventoApuntadoApi {
   inscripcionId: string;
-  usuarioId: string;
-  nombreUsuario: string;
-  estadoInscripcion: string;
-  estadoPago: string;
-  totalLineas: number;
-  importeTotal: number;
+  nombreCompleto: string;
+  opciones: string[];
+}
+
+export interface EventoApuntadosResponseApi {
+  evento: {
+    id: string;
+    titulo: string;
+    descripcion?: string | null;
+    fechaEvento: string;
+  };
+  apuntados: EventoApuntadoApi[];
+  totalItems: number;
+  currentPage: number;
+  itemsPerPage: number;
 }
 
 interface InscripcionResumenCollectionItem {
@@ -180,8 +209,8 @@ export interface CrearInscripcionResponse {
 
 export interface RelacionUsuarioApi {
   id: string;
-  usuarioOrigen: { id: string; nombre: string; apellidos: string };
-  usuarioDestino: { id: string; nombre: string; apellidos: string };
+  usuarioOrigen: { id?: string; '@id'?: string; nombre: string; apellidos: string };
+  usuarioDestino: { id?: string; '@id'?: string; nombre: string; apellidos: string };
   tipoRelacion: string;
   createdAt: string;
 }
@@ -246,7 +275,7 @@ export class EventosApi {
   getPersonasMias(): Observable<PersonaFamiliarApi[]> {
     return this.http
       .get<ApiCollection<PersonaFamiliarApi>>(`${this.apiBaseUrl}/api/persona_familiares/mias`)
-      .pipe(map((r) => r.member ?? []));
+      .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
   }
 
   // ── Inscripciones ─────────────────────────────────────────────────────
@@ -301,17 +330,49 @@ export class EventosApi {
     return this.http.get<InscripcionApi>(`${this.apiBaseUrl}/api/inscripcions/${id}`);
   }
 
-  getApuntadosByEvento(eventoId: string, search?: string): Observable<EventoApuntadoApi[]> {
+  getApuntadosByEvento(
+    eventoId: string,
+    options?: { search?: string; paginate?: boolean; page?: number },
+  ): Observable<EventoApuntadosResponseApi> {
     let params = new HttpParams();
-    const query = search?.trim();
+    const query = options?.search?.trim();
+    const paginate = options?.paginate ?? true;
+    const page = options?.page ?? 1;
 
     if (query) {
       params = params.set('q', query);
     }
 
+    params = params
+      .set('paginate', String(paginate))
+      .set('page', String(Math.max(1, page)));
+
     return this.http
-      .get<ApiCollection<EventoApuntadoApi>>(`${this.eventoBasePath(eventoId)}/apuntados`, { params })
-      .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
+      .get<EventoApuntadosCollectionResponse>(`${this.eventoBasePath(eventoId)}/apuntados`, { params })
+      .pipe(map((r) => {
+        const apuntados = (r.member ?? r['hydra:member'] ?? []).map((item) => ({
+          inscripcionId: String(item.inscripcionId ?? ''),
+          nombreCompleto: String(item.nombreCompleto ?? '').trim(),
+          opciones: Array.isArray(item.opciones)
+            ? item.opciones.map((opcion) => String(opcion).trim()).filter(Boolean)
+            : [],
+        }));
+
+        return {
+          evento: {
+            id: String(r.evento?.id ?? this.normalizeEventoId(eventoId)),
+            titulo: String(r.evento?.titulo ?? 'Evento').trim() || 'Evento',
+            descripcion: typeof r.evento?.descripcion === 'string'
+              ? r.evento.descripcion.trim()
+              : null,
+            fechaEvento: String(r.evento?.fechaEvento ?? '').trim(),
+          },
+          apuntados,
+          totalItems: Number(r['hydra:totalItems'] ?? apuntados.length),
+          currentPage: Number(r['hydra:currentPage'] ?? 1),
+          itemsPerPage: Number(r['hydra:itemsPerPage'] ?? apuntados.length),
+        };
+      }));
   }
 
   cancelarLineaInscripcion(inscripcionId: string, lineaId: string): Observable<unknown> {
@@ -327,54 +388,41 @@ export class EventosApi {
     return this.http
       .get<ApiCollection<NoFalleroApi>>(`${this.eventoBasePath(eventoId)}/no_falleros`)
       .pipe(
-        map((r) => this.mapper.mapNoFallerosList(r.member, eventoId)),
+        map((r) => this.mapper.mapNoFallerosList(r.member ?? r['hydra:member'] ?? [], eventoId)),
         catchError(() =>
-          this.http
-            .get<ApiCollection<NoFalleroApi>>(`${this.eventoBasePath(eventoId)}/participantes_externos`)
-            .pipe(
-              map((r) => this.mapper.mapNoFallerosList(r.member, eventoId)),
-              catchError(() =>
-                of(this.mapper.mapNoFallerosList(this.readNoFallerosFromFallback(eventoId), eventoId)),
-              ),
-            ),
+          of(this.mapper.mapNoFallerosList(this.readNoFallerosFromFallback(eventoId), eventoId)),
         ),
       );
   }
 
   altaNoFalleroEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<NoFalleroApi> {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      return of(this.createNoFalleroInFallback(eventoId, payload));
+    }
+
     return this.http
-      .post<NoFalleroApi>(`${this.eventoBasePath(eventoId)}/no_falleros`, payload)
+      .post<NoFalleroApi>(`${this.apiBaseUrl}/api/invitados`, {
+        ...payload,
+        creadoPor: `/api/usuarios/${currentUserId.trim()}`,
+        evento: `/api/eventos/${this.normalizeEventoId(eventoId)}`,
+      })
       .pipe(
         map((r) => this.mapper.mapNoFalleroCreate(r, eventoId, payload.nombre, payload.apellidos)),
-        catchError(() =>
-          this.http
-            .post<NoFalleroApi>(`${this.eventoBasePath(eventoId)}/participantes_externos`, payload)
-            .pipe(
-              map((r) => this.mapper.mapNoFalleroCreate(r, eventoId, payload.nombre, payload.apellidos)),
-              catchError(() => of(this.createNoFalleroInFallback(eventoId, payload))),
-            ),
-        ),
+        catchError(() => of(this.createNoFalleroInFallback(eventoId, payload))),
       );
   }
 
   bajaNoFalleroEnEvento(eventoId: string, noFalleroId: string): Observable<void> {
     return this.http
-      .delete<unknown>(`${this.eventoBasePath(eventoId)}/no_falleros/${noFalleroId}`)
+      .delete<unknown>(`${this.apiBaseUrl}/api/invitados/${encodeURIComponent(noFalleroId)}`)
       .pipe(
         map((r) => this.mapper.mapNoFalleroDelete(r, eventoId, noFalleroId)),
         map(() => void 0),
-        catchError(() =>
-          this.http
-            .post<unknown>(`${this.eventoBasePath(eventoId)}/no_falleros/${noFalleroId}/baja`, {})
-            .pipe(
-              map((r) => this.mapper.mapNoFalleroDelete(r, eventoId, noFalleroId)),
-              map(() => void 0),
-              catchError(() => {
-                this.deleteNoFalleroInFallback(eventoId, noFalleroId);
-                return of(void 0);
-              }),
-            ),
-        ),
+        catchError(() => {
+          this.deleteNoFalleroInFallback(eventoId, noFalleroId);
+          return of(void 0);
+        }),
       );
   }
 
@@ -391,18 +439,30 @@ export class EventosApi {
   getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccionApi[]> {
     return this.http
       .get<SeleccionParticipantesResponseApi>(`${this.eventoBasePath(eventoId)}/seleccion_participantes`)
-      .pipe(map((r) => Array.isArray(r.participantes) ? r.participantes : []));
+      .pipe(
+        map((r) => Array.isArray(r.participantes) ? r.participantes : []),
+      );
   }
 
   guardarSeleccionParticipantes(
     eventoId: string,
     participantes: ParticipanteSeleccionApi[],
   ): Observable<ParticipanteSeleccionApi[]> {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      return of(participantes);
+    }
+
+    const normalizedEventoId = this.normalizeEventoId(eventoId);
+
     return this.http
-      .put<SeleccionParticipantesResponseApi>(`${this.eventoBasePath(eventoId)}/seleccion_participantes`, {
-        participantes,
-      })
-      .pipe(map((r) => Array.isArray(r.participantes) ? r.participantes : []));
+      .put<SeleccionParticipantesResponseApi>(
+        `${this.apiBaseUrl}/api/eventos/${encodeURIComponent(normalizedEventoId)}/seleccion_participantes`,
+        { participantes },
+      )
+      .pipe(
+        map((r) => Array.isArray(r.participantes) ? r.participantes : []),
+      );
   }
 
   // ── Privados ──────────────────────────────────────────────────────────
@@ -420,6 +480,33 @@ export class EventosApi {
     return cleaned.startsWith('/api/eventos/')
       ? cleaned.slice('/api/eventos/'.length)
       : cleaned;
+  }
+
+  private toPersonaFamiliarFromRelacion(relacion: RelacionUsuarioApi): PersonaFamiliarApi | null {
+    const destino = relacion.usuarioDestino;
+    if (!destino) {
+      return null;
+    }
+
+    const id = this.extractResourceId(destino.id ?? destino['@id'] ?? '');
+    if (!id) {
+      return null;
+    }
+
+    const nombre = destino.nombre?.trim() || 'Familiar';
+    const apellidos = destino.apellidos?.trim() || '';
+    const nombreCompleto = [nombre, apellidos].filter(Boolean).join(' ').trim();
+
+    return {
+      id,
+      nombre,
+      apellidos,
+      nombreCompleto,
+      parentesco: relacion.tipoRelacion || 'familiar',
+      tipoPersona: 'adulto',
+      observaciones: null,
+      inscripcion: null,
+    };
   }
 
   private readNoFallerosFromFallback(eventoId: string): NoFalleroApi[] {
@@ -540,7 +627,7 @@ export class EventosApi {
 
   private extractResourceId(
     resource: { id?: string | number; '@id'?: string } | string | number | null | undefined,
-    prefix: string,
+    prefix = '',
   ): string {
     if (typeof resource === 'number') {
       return String(resource);
@@ -562,6 +649,15 @@ export class EventosApi {
     const normalized = this.safeDecode(value).trim();
     if (!normalized.length) {
       return '';
+    }
+
+    if (!prefix) {
+      if (!normalized.includes('/')) {
+        return normalized;
+      }
+
+      const parts = normalized.split('/').filter(Boolean);
+      return parts.at(-1) ?? '';
     }
 
     if (normalized.startsWith(prefix)) {

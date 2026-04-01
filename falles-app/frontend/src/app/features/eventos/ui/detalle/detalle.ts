@@ -106,9 +106,10 @@ export class Detalle {
       const relacionado = relacion.usuarioOrigen.id === myId
         ? relacion.usuarioDestino
         : relacion.usuarioOrigen;
+      const relacionadoId = relacionado.id ?? relacionado['@id']?.split('/').pop() ?? '';
 
       return {
-        id: relacionado.id,
+        id: relacionadoId,
         name: `${relacionado.nombre} ${relacionado.apellidos}`.trim(),
         role: relacion.tipoRelacion,
         personType: 'adulto' as const,
