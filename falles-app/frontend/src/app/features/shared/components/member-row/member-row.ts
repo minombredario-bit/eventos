@@ -19,6 +19,7 @@ interface MenuChangePayload {
 export class MemberRow {
   readonly member = input.required<FamilyMember>();
   readonly actionLabel = input('');
+  readonly secondaryActionLabel = input('');
   readonly showSelect = input(false);
   readonly selectorLabel = input('Menú');
   readonly slot = input<string | null>(null);
@@ -27,8 +28,10 @@ export class MemberRow {
   readonly emptyMessage = input('No hay menús disponibles para esta persona');
   readonly showEnrollmentInfo = input(false);
   readonly disabled = input(false);
+  readonly secondaryDisabled = input(false);
 
   readonly actionPressed = output<string>();
+  readonly secondaryActionPressed = output<string>();
   readonly menuChanged = output<MenuChangePayload>();
 
   protected onActionClick(): void {
@@ -42,6 +45,10 @@ export class MemberRow {
       menuId: target.value || null,
       slot: this.slot(),
     });
+  }
+
+  protected onSecondaryActionClick(): void {
+    this.secondaryActionPressed.emit(this.member().id);
   }
 
   protected paymentBadgeLabel(status: PaymentBadgeStatus): string {

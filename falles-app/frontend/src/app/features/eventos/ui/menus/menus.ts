@@ -93,7 +93,7 @@ export class Menus {
   protected readonly event          = signal<EventoDetalleApi | null>(null);
   protected readonly preselectedParticipants = signal<ParticipantReference[]>([]);
   protected readonly familyMembers  = signal<FamilyMember[]>([]);
-  protected readonly noFalleros     = signal<FamilyMember[]>([]);
+  protected readonly invitados       = signal<FamilyMember[]>([]);
   protected readonly options        = signal<MenuOption[]>([]);
   protected readonly removedMemberIds = signal<string[]>([]);
   protected readonly selectedMenus  = signal<Record<string, Partial<Record<MealSlot, string | null>>>>({});
@@ -105,12 +105,12 @@ export class Menus {
   protected readonly members = computed(() => [
     ...this.familyMembers(),
     ...this.relatedMembersFromSelection(),
-    ...this.noFalleros(),
+    ...this.invitados(),
   ]);
 
   protected readonly relatedMembersFromSelection = computed<FamilyMember[]>(() => {
     const existing = new Set(
-      [...this.familyMembers(), ...this.noFalleros()].map((m) => this.participantKey(m.id, m.origin)),
+      [...this.familyMembers(), ...this.invitados()].map((m) => this.participantKey(m.id, m.origin)),
     );
 
     return this.preselectedParticipants()
@@ -262,7 +262,7 @@ export class Menus {
     this.eventId$
       .pipe(
         tap((id) => this.loadEvent(id)),
-        tap((id) => this.loadNoFalleros(id)),
+        tap((id) => this.loadInvitados(id)),
         tap((id) => this.loadSeleccionParticipantes(id)),
         tap(() => this.loadMyInscriptions()),
         takeUntilDestroyed(this.destroyRef),
@@ -436,17 +436,17 @@ export class Menus {
       });
   }
 
-  private loadNoFalleros(eventId: string): void {
+  private loadInvitados(eventId: string): void {
     this.eventosStore
-      .getNoFallerosByEvento(eventId)
+      .getInvitadosByEvento(eventId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (noFalleros) => {
-          this.noFalleros.set(noFalleros.map((p) => this.eventosMapper.toFamilyMember(p)));
+        next: (invitados) => {
+          this.invitados.set(invitados.map((p) => this.eventosMapper.toFamilyMember(p)));
           this.reconcileSelectedMenus();
         },
         error: () => {
-          this.noFalleros.set([]);
+          this.invitados.set([]);
           this.reconcileSelectedMenus();
         },
       });
@@ -566,7 +566,7 @@ export class Menus {
 
         return {
           id: item.id,
-          origin: item.origen === 'no_fallero' ? 'no_fallero' : 'familiar',
+          origin: item.origen === 'invitado' ? 'invitado' : 'familiar',
           name: nombreCompleto || undefined,
           enrollment: this.toEnrollmentFromRelacion(item),
         };
@@ -630,11 +630,11 @@ export class Menus {
   }
 
   private participantKey(id: string, origin: ParticipantOrigin): string {
-    return `${origin === 'no_fallero' ? 'no_fallero' : 'familiar'}:${id}`;
+    return `${origin === 'invitado' ? 'invitado' : 'familiar'}:${id}`;
   }
 
   private buildPersonaReference(id: string, origin: ParticipantOrigin): string {
-    return origin === 'no_fallero' ? `/api/no_falleros/${id}` : `/api/persona_familiares/${id}`;
+    return origin === 'invitado' ? `/api/invitados/${id}` : `/api/persona_familiares/${id}`;
   }
 
   private formatLineStateLabel(state: string): string {

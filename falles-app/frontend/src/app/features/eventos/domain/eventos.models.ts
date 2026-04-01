@@ -19,7 +19,7 @@ export interface FamilyMember {
   enrollment?: MemberEnrollment;
 }
 
-export type ParticipantOrigin = 'familiar' | 'no_fallero';
+export type ParticipantOrigin = 'familiar' | 'invitado';
 
 export type PaymentBadgeStatus = 'pagado' | 'pendiente' | 'no_requiere' | 'parcial';
 

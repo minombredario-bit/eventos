@@ -30,23 +30,26 @@
 
       <div class="detail-panels">
 
-        <article class="panel family-list" aria-label="Participantes ya apuntados">
+        <article class="panel family-list" aria-label="Inscripciones ya guardadas">
           <h2>A quién he apuntado</h2>
-          <p class="supporting-copy">Participantes ya guardados para este evento.</p>
+          <p class="supporting-copy">Inscripciones ya guardadas para este evento.</p>
           <p class="selection-summary">{{ inscritosSummary() }}</p>
 
           @if (loadingInscritos()) {
-            <p>Cargando participantes inscritos...</p>
+            <p>Cargando inscripciones...</p>
           } @else if (inscritosError()) {
             <p class="supporting-copy">{{ inscritosError() }}</p>
           } @else if (!inscritosRows().length) {
-            <p class="supporting-copy">Todavía no hay participantes inscritos para mostrar.</p>
+            <p class="supporting-copy">Todavía no hay inscripciones para mostrar.</p>
           } @else {
             @for (member of inscritosRows(); track inscritoTrackKey(member)) {
               <app-member-row
                 [member]="member"
                 [showEnrollmentInfo]="true"
-                aria-label="Fila de participante inscrito"
+                [actionLabel]="inscritoActionLabel(member)"
+                [disabled]="isDeletingInscritoInvitado(member.id)"
+                aria-label="Fila de invitado o familiar inscrito"
+                (actionPressed)="removeInscritoInvitado($event)"
               />
             }
           }
@@ -54,7 +57,7 @@
 
         @if (!inscripcionCerrada()) {
           <article class="panel family-list" aria-label="Listado de familiares">
-            <h2>Inscripciones y familiares</h2>
+            <h2>Inscripciones, familiares y amigos</h2>
             <p class="supporting-copy">Toca en "Inscribir" para elegir quiénes pasan a la pantalla de menús.</p>
             <p class="selection-summary">{{ selectedCountLabel() }}</p>
 
@@ -67,19 +70,23 @@
                 <app-member-row
                   [member]="member"
                   [actionLabel]="participantActionLabel(member)"
+                  [secondaryActionLabel]="participantSecondaryActionLabel(member)"
+                  [secondaryDisabled]="isDeletingInvitado(member.id)"
+                  [disabled]="isParticipantActionDisabled(member)"
                   [showEnrollmentInfo]="true"
                   aria-label="Fila de persona para inscribir"
                   (actionPressed)="toggleMemberSelection(member)"
+                  (secondaryActionPressed)="handleParticipantSecondaryAction($event)"
                 />
               }
             }
           </article>
 
-          <article class="panel no-falleros" aria-label="Gestión de no falleros">
-            <h2>No falleros del evento</h2>
-            <p class="supporting-copy">Alta y baja rápida de invitados externos para este evento.</p>
+          <article class="panel invitados" aria-label="Gestión de invitados">
+            <h2>Alta de invitados</h2>
+            <p class="supporting-copy">Añadí invitados y gestioná su inscripción desde la lista principal.</p>
 
-            <form class="no-falleros-form" [formGroup]="noFalleroForm" (ngSubmit)="submitNoFallero()" novalidate>
+            <form class="invitados-form" [formGroup]="invitadoForm" (ngSubmit)="submitInvitado()" novalidate>
               <div class="field-grid">
                 <label>
                   Nombre
@@ -112,36 +119,22 @@
                 <textarea formControlName="observaciones" rows="2" placeholder="Alergias, notas, etc. (opcional)"></textarea>
               </label>
 
-              <app-cta-button
-                class="form-cta"
-                label="Dar de alta invitado"
-                loadingLabel="Guardando..."
-                type="submit"
-                [loading]="submittingNoFallero()"
-                [disabled]="submittingNoFallero()"
-              />
+                <app-cta-button
+                  class="form-cta"
+                  label="Dar de alta invitado"
+                  loadingLabel="Guardando..."
+                  type="submit"
+                  [loading]="submittingInvitado()"
+                  [disabled]="submittingInvitado()"
+                />
             </form>
 
-            @if (noFallerosError()) {
-              <p class="inline-error" role="alert">{{ noFallerosError() }}</p>
+            @if (invitadosError()) {
+              <p class="inline-error" role="alert">{{ invitadosError() }}</p>
             }
 
-            @if (loadingNoFalleros()) {
+            @if (loadingInvitados()) {
               <p class="supporting-copy">Cargando invitados...</p>
-            } @else if (noFallerosRows().length === 0) {
-              <p class="supporting-copy">Todavía no hay invitados cargados para este evento.</p>
-            } @else {
-              <div class="no-falleros-list">
-                @for (member of noFallerosRows(); track participantTrackKey(member)) {
-                  <app-member-row
-                    [member]="member"
-                    [showEnrollmentInfo]="true"
-                    [actionLabel]="isDeletingNoFallero(member.id) ? 'Dando de baja...' : 'Dar de baja'"
-                    [disabled]="isDeletingNoFallero(member.id)"
-                    (actionPressed)="removeNoFallero($event)"
-                  />
-                }
-              </div>
             }
           </article>
         }
@@ -160,6 +153,8 @@
         <app-cta-button
           [label]="menusButtonLabel()"
           [disabled]="!canContinueToMenus()"
+          [loading]="savingSelection()"
+          loadingLabel="Guardando selección..."
           (pressed)="openMenus()"
         />
       </div>

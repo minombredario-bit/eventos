@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { catchError, map, Observable, of } from 'rxjs';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { catchError, map, Observable, of, throwError } from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
 import { AuthService } from '../../../core/auth/auth';
 
@@ -48,7 +48,7 @@ export interface PersonaFamiliarApi {
   } | null;
 }
 
-export interface NoFalleroApi {
+export interface InvitadoApi {
   id: string;
   nombre: string;
   apellidos?: string;
@@ -56,8 +56,8 @@ export interface NoFalleroApi {
   parentesco?: string;
   tipoPersona: 'adulto' | 'infantil';
   observaciones?: string | null;
-  origen?: 'no_fallero' | 'familiar';
-  esNoFallero?: boolean;
+  origen?: 'invitado' | 'familiar';
+  esInvitado?: boolean;
   inscripcion?: {
     evento: {
       id: string;
@@ -209,15 +209,24 @@ export interface CrearInscripcionResponse {
 
 export interface RelacionUsuarioApi {
   id: string;
-  usuarioOrigen: { id?: string; '@id'?: string; nombre: string; apellidos: string };
-  usuarioDestino: { id?: string; '@id'?: string; nombre: string; apellidos: string };
+  usuarioOrigen: { id?: string; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string };
+  usuarioDestino: { id?: string; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string };
   tipoRelacion: string;
   createdAt: string;
 }
 
+interface RelacionUsuarioCollectionItem {
+  id?: string | number;
+  '@id'?: string;
+  usuarioOrigen?: { id?: string | number; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string } | string;
+  usuarioDestino?: { id?: string | number; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string } | string;
+  tipoRelacion?: string;
+  createdAt?: string;
+}
+
 export interface ParticipanteSeleccionApi {
   id: string;
-  origen: 'familiar' | 'no_fallero';
+  origen: 'familiar' | 'invitado';
   nombre?: string;
   apellidos?: string;
   inscripcionRelacion?: {
@@ -240,7 +249,7 @@ interface SeleccionParticipantesResponseApi {
   updatedAt: string | null;
 }
 
-interface NoFalleroStorageEntry extends NoFalleroApi {
+interface InvitadoStorageEntry extends InvitadoApi {
   eventId: string;
 }
 
@@ -250,7 +259,7 @@ export class EventosApi {
   private readonly mapper = inject(EventosMapper);
   private readonly authService = inject(AuthService);
   private readonly apiBaseUrl = 'http://localhost:8080';
-  private readonly noFallerosStorageKey = 'asociacion:invitados';
+  private readonly invitadosStorageKey = 'asociacion:invitados';
 
   // ── Eventos ───────────────────────────────────────────────────────────
 
@@ -382,45 +391,51 @@ export class EventosApi {
     );
   }
 
-  // ── No Falleros ───────────────────────────────────────────────────────
+  // ── Invitados ─────────────────────────────────────────────────────────
 
-  getNoFallerosByEvento(eventoId: string): Observable<NoFalleroApi[]> {
+  getInvitadosByEvento(eventoId: string): Observable<InvitadoApi[]> {
     return this.http
-      .get<ApiCollection<NoFalleroApi>>(`${this.eventoBasePath(eventoId)}/no_falleros`)
+      .get<ApiCollection<InvitadoApi>>(`${this.eventoBasePath(eventoId)}/invitados`)
       .pipe(
-        map((r) => this.mapper.mapNoFallerosList(r.member ?? r['hydra:member'] ?? [], eventoId)),
+        map((r) => this.mapper.mapInvitadosList(r.member ?? r['hydra:member'] ?? [], eventoId)),
         catchError(() =>
-          of(this.mapper.mapNoFallerosList(this.readNoFallerosFromFallback(eventoId), eventoId)),
+          of(this.mapper.mapInvitadosList(this.readInvitadosFromFallback(eventoId), eventoId)),
         ),
       );
   }
 
-  altaNoFalleroEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<NoFalleroApi> {
+  altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<InvitadoApi> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      return of(this.createNoFalleroInFallback(eventoId, payload));
+      return of(this.createInvitadoInFallback(eventoId, payload));
     }
 
     return this.http
-      .post<NoFalleroApi>(`${this.apiBaseUrl}/api/invitados`, {
+      .post<InvitadoApi>(`${this.apiBaseUrl}/api/invitados`, {
         ...payload,
         creadoPor: `/api/usuarios/${currentUserId.trim()}`,
         evento: `/api/eventos/${this.normalizeEventoId(eventoId)}`,
       })
       .pipe(
-        map((r) => this.mapper.mapNoFalleroCreate(r, eventoId, payload.nombre, payload.apellidos)),
-        catchError(() => of(this.createNoFalleroInFallback(eventoId, payload))),
+        map((r) => this.mapper.mapInvitadoCreate(r, eventoId, payload.nombre, payload.apellidos)),
+        catchError((error: unknown) => {
+          if (this.shouldCreateInvitadoFallback(error)) {
+            return of(this.createInvitadoInFallback(eventoId, payload));
+          }
+
+          return throwError(() => error);
+        }),
       );
   }
 
-  bajaNoFalleroEnEvento(eventoId: string, noFalleroId: string): Observable<void> {
+  bajaInvitadoEnEvento(eventoId: string, invitadoId: string): Observable<void> {
     return this.http
-      .delete<unknown>(`${this.apiBaseUrl}/api/invitados/${encodeURIComponent(noFalleroId)}`)
+      .delete<unknown>(`${this.apiBaseUrl}/api/invitados/${encodeURIComponent(invitadoId)}`)
       .pipe(
-        map((r) => this.mapper.mapNoFalleroDelete(r, eventoId, noFalleroId)),
+        map((r) => this.mapper.mapInvitadoDelete(r, eventoId, invitadoId)),
         map(() => void 0),
         catchError(() => {
-          this.deleteNoFalleroInFallback(eventoId, noFalleroId);
+          this.deleteInvitadoInFallback(eventoId, invitadoId);
           return of(void 0);
         }),
       );
@@ -430,17 +445,24 @@ export class EventosApi {
 
   getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuarioApi[]> {
     return this.http
-      .get<ApiCollection<RelacionUsuarioApi>>(
+      .get<ApiCollection<RelacionUsuarioCollectionItem>>(
         `${this.apiBaseUrl}/api/usuarios/${usuarioId}/relaciones`,
       )
-      .pipe(map((r) => r.member ?? []));
+      .pipe(
+        map((r) => r.member ?? r['hydra:member'] ?? []),
+        map((items) => items
+          .map((item) => this.toRelacionUsuario(item))
+          .filter((item): item is RelacionUsuarioApi => item !== null)),
+      );
   }
 
   getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccionApi[]> {
     return this.http
       .get<SeleccionParticipantesResponseApi>(`${this.eventoBasePath(eventoId)}/seleccion_participantes`)
       .pipe(
-        map((r) => Array.isArray(r.participantes) ? r.participantes : []),
+        map((r) => (Array.isArray(r.participantes) ? r.participantes : [])
+          .map((item) => this.normalizeParticipanteSeleccion(item))
+          .filter((item): item is ParticipanteSeleccionApi => item !== null)),
       );
   }
 
@@ -454,14 +476,19 @@ export class EventosApi {
     }
 
     const normalizedEventoId = this.normalizeEventoId(eventoId);
+    const payloadParticipantes = participantes
+      .map((item) => this.normalizeParticipanteSeleccion(item))
+      .filter((item): item is ParticipanteSeleccionApi => item !== null);
 
     return this.http
       .put<SeleccionParticipantesResponseApi>(
         `${this.apiBaseUrl}/api/eventos/${encodeURIComponent(normalizedEventoId)}/seleccion_participantes`,
-        { participantes },
+        { participantes: payloadParticipantes },
       )
       .pipe(
-        map((r) => Array.isArray(r.participantes) ? r.participantes : []),
+        map((r) => (Array.isArray(r.participantes) ? r.participantes : [])
+          .map((item) => this.normalizeParticipanteSeleccion(item))
+          .filter((item): item is ParticipanteSeleccionApi => item !== null)),
       );
   }
 
@@ -509,14 +536,14 @@ export class EventosApi {
     };
   }
 
-  private readNoFallerosFromFallback(eventoId: string): NoFalleroApi[] {
-    return this.getNoFallerosStorageEntries()
+  private readInvitadosFromFallback(eventoId: string): InvitadoApi[] {
+    return this.getInvitadosStorageEntries()
       .filter((e) => e.eventId === eventoId)
       .map(({ eventId: _eventId, ...item }) => item);
   }
 
-  private createNoFalleroInFallback(eventoId: string, payload: AltaInvitadoPayload): NoFalleroApi {
-    const created: NoFalleroStorageEntry = {
+  private createInvitadoInFallback(eventoId: string, payload: AltaInvitadoPayload): InvitadoApi {
+    const created: InvitadoStorageEntry = {
       id: `nf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
       eventId: eventoId,
       nombre: payload.nombre.trim(),
@@ -525,39 +552,39 @@ export class EventosApi {
       parentesco: payload.parentesco?.trim() || 'Invitado/a',
       tipoPersona: payload.tipoPersona,
       observaciones: payload.observaciones?.trim() || null,
-      origen: 'no_fallero',
-      esNoFallero: true,
+      origen: 'invitado',
+      esInvitado: true,
       inscripcion: null,
     };
 
-    const entries = this.getNoFallerosStorageEntries();
+    const entries = this.getInvitadosStorageEntries();
     entries.push(created);
-    this.setNoFallerosStorageEntries(entries);
+    this.setInvitadosStorageEntries(entries);
 
     const { eventId: _eventId, ...result } = created;
     return result;
   }
 
-  private deleteNoFalleroInFallback(eventoId: string, noFalleroId: string): void {
-    const next = this.getNoFallerosStorageEntries().filter(
-      (e) => !(e.eventId === eventoId && String(e.id) === noFalleroId),
+  private deleteInvitadoInFallback(eventoId: string, invitadoId: string): void {
+    const next = this.getInvitadosStorageEntries().filter(
+      (e) => !(e.eventId === eventoId && String(e.id) === invitadoId),
     );
-    this.setNoFallerosStorageEntries(next);
+    this.setInvitadosStorageEntries(next);
   }
 
-  private getNoFallerosStorageEntries(): NoFalleroStorageEntry[] {
+  private getInvitadosStorageEntries(): InvitadoStorageEntry[] {
     if (typeof window === 'undefined') return [];
     try {
-      const parsed = JSON.parse(window.localStorage.getItem(this.noFallerosStorageKey) ?? 'null');
-      return Array.isArray(parsed) ? (parsed as NoFalleroStorageEntry[]) : [];
+      const parsed = JSON.parse(window.localStorage.getItem(this.invitadosStorageKey) ?? 'null');
+      return Array.isArray(parsed) ? (parsed as InvitadoStorageEntry[]) : [];
     } catch {
       return [];
     }
   }
 
-  private setNoFallerosStorageEntries(entries: NoFalleroStorageEntry[]): void {
+  private setInvitadosStorageEntries(entries: InvitadoStorageEntry[]): void {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(this.noFallerosStorageKey, JSON.stringify(entries));
+    window.localStorage.setItem(this.invitadosStorageKey, JSON.stringify(entries));
   }
 
   private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumenApi | null {
@@ -693,5 +720,83 @@ export class EventosApi {
     }
 
     return 0;
+  }
+
+  private toRelacionUsuario(item: RelacionUsuarioCollectionItem): RelacionUsuarioApi | null {
+    const id = this.extractResourceId(item.id ?? item['@id'] ?? '');
+    const usuarioOrigen = this.normalizeRelacionUsuarioNode(item.usuarioOrigen);
+    const usuarioDestino = this.normalizeRelacionUsuarioNode(item.usuarioDestino);
+
+    if (!id || !usuarioOrigen.id || !usuarioDestino.id) {
+      return null;
+    }
+
+    return {
+      id,
+      usuarioOrigen,
+      usuarioDestino,
+      tipoRelacion: String(item.tipoRelacion ?? '').trim() || 'familiar',
+      createdAt: String(item.createdAt ?? '').trim(),
+    };
+  }
+
+  private normalizeRelacionUsuarioNode(
+    node: RelacionUsuarioCollectionItem['usuarioOrigen'],
+  ): RelacionUsuarioApi['usuarioOrigen'] {
+    const source: {
+      id?: string | number;
+      '@id'?: string;
+      nombre?: string;
+      apellidos?: string;
+      nombreCompleto?: string;
+    } = typeof node === 'string'
+      ? { '@id': node }
+      : (node ?? {});
+
+    const id = this.extractResourceId(source.id ?? source['@id'] ?? '', '/api/usuarios/');
+    const nombreCompleto = String(source.nombreCompleto ?? '').trim();
+    const nombre = String(source.nombre ?? '').trim();
+    const apellidos = String(source.apellidos ?? '').trim();
+
+    if (!nombre && nombreCompleto) {
+      const [firstName, ...rest] = nombreCompleto.split(' ').filter(Boolean);
+      return {
+        id,
+        nombre: firstName ?? '',
+        apellidos: rest.join(' '),
+        nombreCompleto,
+      };
+    }
+
+    return {
+      id,
+      nombre,
+      apellidos,
+      nombreCompleto: nombreCompleto || [nombre, apellidos].filter(Boolean).join(' ').trim() || undefined,
+    };
+  }
+
+  private normalizeParticipanteSeleccion(item: ParticipanteSeleccionApi): ParticipanteSeleccionApi | null {
+    const originRaw = (item as { origen?: string }).origen;
+    const origin = originRaw === 'invitado' ? 'invitado' : 'familiar';
+    const normalizedId = this.extractResourceId(item.id).trim();
+
+    if (!normalizedId) {
+      return null;
+    }
+
+    return {
+      ...item,
+      id: normalizedId,
+      origen: origin,
+    };
+  }
+
+  private shouldCreateInvitadoFallback(error: unknown): boolean {
+    if (!(error instanceof HttpErrorResponse)) {
+      return true;
+    }
+
+    return error.status === 0;
   }
 }

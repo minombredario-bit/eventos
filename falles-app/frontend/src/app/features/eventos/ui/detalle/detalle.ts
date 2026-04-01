@@ -6,10 +6,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { distinctUntilChanged, filter, map, tap } from 'rxjs';
+import { catchError, concatMap, distinctUntilChanged, filter, finalize, map, of, Subject, tap } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../../shared/components/member-row/member-row';
@@ -55,25 +56,29 @@ export class Detalle {
   // ── Estado ────────────────────────────────────────────────────────────
   protected readonly loading              = signal(true);
   protected readonly loadingPeople        = signal(true);
-  protected readonly loadingNoFalleros    = signal(true);
+  protected readonly loadingInvitados      = signal(true);
   protected readonly loadingRelaciones    = signal(false);
   protected readonly loadingInscritos     = signal(true);
-  protected readonly submittingNoFallero  = signal(false);
-  protected readonly deletingNoFalleroId  = signal<string | null>(null);
+  protected readonly submittingInvitado    = signal(false);
+  protected readonly deletingInvitadoId    = signal<string | null>(null);
+  protected readonly deletingInscritoInvitadoId = signal<string | null>(null);
   protected readonly errorMessage         = signal<string | null>(null);
-  protected readonly noFallerosError      = signal<string | null>(null);
+  protected readonly invitadosError        = signal<string | null>(null);
   protected readonly relacionesError      = signal<string | null>(null);
   protected readonly inscritosError       = signal<string | null>(null);
 
   protected readonly event        = signal<EventoDetalleApi | null>(null);
   protected readonly members      = signal<FamilyMember[]>([]);
-  protected readonly noFalleros   = signal<FamilyMember[]>([]);
+  protected readonly invitados     = signal<FamilyMember[]>([]);
   protected readonly relaciones   = signal<RelacionUsuarioApi[]>([]);
   protected readonly inscritos    = signal<ParticipanteSeleccionApi[]>([]);
   protected readonly selectedMemberIds = signal<string[]>([]);
+  protected readonly savingSelection = signal(false);
+
+  private readonly selectionSaveRequests$ = new Subject<SelectionSaveRequest>();
 
   // ── Form ──────────────────────────────────────────────────────────────
-  protected readonly noFalleroForm = this.fb.nonNullable.group({
+  protected readonly invitadoForm = this.fb.nonNullable.group({
     nombre:        ['', [Validators.required, Validators.minLength(2)]],
     apellidos:     ['', [Validators.required, Validators.minLength(2)]],
     tipoPersona:   this.fb.nonNullable.control<'adulto' | 'infantil'>('adulto'),
@@ -106,37 +111,26 @@ export class Detalle {
       const relacionado = relacion.usuarioOrigen.id === myId
         ? relacion.usuarioDestino
         : relacion.usuarioOrigen;
-      const relacionadoId = relacionado.id ?? relacionado['@id']?.split('/').pop() ?? '';
+      const relacionadoId = normalizeParticipantId(relacionado.id ?? relacionado['@id'] ?? '');
+      const relacionadoNombreCompleto = relacionado.nombreCompleto?.trim() ?? '';
+      const relacionadoNombre = relacionado.nombre?.trim() ?? '';
+      const relacionadoApellidos = relacionado.apellidos?.trim() ?? '';
+      const name = relacionadoNombreCompleto
+        || [relacionadoNombre, relacionadoApellidos].filter(Boolean).join(' ').trim()
+        || (relacionadoId ? `Usuario ${relacionadoId}` : 'Usuario relacionado');
 
       return {
         id: relacionadoId,
-        name: `${relacionado.nombre} ${relacionado.apellidos}`.trim(),
+        name,
         role: relacion.tipoRelacion,
         personType: 'adulto' as const,
         origin: 'familiar' as const,
-        avatarInitial: relacionado.nombre.charAt(0).toUpperCase(),
+        avatarInitial: name.charAt(0).toUpperCase(),
       };
-    });
+    }).filter((member) => member.id.length > 0);
   });
 
-  protected readonly noFallerosRows = computed<FamilyMember[]>(() => {
-    const summary = this.eventSummary();
-    return this.noFalleros().map((member) => {
-      if (member.enrollment || !summary) return member;
-      return {
-        ...member,
-        enrollment: {
-          eventId: summary.id,
-          eventTitle: summary.title,
-          eventLabel: summary.time === 'Sin hora'
-            ? `${summary.title} · ${summary.date}`
-            : `${summary.title} · ${summary.date} ${summary.time}`,
-          paymentStatus: this.eventosMapper.toPaymentBadgeStatus('pendiente'),
-          paymentStatusRaw: 'pendiente',
-        },
-      };
-    });
-  });
+  protected readonly invitadosRows = computed<FamilyMember[]>(() => this.invitados());
 
   protected readonly inscritosRows = computed<FamilyMember[]>(() => {
     const eventSummary = this.eventSummary();
@@ -148,7 +142,8 @@ export class Detalle {
         .filter(Boolean)
         .join(' ')
         .trim();
-      const name = fullName || knownMember?.name || `Participante ${inscrito.id}`;
+      const fallbackLabel = inscrito.origen === 'invitado' ? 'Invitado' : 'Familiar';
+      const name = fullName || knownMember?.name || `${fallbackLabel} ${inscrito.id}`;
       const rawPaymentStatus = inscrito.inscripcionRelacion?.estadoPago ?? 'pendiente';
       const menuNames = inscrito.inscripcionRelacion?.lineas
         ?.map((linea) => linea.nombreMenuSnapshot.trim())
@@ -158,7 +153,7 @@ export class Detalle {
       return {
         id: String(inscrito.id),
         name,
-        role: inscrito.origen === 'no_fallero' ? 'Invitado/a' : (knownMember?.role ?? 'Familiar'),
+        role: inscrito.origen === 'invitado' ? 'Invitado' : (knownMember?.role ?? 'Familiar'),
         personType: knownMember?.personType ?? 'adulto',
         origin: inscrito.origen,
         avatarInitial: name.charAt(0).toUpperCase() || '?',
@@ -192,8 +187,8 @@ export class Detalle {
       lookup.set(this.participantKey(participant), participant);
     }
 
-    for (const noFallero of this.noFallerosRows()) {
-      lookup.set(this.participantKey(noFallero), noFallero);
+    for (const invitado of this.invitadosRows()) {
+      lookup.set(this.participantKey(invitado), invitado);
     }
 
     return lookup;
@@ -201,12 +196,12 @@ export class Detalle {
 
   protected readonly participants = computed<FamilyMember[]>(() => {
     const titular = this.usuarioLogado();
-    return [
+    return uniqueParticipantsByKey([
       ...(titular ? [titular] : []),
       ...this.members(),
       ...this.relacionesComoMiembros(),
-      //...this.noFallerosRows(),
-    ];
+      ...this.invitadosRows(),
+    ]);
   });
 
   protected readonly eventSummary = computed<EventSummary | null>(() => {
@@ -255,11 +250,41 @@ export class Detalle {
   });
 
   constructor() {
+    this.selectionSaveRequests$
+      .pipe(
+        distinctUntilChanged((previous, current) => sameSelectionRequest(previous, current)),
+        concatMap((request) => {
+          this.errorMessage.set(null);
+          this.inscritosError.set(null);
+          this.savingSelection.set(true);
+
+          const participantes = this.toParticipantesSeleccion(request.selectedKeys);
+
+          return this.eventosApi
+            .guardarSeleccionParticipantes(request.eventId, participantes)
+            .pipe(
+              tap((saved) => {
+                this.inscritos.set(saved);
+                this.selectedMemberIds.set(toSelectedMemberKeys(saved));
+              }),
+              catchError(() => {
+                this.errorMessage.set('No pudimos guardar la selección de participantes. Probá nuevamente.');
+                return of([] as ParticipanteSeleccionApi[]);
+              }),
+              finalize(() => {
+                this.savingSelection.set(false);
+              }),
+            );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+
     this.eventId$
       .pipe(
         tap((id) => this.loadEvent(id)),
         tap(() => this.loadPersonasMias()),
-        tap((id) => this.loadNoFalleros(id)),
+        tap((id) => this.loadInvitados(id)),
         tap(() => this.loadRelaciones()),
         tap((id) => this.loadInscritos(id)),
         takeUntilDestroyed(this.destroyRef),
@@ -286,8 +311,24 @@ export class Detalle {
   }
 
   protected participantActionLabel(member: FamilyMember): string {
+    if (member.origin === 'invitado') {
+      return this.isMemberSelected(member) ? 'Quitar' : 'Inscribir';
+    }
+
     if (this.isAlreadyEnrolled(member) && !this.isMemberSelected(member)) return 'Eliminar';
     return this.isMemberSelected(member) ? 'Quitar' : 'Inscribir';
+  }
+
+  protected participantSecondaryActionLabel(member: FamilyMember): string {
+    if (member.origin !== 'invitado') {
+      return '';
+    }
+
+    return this.isDeletingInvitado(member.id) ? 'Borrando...' : 'Borrar';
+  }
+
+  protected isParticipantActionDisabled(member: FamilyMember): boolean {
+    return member.origin === 'invitado' && this.isDeletingInvitado(member.id);
   }
 
   protected toggleMemberSelection(member: FamilyMember): void {
@@ -295,6 +336,11 @@ export class Detalle {
     this.selectedMemberIds.update((current) =>
       current.includes(key) ? current.filter((id) => id !== key) : [...current, key],
     );
+    this.persistSelectedParticipants();
+  }
+
+  protected handleParticipantSecondaryAction(memberId: string): void {
+    this.removeInvitado(memberId);
   }
 
   protected getRelacionadoNombre(relacion: RelacionUsuarioApi): string {
@@ -314,19 +360,7 @@ export class Detalle {
     const eventId = this.eventId();
     if (!selected.length || !eventId || this.event()?.inscripcionAbierta !== true) return;
 
-    const participantes = this.toParticipantesSeleccion(selected);
-
-    this.eventosApi
-      .guardarSeleccionParticipantes(eventId, participantes)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          void this.router.navigate(['/eventos', eventId, 'menus']);
-        },
-        error: () => {
-          this.errorMessage.set('No pudimos guardar la selección de participantes. Probá nuevamente.');
-        },
-      });
+    void this.router.navigate(['/eventos', eventId, 'menus']);
   }
 
   protected logout(): void {
@@ -334,25 +368,37 @@ export class Detalle {
     void this.router.navigateByUrl('/auth/login');
   }
 
-  protected isDeletingNoFallero(memberId: string): boolean {
-    return this.deletingNoFalleroId() === memberId;
+  protected isDeletingInvitado(memberId: string): boolean {
+    return this.deletingInvitadoId() === memberId;
+  }
+
+  protected isDeletingInscritoInvitado(memberId: string): boolean {
+    return this.deletingInscritoInvitadoId() === memberId;
+  }
+
+  protected inscritoActionLabel(member: FamilyMember): string {
+    if (member.origin !== 'invitado') {
+      return '';
+    }
+
+    return this.isDeletingInscritoInvitado(member.id) ? 'Borrando...' : 'Borrar';
   }
 
   // ── Acciones con Observables ──────────────────────────────────────────
 
-  protected submitNoFallero(): void {
-    if (this.noFalleroForm.invalid || this.submittingNoFallero()) {
-      this.noFalleroForm.markAllAsTouched();
+  protected submitInvitado(): void {
+    if (this.invitadoForm.invalid || this.submittingInvitado()) {
+      this.invitadoForm.markAllAsTouched();
       return;
     }
 
     const eventId = this.eventId();
     if (!eventId) return;
 
-    this.noFallerosError.set(null);
-    this.submittingNoFallero.set(true);
+    this.invitadosError.set(null);
+    this.submittingInvitado.set(true);
 
-    const value = this.noFalleroForm.getRawValue();
+    const value = this.invitadoForm.getRawValue();
     const payload: AltaInvitadoPayload = {
       nombre:        value.nombre.trim(),
       apellidos:     value.apellidos.trim(),
@@ -362,47 +408,89 @@ export class Detalle {
     };
 
     this.eventosStore
-      .altaNoFalleroEnEvento(eventId, payload)
+      .altaInvitadoEnEvento(eventId, payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
-          this.loadNoFalleros(eventId);
-          this.noFalleroForm.patchValue({
+        next: (invitadoCreado) => {
+          const invitado = this.eventosMapper.toFamilyMember(invitadoCreado);
+          const invitadoKey = this.participantKey(invitado);
+
+          this.invitados.update((current) => uniqueParticipantsByKey([...current, invitado]));
+          this.selectedMemberIds.update((current) =>
+            current.includes(invitadoKey) ? current : [...current, invitadoKey],
+          );
+          this.persistSelectedParticipants();
+          this.invitadoForm.patchValue({
             nombre: '', apellidos: '', tipoPersona: 'adulto',
             parentesco: 'Invitado/a', observaciones: '',
           });
-          this.noFalleroForm.markAsPristine();
-          this.noFalleroForm.markAsUntouched();
-          this.submittingNoFallero.set(false);
+          this.invitadoForm.markAsPristine();
+          this.invitadoForm.markAsUntouched();
+          this.submittingInvitado.set(false);
         },
-        error: () => {
-          this.noFallerosError.set('No pudimos dar de alta al invitado. Probá nuevamente.');
-          this.submittingNoFallero.set(false);
+        error: (error: unknown) => {
+          this.invitadosError.set(this.resolveAltaInvitadoErrorMessage(error));
+          this.submittingInvitado.set(false);
         },
       });
   }
 
-  protected removeNoFallero(memberId: string): void {
+  protected removeInvitado(memberId: string): void {
     const eventId = this.eventId();
-    if (!eventId || this.deletingNoFalleroId()) return;
+    if (!eventId || this.deletingInvitadoId()) return;
 
-    this.noFallerosError.set(null);
-    this.deletingNoFalleroId.set(memberId);
+    this.invitadosError.set(null);
+    this.deletingInvitadoId.set(memberId);
 
     this.eventosStore
-      .bajaNoFalleroEnEvento(eventId, memberId)
+      .bajaInvitadoEnEvento(eventId, memberId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
+          const normalizedMemberId = normalizeParticipantId(memberId);
           this.selectedMemberIds.update((current) =>
-            current.filter((id) => id !== `no_fallero:${memberId}`),
+            current.filter((id) => id !== `invitado:${normalizedMemberId}`),
           );
-          this.loadNoFalleros(eventId);
-          this.deletingNoFalleroId.set(null);
+          this.persistSelectedParticipants();
+          this.loadInvitados(eventId);
+          this.deletingInvitadoId.set(null);
         },
         error: () => {
-          this.noFallerosError.set('No se pudo dar de baja al invitado seleccionado.');
-          this.deletingNoFalleroId.set(null);
+          this.invitadosError.set('No se pudo dar de baja al invitado seleccionado.');
+          this.deletingInvitadoId.set(null);
+        },
+      });
+  }
+
+  protected removeInscritoInvitado(memberId: string): void {
+    const eventId = this.eventId();
+    if (!eventId || this.deletingInscritoInvitadoId()) return;
+
+    this.inscritosError.set(null);
+    this.deletingInscritoInvitadoId.set(memberId);
+
+    this.eventosStore
+      .bajaInvitadoEnEvento(eventId, memberId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          const normalizedMemberId = normalizeParticipantId(memberId);
+          const selectedKey = `invitado:${normalizedMemberId}`;
+
+          this.selectedMemberIds.update((current) => current.filter((id) => id !== selectedKey));
+          this.inscritos.update((current) =>
+            current.filter((inscrito) => !(inscrito.origen === 'invitado' && normalizeParticipantId(inscrito.id) === normalizedMemberId)),
+          );
+          this.invitados.update((current) =>
+            current.filter((member) => !(member.origin === 'invitado' && normalizeParticipantId(member.id) === normalizedMemberId)),
+          );
+
+          this.persistSelectedParticipants();
+          this.deletingInscritoInvitadoId.set(null);
+        },
+        error: () => {
+          this.inscritosError.set('No se pudo borrar el invitado seleccionado.');
+          this.deletingInscritoInvitadoId.set(null);
         },
       });
   }
@@ -448,21 +536,21 @@ export class Detalle {
       });
   }
 
-  private loadNoFalleros(eventId: string): void {
-    this.loadingNoFalleros.set(true);
+  private loadInvitados(eventId: string): void {
+    this.loadingInvitados.set(true);
 
     this.eventosStore
-      .getNoFallerosByEvento(eventId)
+      .getInvitadosByEvento(eventId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (noFalleros) => {
-          this.noFalleros.set(noFalleros.map((p) => this.eventosMapper.toFamilyMember(p)));
-          this.loadingNoFalleros.set(false);
+        next: (invitados) => {
+          this.invitados.set(invitados.map((p) => this.eventosMapper.toFamilyMember(p)));
+          this.loadingInvitados.set(false);
         },
         error: () => {
-          this.noFallerosError.set('No pudimos cargar los invitados para este evento.');
-          this.noFalleros.set([]);
-          this.loadingNoFalleros.set(false);
+          this.invitadosError.set('No pudimos cargar los invitados para este evento.');
+          this.invitados.set([]);
+          this.loadingInvitados.set(false);
         },
       });
   }
@@ -514,7 +602,8 @@ export class Detalle {
   }
 
   private participantKey(member: FamilyMember): string {
-    return `${member.origin === 'no_fallero' ? 'no_fallero' : 'familiar'}:${member.id}`;
+    const normalizedId = normalizeParticipantId(member.id);
+    return `${member.origin === 'invitado' ? 'invitado' : 'familiar'}:${normalizedId}`;
   }
 
   private inscritoKey(inscrito: ParticipanteSeleccionApi): string {
@@ -527,10 +616,12 @@ export class Detalle {
 
     for (const key of selectedKeys) {
       const [originRaw = '', ...idParts] = key.split(':');
-      const id = idParts.length > 0 ? idParts.join(':').trim() : originRaw.trim();
+      const rawId = idParts.length > 0 ? idParts.join(':').trim() : originRaw.trim();
+      const id = normalizeParticipantId(rawId);
       if (!id) continue;
 
-      const origen: 'familiar' | 'no_fallero' = originRaw === 'no_fallero' ? 'no_fallero' : 'familiar';
+      const origen: 'familiar' | 'invitado' =
+        originRaw === 'invitado' ? 'invitado' : 'familiar';
       const uniqueKey = `${origen}:${id}`;
       if (seen.has(uniqueKey)) continue;
 
@@ -540,6 +631,71 @@ export class Detalle {
 
     return participantes;
   }
+
+  private persistSelectedParticipants(): void {
+    const eventId = this.eventId();
+    if (!eventId || this.event()?.inscripcionAbierta !== true) {
+      return;
+    }
+
+    this.selectionSaveRequests$.next({
+      eventId,
+      selectedKeys: [...this.selectedMemberIds()],
+      });
+  }
+
+  private resolveAltaInvitadoErrorMessage(error: unknown): string {
+    const fallbackMessage = 'No pudimos dar de alta al invitado. Probá nuevamente.';
+
+    if (!(error instanceof HttpErrorResponse)) {
+      return fallbackMessage;
+    }
+
+    if (error.status === 422) {
+      const apiError = this.toRecord(error.error);
+      const violationMessage = this.readViolationMessage(apiError);
+      const detailMessage = this.readString(apiError?.['detail'])
+        ?? this.readString(apiError?.['hydra:description'])
+        ?? this.readString(apiError?.['message'])
+        ?? this.readString(error.message);
+
+      return violationMessage ?? detailMessage ?? 'Ya existe un invitado activo con ese nombre completo para este evento.';
+    }
+
+    return fallbackMessage;
+  }
+
+  private toRecord(value: unknown): Record<string, unknown> | null {
+    return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
+  }
+
+  private readViolationMessage(source: Record<string, unknown> | null): string | null {
+    const violations = source?.['violations'];
+    if (!Array.isArray(violations) || violations.length === 0) {
+      return null;
+    }
+
+    const firstViolation = violations[0];
+    if (typeof firstViolation !== 'object' || firstViolation === null) {
+      return null;
+    }
+
+    return this.readString((firstViolation as Record<string, unknown>)['message']) ?? null;
+  }
+
+  private readString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const cleaned = value.trim();
+    return cleaned.length > 0 ? cleaned : null;
+  }
+}
+
+interface SelectionSaveRequest {
+  eventId: string;
+  selectedKeys: string[];
 }
 
 export function toSelectedMemberKeys(participantes: ParticipanteSeleccionApi[]): string[] {
@@ -549,10 +705,10 @@ export function toSelectedMemberKeys(participantes: ParticipanteSeleccionApi[]):
   const seen = new Set<string>();
 
   for (const participante of participantes) {
-    const id = participante.id?.trim();
+    const id = normalizeParticipantId(participante.id);
     if (!id) continue;
 
-    const origin = participante.origen === 'no_fallero' ? 'no_fallero' : 'familiar';
+    const origin = participante.origen === 'invitado' ? 'invitado' : 'familiar';
     const key = `${origin}:${id}`;
 
     if (seen.has(key)) continue;
@@ -561,4 +717,61 @@ export function toSelectedMemberKeys(participantes: ParticipanteSeleccionApi[]):
   }
 
   return selected;
+}
+
+function normalizeParticipantId(rawId: string | null | undefined): string {
+  if (!rawId) {
+    return '';
+  }
+
+  const cleaned = rawId.trim();
+  if (!cleaned) {
+    return '';
+  }
+
+  if (!cleaned.includes('/')) {
+    return cleaned;
+  }
+
+  return cleaned.split('/').filter(Boolean).at(-1) ?? '';
+}
+
+function sameSelectionRequest(previous: SelectionSaveRequest, current: SelectionSaveRequest): boolean {
+  if (previous.eventId !== current.eventId) {
+    return false;
+  }
+
+  if (previous.selectedKeys.length !== current.selectedKeys.length) {
+    return false;
+  }
+
+  return previous.selectedKeys.every((key, index) => key === current.selectedKeys[index]);
+}
+
+export function uniqueParticipantsByKey(participants: FamilyMember[]): FamilyMember[] {
+  if (participants.length <= 1) {
+    return participants;
+  }
+
+  const unique = new Map<string, FamilyMember>();
+
+  for (const participant of participants) {
+    const id = normalizeParticipantId(participant.id);
+    if (!id) {
+      continue;
+    }
+
+    const origin = participant.origin === 'invitado' ? 'invitado' : 'familiar';
+    const key = `${origin}:${id}`;
+
+    if (!unique.has(key)) {
+      unique.set(key, {
+        ...participant,
+        id,
+        origin,
+      });
+    }
+  }
+
+  return Array.from(unique.values());
 }

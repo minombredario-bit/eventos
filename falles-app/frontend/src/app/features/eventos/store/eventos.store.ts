@@ -4,7 +4,7 @@ import {
   AltaInvitadoPayload,
   EventoResumenApi,
   EventosApi,
-  NoFalleroApi,
+  InvitadoApi,
   ParticipanteSeleccionApi,
 } from '../data/eventos.api';
 import { EventosMapper } from '../data/eventos.mapper';
@@ -86,22 +86,22 @@ export class EventosStore {
     );
   }
 
-  // ── Acciones: No Falleros ─────────────────────────────────────────────
+  // ── Acciones: Invitados ───────────────────────────────────────────────
 
-  getNoFallerosByEvento(eventoId: string): Observable<NoFalleroApi[]> {
-    return this.api.getNoFallerosByEvento(eventoId);
+  getInvitadosByEvento(eventoId: string): Observable<InvitadoApi[]> {
+    return this.api.getInvitadosByEvento(eventoId);
   }
 
   getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccionApi[]> {
     return this.api.getSeleccionParticipantes(eventoId);
   }
 
-  altaNoFalleroEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<NoFalleroApi> {
-    return this.api.altaNoFalleroEnEvento(eventoId, payload);
+  altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<InvitadoApi> {
+    return this.api.altaInvitadoEnEvento(eventoId, payload);
   }
 
-  bajaNoFalleroEnEvento(eventoId: string, noFalleroId: string): Observable<void> {
-    return this.api.bajaNoFalleroEnEvento(eventoId, noFalleroId);
+  bajaInvitadoEnEvento(eventoId: string, invitadoId: string): Observable<void> {
+    return this.api.bajaInvitadoEnEvento(eventoId, invitadoId);
   }
 
   // ── Privados: ordenación y filtrado ───────────────────────────────────

@@ -2,12 +2,12 @@ import { Injectable } from '@angular/core';
 import {
   EventoResumenApi,
   MenuEventoApi,
-  NoFalleroApi,
+  InvitadoApi,
   PersonaFamiliarApi,
 } from './eventos.api';
 import { EventSummary, FamilyMember, MenuOption, ParticipantOrigin, PaymentBadgeStatus } from '../domain/eventos.models';
 
-interface NoFalleroDeleteMapped {
+interface InvitadoDeleteMapped {
   id: string;
   eventId: string;
 }
@@ -26,15 +26,16 @@ export class EventosMapper {
     };
   }
 
-  toFamilyMember(persona: PersonaFamiliarApi | NoFalleroApi): FamilyMember {
+  toFamilyMember(persona: PersonaFamiliarApi | InvitadoApi): FamilyMember {
+    const origin = this.resolveOrigin(persona);
     const nombre = this.resolveName(persona);
     const enrollment = persona.inscripcion;
 
     return {
       id: String(persona.id),
       name: nombre,
-      role: persona.parentesco ?? 'Participante',
-      origin: this.resolveOrigin(persona),
+      role: origin === 'invitado' ? 'Invitado' : (persona.parentesco ?? 'Familiar'),
+      origin,
       personType: persona.tipoPersona === 'infantil' ? 'infantil' : 'adulto',
       avatarInitial: nombre.charAt(0).toUpperCase() || '?',
       notes: persona.observaciones ?? undefined,
@@ -54,18 +55,18 @@ export class EventosMapper {
     };
   }
 
-  mapNoFallerosList(payload: unknown, fallbackEventId: string): NoFalleroApi[] {
+  mapInvitadosList(payload: unknown, fallbackEventId: string): InvitadoApi[] {
     if (!Array.isArray(payload)) {
       return [];
     }
 
-    return payload.map((item) => this.mapNoFallero(item, fallbackEventId)).filter((item) => item.id.length > 0);
+    return payload.map((item) => this.mapInvitado(item, fallbackEventId)).filter((item) => item.id.length > 0);
   }
 
-  mapNoFalleroCreate(payload: unknown, fallbackEventId: string, fallbackName?: string, fallbackLastName?: string): NoFalleroApi {
-    const mapped = this.mapNoFallero(payload, fallbackEventId);
+  mapInvitadoCreate(payload: unknown, fallbackEventId: string, fallbackName?: string, fallbackLastName?: string): InvitadoApi {
+    const mapped = this.mapInvitado(payload, fallbackEventId);
     if (mapped.nombre.length === 0) {
-      mapped.nombre = fallbackName?.trim() || 'Participante';
+      mapped.nombre = fallbackName?.trim() || 'Invitado';
     }
     if ((mapped.apellidos ?? '').trim().length === 0 && fallbackLastName?.trim()) {
       mapped.apellidos = fallbackLastName.trim();
@@ -75,7 +76,7 @@ export class EventosMapper {
     return mapped;
   }
 
-  mapNoFalleroDelete(payload: unknown, fallbackEventId: string, fallbackNoFalleroId: string): NoFalleroDeleteMapped {
+  mapInvitadoDelete(payload: unknown, fallbackEventId: string, fallbackInvitadoId: string): InvitadoDeleteMapped {
     const source = this.asRecord(payload);
     const eventFromPayload = this.readString(source['eventoId'])
       || this.readString(source['evento_id'])
@@ -83,7 +84,7 @@ export class EventosMapper {
       || fallbackEventId;
 
     return {
-      id: this.readString(source['id']) || fallbackNoFalleroId,
+      id: this.readString(source['id']) || fallbackInvitadoId,
       eventId: eventFromPayload,
     };
   }
@@ -134,28 +135,29 @@ export class EventosMapper {
     return 'cerrado';
   }
 
-  private resolveName(persona: PersonaFamiliarApi | NoFalleroApi): string {
+  private resolveName(persona: PersonaFamiliarApi | InvitadoApi): string {
     if (persona.nombreCompleto && persona.nombreCompleto.trim().length > 0) {
       return persona.nombreCompleto.trim();
     }
 
     const fullName = [persona.nombre, persona.apellidos].filter(Boolean).join(' ').trim();
-    return fullName || 'Participante';
+    const origin = this.resolveOrigin(persona);
+    return fullName || (origin === 'invitado' ? 'Invitado' : 'Participante');
   }
 
-  private resolveOrigin(persona: PersonaFamiliarApi | NoFalleroApi): ParticipantOrigin {
-    if ('origen' in persona && persona.origen === 'no_fallero') {
-      return 'no_fallero';
+  private resolveOrigin(persona: PersonaFamiliarApi | InvitadoApi): ParticipantOrigin {
+    if ('origen' in persona && persona.origen === 'invitado') {
+      return 'invitado';
     }
 
-    if ('esNoFallero' in persona && persona.esNoFallero === true) {
-      return 'no_fallero';
+    if ('esInvitado' in persona && persona.esInvitado === true) {
+      return 'invitado';
     }
 
     return 'familiar';
   }
 
-  private mapNoFallero(payload: unknown, fallbackEventId: string): NoFalleroApi {
+  private mapInvitado(payload: unknown, fallbackEventId: string): InvitadoApi {
     const source = this.asRecord(payload);
     const enrollment = this.mapEnrollment(source, fallbackEventId);
 
@@ -170,16 +172,16 @@ export class EventosMapper {
       nombre,
       apellidos,
       nombreCompleto,
-      parentesco: this.readString(source['parentesco']) || 'Participante',
+      parentesco: this.readString(source['parentesco']) || 'Invitado',
       tipoPersona: this.readTipoPersona(source['tipoPersona'] ?? source['tipo_persona']),
       observaciones: this.readNullableString(source['observaciones']) ?? null,
       origen: this.readOrigin(source),
-      esNoFallero: this.readBoolean(source['esNoFallero'] ?? source['es_no_fallero']) ?? true,
+      esInvitado: this.readBoolean(source['esInvitado'] ?? source['es_invitado']) ?? true,
       inscripcion: enrollment,
     };
   }
 
-  private mapEnrollment(source: Record<string, unknown>, fallbackEventId: string): NoFalleroApi['inscripcion'] {
+  private mapEnrollment(source: Record<string, unknown>, fallbackEventId: string): InvitadoApi['inscripcion'] {
     const inscripcionRaw = source['inscripcion'];
     const inscripcion = this.asRecord(inscripcionRaw);
     const evento = this.asRecord(inscripcion['evento']);
@@ -262,12 +264,12 @@ export class EventosMapper {
     return 'pendiente';
   }
 
-  private readOrigin(source: Record<string, unknown>): NoFalleroApi['origen'] {
+  private readOrigin(source: Record<string, unknown>): InvitadoApi['origen'] {
     const origin = this.readString(source['origen']) || this.readString(source['origin']);
-    return origin === 'familiar' ? 'familiar' : 'no_fallero';
+    return origin === 'familiar' ? 'familiar' : 'invitado';
   }
 
-  private readTipoPersona(value: unknown): NoFalleroApi['tipoPersona'] {
+  private readTipoPersona(value: unknown): InvitadoApi['tipoPersona'] {
     return value === 'infantil' ? 'infantil' : 'adulto';
   }
 

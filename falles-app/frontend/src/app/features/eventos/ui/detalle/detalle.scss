@@ -162,12 +162,14 @@ h2 {
   width: fit-content;
 }
 
+.invitados,
 .no-falleros {
   display: grid;
   gap: 0.68rem;
   align-content: start;
 }
 
+.invitados-form,
 .no-falleros-form {
   display: grid;
   gap: 0.74rem;
@@ -225,6 +227,7 @@ h2 {
   font-weight: 600;
 }
 
+.invitados-list,
 .no-falleros-list {
   display: grid;
   gap: 0.6rem;
