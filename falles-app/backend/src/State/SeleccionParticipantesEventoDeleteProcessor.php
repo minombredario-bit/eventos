@@ -30,7 +30,7 @@ class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('No autenticado.');
         }
 
-        $eventoId = is_string($uriVariables['id'] ?? null) ? $uriVariables['id'] : null;
+        $eventoId = is_string($uriVariables['eventoId'] ?? null) ? $uriVariables['eventoId'] : null;
         $evento = $eventoId !== null ? $this->eventoRepository->find($eventoId) : null;
 
         if ($evento === null) {
@@ -41,10 +41,13 @@ class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        $seleccion = $this->seleccionParticipantesEventoRepository->findOneByUsuarioAndEvento($user, $evento);
+        $selecciones = $this->seleccionParticipantesEventoRepository->findByUsuarioAndEventoOrdered($user, $evento);
 
-        if ($seleccion !== null) {
-            $this->entityManager->remove($seleccion);
+        if ($selecciones !== []) {
+            foreach ($selecciones as $seleccion) {
+                $this->entityManager->remove($seleccion);
+            }
+
             $this->entityManager->flush();
         }
 

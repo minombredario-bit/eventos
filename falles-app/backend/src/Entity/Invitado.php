@@ -13,6 +13,9 @@ use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Enum\TipoPersonaEnum;
 use App\Repository\InvitadoRepository;
+use App\State\InvitadoDeleteProcessor;
+use App\State\InvitadoPostProcessor;
+use App\State\InvitadoProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\DBAL\Types\Types;
 use Ramsey\Uuid\Uuid;
@@ -26,14 +29,28 @@ use Symfony\Component\Validator\Constraints as Assert;
     normalizationContext: ['groups' => ['invitado:read']],
     denormalizationContext: ['groups' => ['invitado:write']],
     operations: [
-        new Get(security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"),
-        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new Get(
+            provider: InvitadoProvider::class,
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"
+        ),
+        new GetCollection(
+            provider: InvitadoProvider::class,
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')"
+        ),
         new Post(
+            processor: InvitadoPostProcessor::class,
             security: "is_granted('ROLE_USER')",
             securityPostDenormalize: "object.getCreadoPor() == user"
         ),
-        new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"),
-        new Delete(security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"),
+        new Patch(
+            provider: InvitadoProvider::class,
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"
+        ),
+        new Delete(
+            provider: InvitadoProvider::class,
+            processor: InvitadoDeleteProcessor::class,
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"
+        ),
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
@@ -94,6 +111,9 @@ class Invitado
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     #[Groups(['invitado:read'])]
     private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
 
     public function __construct()
     {
@@ -166,5 +186,22 @@ class Invitado
 
     public function getCreatedAt(): \DateTimeImmutable { 
         return $this->createdAt; 
+    }
+
+    public function getDeletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTimeImmutable $deletedAt): static
+    {
+        $this->deletedAt = $deletedAt;
+
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt !== null;
     }
 }

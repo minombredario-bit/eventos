@@ -33,9 +33,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
     denormalizationContext: ['groups' => ['seleccion_participantes_evento:write']],
     operations: [
         new Get(
-            uriTemplate: '/eventos/{id}/seleccion_participantes',
+            uriTemplate: '/eventos/{eventoId}/seleccion_participantes',
             uriVariables: [
-                'id' => new Link(fromClass: Evento::class, identifiers: ['id'], toProperty: 'evento'),
+                'eventoId' => new Link(fromClass: Evento::class, identifiers: ['id'], toProperty: 'evento'),
             ],
             provider: SeleccionParticipantesEventoProvider::class,
             output: SeleccionParticipantesView::class,
@@ -43,10 +43,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
             security: "is_granted('ROLE_USER')"
         ),
         new Put(
-            uriTemplate: '/eventos/{id}/seleccion_participantes',
+            uriTemplate: '/eventos/{eventoId}/seleccion_participantes',
             uriVariables: [
-                'id' => new Link(fromClass: Evento::class, identifiers: ['id'], toProperty: 'evento'),
+                'eventoId' => new Link(fromClass: Evento::class, identifiers: ['id'], toProperty: 'evento'),
             ],
+            read: false,
             input: SeleccionParticipantesInput::class,
             output: SeleccionParticipantesView::class,
             processor: SeleccionParticipantesEventoPutProcessor::class,
@@ -55,10 +56,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
             security: "is_granted('ROLE_USER')"
         ),
         new Delete(
-            uriTemplate: '/eventos/{id}/seleccion_participantes',
+            uriTemplate: '/eventos/{eventoId}/seleccion_participantes',
             uriVariables: [
-                'id' => new Link(fromClass: Evento::class, identifiers: ['id'], toProperty: 'evento'),
+                'eventoId' => new Link(fromClass: Evento::class, identifiers: ['id'], toProperty: 'evento'),
             ],
+            read: false,
             processor: SeleccionParticipantesEventoDeleteProcessor::class,
             output: false,
             status: 204,

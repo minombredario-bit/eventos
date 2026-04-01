@@ -4,7 +4,7 @@ namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
-use App\Dto\NoFalleroView;
+use App\Dto\InvitadoView;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
 use App\Repository\InvitadoRepository;
@@ -12,7 +12,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class EventoNoFallerosProvider implements ProviderInterface
+class EventoInvitadosProvider implements ProviderInterface
 {
     public function __construct(
         private readonly Security $security,
@@ -22,7 +22,7 @@ class EventoNoFallerosProvider implements ProviderInterface
     }
 
     /**
-     * @return list<NoFalleroView>
+     * @return list<InvitadoView>
      */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
@@ -43,11 +43,11 @@ class EventoNoFallerosProvider implements ProviderInterface
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        $invitados = $this->invitadoRepository->findByEventoAndUsuario($evento, $user);
+        $invitados = $this->invitadoRepository->findByEventoAndHouseholdUsers($evento, $user);
         $items = [];
 
         foreach ($invitados as $invitado) {
-            $item = new NoFalleroView();
+            $item = new InvitadoView();
             $item->id = $invitado->getId();
             $item->nombre = $invitado->getNombre();
             $item->apellidos = $invitado->getApellidos();

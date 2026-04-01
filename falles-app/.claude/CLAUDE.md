@@ -106,6 +106,7 @@ JWT_PASSPHRASE=changeme
 
 - Clases en PascalCase, propiedades en camelCase
 - Endpoints REST en snake_case siguiendo API Platform
+- Toda entidad nueva del backend debe declararse con API Platform (`#[ApiResource]`), filtros (`#[ApiFilter]`) y grupos de serialización (`#[Groups]`) desde su creación
 - Todos los enums son PHP 8.1 backed enums en `src/Enum/`
 - Tests en `backend/tests/` con PHPUnit 11
 - Mensajes de commit en inglés, imperativo: `Add censo import endpoint`

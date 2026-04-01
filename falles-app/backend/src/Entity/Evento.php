@@ -14,10 +14,10 @@ use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\ApiProperty;
-use App\Dto\NoFalleroView;
+use App\Dto\InvitadoView;
 use App\Enum\TipoEventoEnum;
 use App\Enum\EstadoEventoEnum;
-use App\State\EventoNoFallerosProvider;
+use App\State\EventoInvitadosProvider;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
@@ -46,13 +46,13 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             normalizationContext: ['groups' => ['evento:collection'], 'enable_max_depth' => 1]
         ),
         new GetCollection(
-            uriTemplate: '/eventos/{id}/no_falleros',
+            uriTemplate: '/eventos/{id}/invitados',
             uriVariables: [
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
-            provider: EventoNoFallerosProvider::class,
-            output: NoFalleroView::class,
-            normalizationContext: ['groups' => ['no_fallero:read']],
+            provider: EventoInvitadosProvider::class,
+            output: InvitadoView::class,
+            normalizationContext: ['groups' => ['invitado:read']],
             security: "is_granted('ROLE_USER')"
         ),
         new GetCollection(
@@ -60,9 +60,9 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             uriVariables: [
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
-            provider: EventoNoFallerosProvider::class,
-            output: NoFalleroView::class,
-            normalizationContext: ['groups' => ['no_fallero:read']],
+            provider: EventoInvitadosProvider::class,
+            output: InvitadoView::class,
+            normalizationContext: ['groups' => ['invitado:read']],
             security: "is_granted('ROLE_USER')"
         ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),

@@ -22,6 +22,12 @@ services:
         arguments:
             $allowedOrigins: '%app.cors.allowed_origins%'
 
+    App\State\InvitadoDeleteProcessor:
+        arguments:
+            $entityManager: '@doctrine.orm.entity_manager'
+            $invitadoRepository: '@App\Repository\InvitadoRepository'
+            $seleccionParticipantesEventoRepository: '@App\Repository\SeleccionParticipantesEventoRepository'
+
 
     App\EventListener\JwtCreatedListener:
         tags:

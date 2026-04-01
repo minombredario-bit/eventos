@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\SeleccionParticipantesEvento;
+use App\Entity\Evento;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
 use App\Repository\InvitadoRepository;
@@ -165,7 +166,7 @@ class EventoController extends AbstractController
         ]);
     }
 
-    public function getNoFalleros(string $id): JsonResponse
+    public function getInvitados(string $id): JsonResponse
     {
         /** @var Usuario $user */
         $user = $this->getUser();
@@ -187,9 +188,17 @@ class EventoController extends AbstractController
         ]);
     }
 
+    /**
+     * Alias legacy: mantener temporalmente para clientes antiguos.
+     */
+    public function getInvitadosLegacyAlias(string $id): JsonResponse
+    {
+        return $this->getInvitados($id);
+    }
+
     public function getParticipantesExternos(string $id): JsonResponse
     {
-        return $this->getNoFalleros($id);
+        return $this->getInvitados($id);
     }
 
     #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
@@ -214,28 +223,7 @@ class EventoController extends AbstractController
         $page = max(1, (int) $request->query->get('page', '1'));
         $itemsPerPage = 10;
 
-        $inscripciones = $this->inscripcionRepository->findApuntadosByEvento(
-            $evento,
-            is_string($search) ? $search : null,
-        );
-
-        $member = array_map(static function (\App\Entity\Inscripcion $inscripcion): array {
-            $usuario = $inscripcion->getUsuario();
-            $opciones = [];
-
-            foreach ($inscripcion->getLineas() as $linea) {
-                $opcion = trim($linea->getNombreMenuSnapshot());
-                if ($opcion !== '') {
-                    $opciones[$opcion] = true;
-                }
-            }
-
-            return [
-                'inscripcionId' => $inscripcion->getId(),
-                'nombreCompleto' => self::buildNombreCompleto($usuario->getNombre(), $usuario->getApellidos()),
-                'opciones' => array_keys($opciones),
-            ];
-        }, $inscripciones);
+        $member = $this->buildApuntadosForEvento($evento, $user, is_string($search) ? $search : null);
 
         $totalItems = count($member);
         $lastPage = max(1, (int) ceil($totalItems / $itemsPerPage));
@@ -273,6 +261,156 @@ class EventoController extends AbstractController
         return preg_replace('/\s+/', ' ', $nombreCompleto) ?? '';
     }
 
+    /**
+     * @return list<array{inscripcionId: string, nombreCompleto: string, opciones: list<string>}>
+     */
+    private function buildApuntadosForEvento(Evento $evento, Usuario $user, ?string $search = null): array
+    {
+        $householdUserIds = $this->invitadoRepository->resolveHouseholdUserIds($user);
+        if ($householdUserIds === []) {
+            return [];
+        }
+
+        $selecciones = $this->seleccionParticipantesEventoRepository->findByUsuarioIdsAndEvento($householdUserIds, $evento);
+
+        $seenParticipantes = [];
+        $member = [];
+
+        foreach ($selecciones as $seleccion) {
+            foreach ($seleccion->getParticipantes() as $participante) {
+                if (!is_array($participante)) {
+                    continue;
+                }
+
+                $origen = $this->normalizeOrigen($participante['origen'] ?? null);
+                $participanteId = $this->normalizeParticipanteId($participante['id'] ?? null);
+
+                if ($participanteId === '') {
+                    continue;
+                }
+
+                $participantKey = sprintf('%s:%s', $origen, $participanteId);
+                if (isset($seenParticipantes[$participantKey])) {
+                    continue;
+                }
+
+                $nombreCompleto = '';
+                $inscripcionId = $participantKey;
+                $opciones = [];
+
+                if ($origen === 'familiar') {
+                    if (!in_array($participanteId, $householdUserIds, true)) {
+                        continue;
+                    }
+
+                    $usuario = $this->usuarioRepository->find($participanteId);
+                    if ($usuario === null) {
+                        continue;
+                    }
+
+                    $nombreCompleto = self::buildNombreCompleto($usuario->getNombre(), $usuario->getApellidos());
+                    $inscripcion = $this->inscripcionRepository->findOneByUsuarioAndEvento($participanteId, $evento->getId());
+
+                    if ($inscripcion !== null) {
+                        $inscripcionId = (string) $inscripcion->getId();
+                        $opciones = $this->extractUniqueMenuOptions($inscripcion->getLineas()->toArray());
+                    }
+                } else {
+                    $invitado = $this->invitadoRepository->findActiveByIdAndEventoAndHouseholdUsuario(
+                        $participanteId,
+                        $evento,
+                        $user,
+                    );
+
+                    if ($invitado === null) {
+                        continue;
+                    }
+
+                    $nombreCompleto = self::buildNombreCompleto($invitado->getNombre(), $invitado->getApellidos());
+                }
+
+                if ($nombreCompleto === '') {
+                    continue;
+                }
+
+                if (is_string($search) && !$this->matchesSearchByNombre($nombreCompleto, $search)) {
+                    continue;
+                }
+
+                $member[] = [
+                    'inscripcionId' => $inscripcionId,
+                    'nombreCompleto' => $nombreCompleto,
+                    'opciones' => $opciones,
+                ];
+
+                $seenParticipantes[$participantKey] = true;
+            }
+        }
+
+        usort(
+            $member,
+            static fn (array $left, array $right): int => strcasecmp($left['nombreCompleto'], $right['nombreCompleto']),
+        );
+
+        return $member;
+    }
+
+    private function normalizeParticipanteId(mixed $rawId): string
+    {
+        if (!is_string($rawId)) {
+            return '';
+        }
+
+        $cleaned = trim($rawId);
+        if ($cleaned === '') {
+            return '';
+        }
+
+        if (!str_contains($cleaned, '/')) {
+            return $cleaned;
+        }
+
+        $parts = array_values(array_filter(explode('/', trim($cleaned, '/'))));
+
+        return $parts === [] ? '' : (string) end($parts);
+    }
+
+    /**
+     * @param array<int, mixed> $lineas
+     * @return list<string>
+     */
+    private function extractUniqueMenuOptions(array $lineas): array
+    {
+        $opciones = [];
+
+        foreach ($lineas as $linea) {
+            if (!$linea instanceof \App\Entity\InscripcionLinea) {
+                continue;
+            }
+
+            if ($linea->getEstadoLinea()->value === 'cancelada') {
+                continue;
+            }
+
+            $opcion = trim($linea->getNombreMenuSnapshot());
+            if ($opcion !== '') {
+                $opciones[$opcion] = true;
+            }
+        }
+
+        return array_keys($opciones);
+    }
+
+    private function matchesSearchByNombre(string $nombreCompleto, string $search): bool
+    {
+        $normalizedSearch = mb_strtolower(trim($search));
+        if ($normalizedSearch === '') {
+            return true;
+        }
+
+        return str_contains(mb_strtolower($nombreCompleto), $normalizedSearch);
+    }
+
     public function putSeleccionParticipantes(string $id, Request $request): JsonResponse
     {
         /** @var Usuario $user */
@@ -305,7 +443,7 @@ class EventoController extends AbstractController
             $origen = $participante['origen'] ?? null;
             $participanteId = $participante['id'] ?? null;
 
-            if (!is_string($origen) || !in_array($origen, ['familiar', 'no_fallero'], true)) {
+            if (!is_string($origen) || !in_array($origen, ['familiar', 'invitado'], true)) {
                 return $this->json(['error' => sprintf('Origen inválido en índice %d', $index)], 400);
             }
 
@@ -313,7 +451,10 @@ class EventoController extends AbstractController
                 return $this->json(['error' => sprintf('ID de participante inválido en índice %d', $index)], 400);
             }
 
-            $participantes[] = $participante;
+            $participantes[] = [
+                'id' => trim($participanteId),
+                'origen' => $this->normalizeOrigen($origen),
+            ];
         }
 
         $seleccionParticipantesEventoRepository = $this->seleccionParticipantesEventoRepository;
@@ -375,7 +516,7 @@ class EventoController extends AbstractController
                 continue;
             }
 
-            $origen = ($participante['origen'] ?? null) === 'no_fallero' ? 'no_fallero' : 'familiar';
+            $origen = $this->normalizeOrigen($participante['origen'] ?? null);
             $participanteId = is_string($participante['id'] ?? null) ? trim($participante['id']) : '';
 
             if ($participanteId === '') {
@@ -434,10 +575,19 @@ class EventoController extends AbstractController
             'nombreCompleto' => $invitado->getNombreCompleto(),
             'tipoPersona' => $invitado->getTipoPersona()->value,
             'observaciones' => $invitado->getObservaciones(),
-            'origen' => 'no_fallero',
-            'esNoFallero' => true,
+            'origen' => 'invitado',
+            'esInvitado' => true,
             '@id' => '/api/invitados/' . $invitado->getId(),
         ];
+    }
+
+    private function normalizeOrigen(mixed $origen): string
+    {
+        if ($origen === 'invitado') {
+            return 'invitado';
+        }
+
+        return 'familiar';
     }
 
 }

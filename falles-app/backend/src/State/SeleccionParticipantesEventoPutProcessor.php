@@ -38,7 +38,7 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('No autenticado.');
         }
 
-        $eventoId = is_string($uriVariables['id'] ?? null) ? $uriVariables['id'] : null;
+        $eventoId = is_string($uriVariables['eventoId'] ?? null) ? $uriVariables['eventoId'] : null;
         $evento = $eventoId !== null ? $this->eventoRepository->find($eventoId) : null;
 
         if ($evento === null) {
@@ -56,20 +56,32 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
             }
 
             $origen = $participante['origen'] ?? null;
-            $participanteId = $participante['id'] ?? null;
+            $participanteId = $this->normalizeParticipanteId($participante['id'] ?? null);
 
-            if (!is_string($origen) || !in_array($origen, ['familiar', 'no_fallero'], true)) {
+            if (!is_string($origen) || !in_array($origen, ['familiar', 'invitado'], true)) {
                 throw new BadRequestHttpException(sprintf('Origen inválido en índice %d', $index));
             }
 
-            if (!is_string($participanteId) || trim($participanteId) === '') {
+            if ($participanteId === '') {
                 throw new BadRequestHttpException(sprintf('ID de participante inválido en índice %d', $index));
             }
 
-            $participantes[] = $participante;
+            $participantes[] = [
+                'id' => $participanteId,
+                'origen' => $this->normalizeOrigen($origen),
+            ];
         }
 
-        $seleccion = $this->seleccionParticipantesEventoRepository->findOneByUsuarioAndEvento($user, $evento);
+        $selecciones = $this->seleccionParticipantesEventoRepository
+            ->findByUsuarioAndEventoOrdered($user, $evento);
+
+        $seleccion = $selecciones[0] ?? null;
+
+        if (count($selecciones) > 1) {
+            foreach (array_slice($selecciones, 1) as $duplicada) {
+                $this->entityManager->remove($duplicada);
+            }
+        }
 
         if ($seleccion === null) {
             $seleccion = new SeleccionParticipantesEvento();
@@ -87,5 +99,34 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
         $response->updatedAt = $seleccion->getUpdatedAt()->format('c');
 
         return $response;
+    }
+
+    private function normalizeParticipanteId(mixed $rawId): string
+    {
+        if (!is_string($rawId)) {
+            return '';
+        }
+
+        $cleaned = trim($rawId);
+        if ($cleaned === '') {
+            return '';
+        }
+
+        if (!str_contains($cleaned, '/')) {
+            return $cleaned;
+        }
+
+        $parts = array_values(array_filter(explode('/', trim($cleaned, '/'))));
+
+        return $parts === [] ? '' : (string) end($parts);
+    }
+
+    private function normalizeOrigen(mixed $origen): string
+    {
+        if ($origen === 'invitado') {
+            return 'invitado';
+        }
+
+        return 'familiar';
     }
 }

@@ -20,9 +20,43 @@ class SeleccionParticipantesEventoRepository extends ServiceEntityRepository
 
     public function findOneByUsuarioAndEvento(Usuario $usuario, Evento $evento): ?SeleccionParticipantesEvento
     {
-        return $this->findOneBy([
+        $selecciones = $this->findByUsuarioAndEventoOrdered($usuario, $evento);
+
+        return $selecciones[0] ?? null;
+    }
+
+    /**
+     * @return list<SeleccionParticipantesEvento>
+     */
+    public function findByUsuarioAndEventoOrdered(Usuario $usuario, Evento $evento): array
+    {
+        return $this->findBy([
             'usuario' => $usuario,
             'evento' => $evento,
+        ], [
+            'updatedAt' => 'DESC',
+            'createdAt' => 'DESC',
         ]);
+    }
+
+    /**
+     * @param list<string> $usuarioIds
+     * @return list<SeleccionParticipantesEvento>
+     */
+    public function findByUsuarioIdsAndEvento(array $usuarioIds, Evento $evento): array
+    {
+        if ($usuarioIds === []) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('s')
+            ->where('s.evento = :evento')
+            ->andWhere('IDENTITY(s.usuario) IN (:usuarioIds)')
+            ->setParameter('evento', $evento)
+            ->setParameter('usuarioIds', $usuarioIds)
+            ->orderBy('s.updatedAt', 'DESC')
+            ->addOrderBy('s.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
     }
 }

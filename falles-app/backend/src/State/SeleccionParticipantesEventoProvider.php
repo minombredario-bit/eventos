@@ -5,9 +5,11 @@ namespace App\State;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Dto\SeleccionParticipantesView;
+use App\Entity\Evento;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
 use App\Repository\InscripcionRepository;
+use App\Repository\InvitadoRepository;
 use App\Repository\SeleccionParticipantesEventoRepository;
 use App\Repository\UsuarioRepository;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -22,6 +24,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
         private readonly SeleccionParticipantesEventoRepository $seleccionParticipantesEventoRepository,
         private readonly UsuarioRepository $usuarioRepository,
         private readonly InscripcionRepository $inscripcionRepository,
+        private readonly InvitadoRepository $invitadoRepository,
     ) {
     }
 
@@ -33,7 +36,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             throw new AccessDeniedHttpException('No autenticado.');
         }
 
-        $eventoId = is_string($uriVariables['id'] ?? null) ? $uriVariables['id'] : null;
+        $eventoId = is_string($uriVariables['eventoId'] ?? null) ? $uriVariables['eventoId'] : null;
         $evento = $eventoId !== null ? $this->eventoRepository->find($eventoId) : null;
 
         if ($evento === null) {
@@ -50,7 +53,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
         $response->eventoId = $evento->getId();
         $response->participantes = $seleccion === null
             ? []
-            : $this->buildParticipantesSeleccionResponse($evento->getId(), $seleccion->getParticipantes());
+            : $this->buildParticipantesSeleccionResponse($evento->getId(), $seleccion->getParticipantes(), $evento, $user);
         $response->updatedAt = $seleccion?->getUpdatedAt()->format('c');
 
         return $response;
@@ -60,7 +63,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
      * @param list<array<string, mixed>> $participantes
      * @return list<array<string, mixed>>
      */
-    private function buildParticipantesSeleccionResponse(string $eventoId, array $participantes): array
+    private function buildParticipantesSeleccionResponse(string $eventoId, array $participantes, Evento $evento, Usuario $user): array
     {
         $response = [];
 
@@ -69,8 +72,8 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
                 continue;
             }
 
-            $origen = ($participante['origen'] ?? null) === 'no_fallero' ? 'no_fallero' : 'familiar';
-            $participanteId = is_string($participante['id'] ?? null) ? trim($participante['id']) : '';
+            $origen = $this->normalizeOrigen($participante['origen'] ?? null);
+            $participanteId = $this->normalizeParticipanteId($participante['id'] ?? null);
 
             if ($participanteId === '') {
                 continue;
@@ -108,11 +111,53 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
                         ];
                     }
                 }
+            } else {
+                $invitado = $this->invitadoRepository->findActiveByIdAndEventoAndHouseholdUsuario(
+                    $participanteId,
+                    $evento,
+                    $user,
+                );
+
+                if ($invitado === null) {
+                    continue;
+                }
+
+                $item['nombre'] = $invitado->getNombre();
+                $item['apellidos'] = $invitado->getApellidos();
             }
 
             $response[] = $item;
         }
 
         return $response;
+    }
+
+    private function normalizeParticipanteId(mixed $rawId): string
+    {
+        if (!is_string($rawId)) {
+            return '';
+        }
+
+        $cleaned = trim($rawId);
+        if ($cleaned === '') {
+            return '';
+        }
+
+        if (!str_contains($cleaned, '/')) {
+            return $cleaned;
+        }
+
+        $parts = array_values(array_filter(explode('/', trim($cleaned, '/'))));
+
+        return $parts === [] ? '' : (string) end($parts);
+    }
+
+    private function normalizeOrigen(mixed $origen): string
+    {
+        if ($origen === 'invitado') {
+            return 'invitado';
+        }
+
+        return 'familiar';
     }
 }

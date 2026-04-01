@@ -5,33 +5,33 @@ namespace App\Dto;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\SerializedName;
 
-class NoFalleroView
+class InvitadoView
 {
-    #[Groups(['no_fallero:read'])]
+    #[Groups(['invitado:read'])]
     public ?string $id = null;
 
-    #[Groups(['no_fallero:read'])]
+    #[Groups(['invitado:read'])]
     public ?string $nombre = null;
 
-    #[Groups(['no_fallero:read'])]
+    #[Groups(['invitado:read'])]
     public ?string $apellidos = null;
 
-    #[Groups(['no_fallero:read'])]
+    #[Groups(['invitado:read'])]
     public ?string $nombreCompleto = null;
 
-    #[Groups(['no_fallero:read'])]
+    #[Groups(['invitado:read'])]
     public ?string $tipoPersona = null;
 
-    #[Groups(['no_fallero:read'])]
+    #[Groups(['invitado:read'])]
     public ?string $observaciones = null;
 
-    #[Groups(['no_fallero:read'])]
-    public string $origen = 'no_fallero';
+    #[Groups(['invitado:read'])]
+    public string $origen = 'invitado';
 
-    #[Groups(['no_fallero:read'])]
-    public bool $esNoFallero = true;
+    #[Groups(['invitado:read'])]
+    public bool $esInvitado = true;
 
-    #[Groups(['no_fallero:read'])]
+    #[Groups(['invitado:read'])]
     #[SerializedName('@id')]
     public ?string $iri = null;
 }
