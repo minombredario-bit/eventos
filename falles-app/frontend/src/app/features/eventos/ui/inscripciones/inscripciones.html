@@ -2,8 +2,7 @@
   <app-mobile-header
     title="Mis eventos"
     subtitle="Eventos en los que ya estás inscrito"
-    actionLabel="Salir"
-    actionAriaLabel="Cerrar sesión"
+    actionType="logout"
     (actionPressed)="logout()"
   />
 
@@ -63,7 +62,16 @@
 
               <div class="inscription-actions" aria-label="Acciones del evento inscrito">
                 @if (isEventoCerrado(inscripcion)) {
-                  <span class="action-link disabled" aria-disabled="true">Cambios bloqueados</span>
+                  <div class="inscription-actions-closed" aria-label="Evento cerrado">
+                    <span class="action-link disabled" aria-disabled="true">Cambios bloqueados</span>
+                    <a
+                      class="action-link secondary apuntados-action closed-apuntados-link"
+                      [routerLink]="['/eventos', eventRouteId(inscripcion), 'apuntados']"
+                      [attr.aria-label]="'Ver apuntados en ' + eventTitle(inscripcion)"
+                    >
+                      Listado de apuntados
+                    </a>
+                  </div>
                 } @else {
                   <a
                     class="action-link"
@@ -73,11 +81,11 @@
                     Menús
                   </a>
                   <a
-                    class="action-link secondary"
+                    class="action-link secondary apuntados-action"
                     [routerLink]="['/eventos', eventRouteId(inscripcion), 'apuntados']"
                     [attr.aria-label]="'Ver apuntados en ' + eventTitle(inscripcion)"
                   >
-                    Apuntados
+                    Listado de apuntados
                   </a>
                 }
               </div>

@@ -216,6 +216,12 @@ h3 {
   flex-wrap: wrap;
 }
 
+.inscription-actions-closed {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
 .action-link {
   min-height: 34px;
   border-radius: 999px;
@@ -236,6 +242,18 @@ h3 {
   background: #f5f3ff;
   border-color: #c4b5fd;
   color: #5b21b6;
+}
+
+.action-link.apuntados-action {
+  background: #5b21b6;
+  border-color: #5b21b6;
+  color: #ffffff;
+}
+
+.action-link.closed-apuntados-link {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
 }
 
 .action-link:focus-visible {

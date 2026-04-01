@@ -3,8 +3,7 @@
     title="Apuntados"
     [subtitle]="eventDate() ? eventTitle() + ' · ' + eventDate() : eventTitle()"
     [showBack]="true"
-    actionLabel="Salir"
-    actionAriaLabel="Cerrar sesión"
+    actionType="logout"
     (backPressed)="goBack()"
     (actionPressed)="logout()"
   />
@@ -14,6 +13,9 @@
       <p class="eyebrow">Participantes</p>
       <h2>Listado de apuntados</h2>
       <p class="supporting-copy">{{ summary() }}</p>
+      <p class="supporting-copy">
+        Total: {{ totalApuntados() }} · Página {{ totalPages() ? currentPage() : 0 }} / {{ totalPages() }}
+      </p>
 
       <label class="search-field" for="search-apuntados">
         Buscar por nombre de usuario
@@ -28,24 +30,136 @@
 
       @if (errorMessage()) {
         <p class="inline-error" role="alert">{{ errorMessage() }}</p>
+        <nav class="pager pager--disabled" aria-label="Paginación de apuntados">
+          <button
+            type="button"
+            class="pager-btn pager-btn--prev"
+            aria-label="Página anterior"
+            title="Página anterior"
+            [disabled]="true"
+          >
+            ‹
+          </button>
+          <span class="pager__meta">{{ currentPage() }} / {{ totalPages() }} · Total: {{ totalApuntados() }}</span>
+          <button
+            type="button"
+            class="pager-btn pager-btn--next"
+            aria-label="Página siguiente"
+            title="Página siguiente"
+            [disabled]="true"
+          >
+            ›
+          </button>
+        </nav>
       } @else if (loading()) {
         <p class="supporting-copy">Cargando participantes...</p>
+        <nav class="pager pager--disabled" aria-label="Paginación de apuntados">
+          <button
+            type="button"
+            class="pager-btn pager-btn--prev"
+            aria-label="Página anterior"
+            title="Página anterior"
+            [disabled]="true"
+          >
+            ‹
+          </button>
+          <span class="pager__meta">{{ currentPage() }} / {{ totalPages() }} · Total: {{ totalApuntados() }}</span>
+          <button
+            type="button"
+            class="pager-btn pager-btn--next"
+            aria-label="Página siguiente"
+            title="Página siguiente"
+            [disabled]="true"
+          >
+            ›
+          </button>
+        </nav>
       } @else if (!apuntados().length && isSearching()) {
         <p class="supporting-copy">No encontramos coincidencias para tu búsqueda.</p>
+        <nav class="pager pager--disabled" aria-label="Paginación de apuntados">
+          <button
+            type="button"
+            class="pager-btn pager-btn--prev"
+            aria-label="Página anterior"
+            title="Página anterior"
+            [disabled]="true"
+          >
+            ‹
+          </button>
+          <span class="pager__meta">{{ currentPage() }} / {{ totalPages() }} · Total: {{ totalApuntados() }}</span>
+          <button
+            type="button"
+            class="pager-btn pager-btn--next"
+            aria-label="Página siguiente"
+            title="Página siguiente"
+            [disabled]="true"
+          >
+            ›
+          </button>
+        </nav>
       } @else if (!apuntados().length) {
         <p class="supporting-copy">Todavía no hay apuntados para este evento.</p>
+        <nav class="pager pager--disabled" aria-label="Paginación de apuntados">
+          <button
+            type="button"
+            class="pager-btn pager-btn--prev"
+            aria-label="Página anterior"
+            title="Página anterior"
+            [disabled]="true"
+          >
+            ‹
+          </button>
+          <span class="pager__meta">{{ currentPage() }} / {{ totalPages() }} · Total: {{ totalApuntados() }}</span>
+          <button
+            type="button"
+            class="pager-btn pager-btn--next"
+            aria-label="Página siguiente"
+            title="Página siguiente"
+            [disabled]="true"
+          >
+            ›
+          </button>
+        </nav>
       } @else {
         <div class="rows" aria-live="polite">
           @for (item of apuntados(); track item.inscripcionId) {
             <article class="row">
               <div>
-                <h3>{{ item.nombreUsuario }}</h3>
-                <p>{{ item.totalLineas }} línea{{ item.totalLineas === 1 ? '' : 's' }} · {{ item.estadoPago }}</p>
+                <h3>{{ item.nombreCompleto }}</h3>
+                @if (item.opciones.length) {
+                  <p>{{ item.opciones.join(' · ') }}</p>
+                }
               </div>
-              <span class="chip">{{ item.estadoInscripcion }}</span>
+              @if (item.opciones.length) {
+                <span class="chip">{{ item.opciones[0] }}</span>
+              }
             </article>
           }
         </div>
+
+        <nav class="pager" aria-label="Paginación de apuntados">
+          <button
+            type="button"
+            class="pager-btn pager-btn--prev"
+            (click)="goToPreviousPage()"
+            [disabled]="!canGoToPreviousPage() || loading()"
+            aria-label="Página anterior"
+            title="Página anterior"
+          >
+            ‹
+          </button>
+          <span class="pager__meta">{{ currentPage() }} / {{ totalPages() }} · Total: {{ totalApuntados() }}</span>
+          <button
+            type="button"
+            class="pager-btn pager-btn--next"
+            (click)="goToNextPage()"
+            [disabled]="!canGoToNextPage() || loading()"
+            aria-label="Página siguiente"
+            title="Página siguiente"
+          >
+            ›
+          </button>
+        </nav>
       }
     </article>
   </div>

@@ -113,3 +113,68 @@ h2 {
 .inline-error {
   color: #991b1b;
 }
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.85rem;
+  border: 1px solid #fdba74;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.pager--disabled {
+  opacity: 0.88;
+}
+
+.pager__meta {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.pager-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border: 1px solid #fdba74;
+  border-radius: 0.7rem;
+  background: linear-gradient(180deg, #fffdfb 0%, #fff2e8 100%);
+  color: #9a3412;
+  font-size: 1.05rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.pager-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #fb923c;
+  box-shadow: 0 6px 14px rgba(154, 52, 18, 0.14);
+}
+
+.pager-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.pager-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

@@ -13,15 +13,28 @@
       <span class="icon-placeholder" aria-hidden="true"></span>
     }
 
-    @if (actionLabel()) {
-      <button
-        type="button"
-        class="text-button"
-        [attr.aria-label]="actionAriaLabel()"
-        (click)="onAction()"
-      >
-        {{ actionLabel() }}
-      </button>
+    @if (hasAction()) {
+      @if (isLogoutAction()) {
+        <button
+          type="button"
+          class="icon-button icon-button--logout"
+          aria-label="Salir"
+          title="Salir"
+          (click)="onAction()"
+        >
+          ↩
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="text-button"
+          [attr.aria-label]="actionAriaLabel()"
+          [attr.title]="actionAriaLabel()"
+          (click)="onAction()"
+        >
+          {{ actionLabel() }}
+        </button>
+      }
     } @else {
       <span class="icon-placeholder" aria-hidden="true"></span>
     }
