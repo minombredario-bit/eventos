@@ -18,6 +18,8 @@ use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
 #[ORM\Entity(repositoryClass: InscripcionRepository::class)]
@@ -41,7 +43,18 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
     'usuario.id' => 'exact',
     'evento' => 'exact',
     'evento.id' => 'exact',
+    'entidad' => 'exact',
+    'entidad.id' => 'exact',
+    'estadoInscripcion' => 'exact',
+    'estadoPago' => 'exact',
+    'metodoPago' => 'exact',
 ])]
+#[ApiFilter(DateFilter::class, properties: ['createdAt', 'updatedAt', 'fechaPago'])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['createdAt', 'updatedAt', 'importeTotal', 'importePagado'],
+    arguments: ['orderParameterName' => 'order']
+)]
 
 class Inscripcion
 {

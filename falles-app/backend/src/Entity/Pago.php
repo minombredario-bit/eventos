@@ -6,9 +6,13 @@ use App\Repository\PagoRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Enum\MetodoPagoEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -24,6 +28,20 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
     ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'inscripcion' => 'exact',
+    'inscripcion.id' => 'exact',
+    'metodoPago' => 'exact',
+    'estado' => 'exact',
+    'registradoPor' => 'exact',
+    'registradoPor.id' => 'exact',
+])]
+#[ApiFilter(DateFilter::class, properties: ['fecha', 'createdAt'])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['fecha', 'createdAt', 'importe'],
+    arguments: ['orderParameterName' => 'order']
 )]
 class Pago
 {

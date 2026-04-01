@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Inscripcion;
 use App\Entity\Evento;
 use App\Entity\Usuario;
+use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\FranjaComidaEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -53,10 +54,13 @@ class InscripcionRepository extends ServiceEntityRepository
         $queryBuilder = $this->createQueryBuilder('i')
             ->innerJoin('i.usuario', 'u')
             ->addSelect('u')
+            ->leftJoin('i.lineas', 'l', 'WITH', 'l.estadoLinea != :lineaCancelada')
+            ->addSelect('l')
             ->where('i.evento = :evento')
             ->andWhere('i.estadoInscripcion != :cancelada')
             ->setParameter('evento', $evento)
             ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)
             ->orderBy('u.nombre', 'ASC')
             ->addOrderBy('u.apellidos', 'ASC');
 

@@ -6,9 +6,13 @@ use App\Repository\CensoEntradaRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Enum\TipoPersonaEnum;
 use App\Enum\TipoRelacionEconomicaEnum;
 use Ramsey\Uuid\Uuid;
@@ -25,6 +29,23 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('ROLE_SUPERADMIN')"),
     ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'entidad' => 'exact',
+    'entidad.id' => 'exact',
+    'temporada' => 'exact',
+    'tipoPersona' => 'exact',
+    'tipoRelacionEconomica' => 'exact',
+    'nombre' => 'partial',
+    'apellidos' => 'partial',
+    'email' => 'partial',
+    'dni' => 'partial',
+])]
+#[ApiFilter(BooleanFilter::class, properties: ['procesado'])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['createdAt', 'apellidos', 'nombre'],
+    arguments: ['orderParameterName' => 'order']
 )]
 class CensoEntrada
 {

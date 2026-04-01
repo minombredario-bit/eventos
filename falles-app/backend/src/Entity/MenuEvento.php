@@ -6,10 +6,14 @@ use App\Repository\MenuEventoRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Enum\CompatibilidadPersonaMenuEnum;
 use App\Enum\FranjaComidaEnum;
 use App\Enum\TipoMenuEnum;
@@ -30,6 +34,20 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
     ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'evento' => 'exact',
+    'evento.id' => 'exact',
+    'tipoMenu' => 'exact',
+    'franjaComida' => 'exact',
+    'compatibilidadPersona' => 'exact',
+    'nombre' => 'partial',
+])]
+#[ApiFilter(BooleanFilter::class, properties: ['esDePago', 'activo', 'confirmacionAutomatica'])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['ordenVisualizacion', 'precioBase', 'createdAt', 'updatedAt'],
+    arguments: ['orderParameterName' => 'order']
 )]
 class MenuEvento
 {

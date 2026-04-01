@@ -8,10 +8,15 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Enum\TipoEntidadEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -29,6 +34,20 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
         new Patch(security: "is_granted('ROLE_SUPERADMIN')"),
     ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'nombre' => 'partial',
+    'slug' => 'exact',
+    'tipoEntidad' => 'exact',
+    'temporadaActual' => 'exact',
+    'codigoRegistro' => 'exact',
+])]
+#[ApiFilter(BooleanFilter::class, properties: ['activa'])]
+#[ApiFilter(DateFilter::class, properties: ['createdAt', 'updatedAt'])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['nombre', 'temporadaActual', 'createdAt', 'updatedAt'],
+    arguments: ['orderParameterName' => 'order']
 )]
 class Entidad
 {

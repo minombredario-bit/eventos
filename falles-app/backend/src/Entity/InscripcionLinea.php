@@ -6,8 +6,11 @@ use App\Repository\InscripcionLineaRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Enum\EstadoLineaInscripcionEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -22,6 +25,19 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Get(),
         new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD') and object.getInscripcion().getEvento().estaInscripcionAbierta()"),
     ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'inscripcion' => 'exact',
+    'inscripcion.id' => 'exact',
+    'menu' => 'exact',
+    'menu.id' => 'exact',
+    'invitado' => 'exact',
+    'estadoLinea' => 'exact',
+])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['createdAt', 'precioUnitario'],
+    arguments: ['orderParameterName' => 'order']
 )]
 class InscripcionLinea
 {

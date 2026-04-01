@@ -2,6 +2,15 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
 use App\Enum\TipoPersonaEnum;
 use App\Repository\InvitadoRepository;
 use Doctrine\ORM\Mapping as ORM;
@@ -13,6 +22,35 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: InvitadoRepository::class)]
 #[ORM\Table(name: 'invitado')]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    normalizationContext: ['groups' => ['invitado:read']],
+    denormalizationContext: ['groups' => ['invitado:write']],
+    operations: [
+        new Get(security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"),
+        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new Post(
+            security: "is_granted('ROLE_USER')",
+            securityPostDenormalize: "object.getCreadoPor() == user"
+        ),
+        new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"),
+        new Delete(security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"),
+    ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'creadoPor' => 'exact',
+    'creadoPor.id' => 'exact',
+    'evento' => 'exact',
+    'evento.id' => 'exact',
+    'tipoPersona' => 'exact',
+    'nombre' => 'partial',
+    'apellidos' => 'partial',
+    'nombreCompleto' => 'partial',
+])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['createdAt', 'nombreCompleto', 'nombre', 'apellidos'],
+    arguments: ['orderParameterName' => 'order']
+)]
 class Invitado
 {
     #[ORM\Id]
@@ -22,12 +60,12 @@ class Invitado
 
     #[ORM\ManyToOne(targetEntity: Usuario::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['invitado:read'])]
+    #[Groups(['invitado:read', 'invitado:write'])]
     private Usuario $creadoPor; // El fallero que lo da de alta
 
     #[ORM\ManyToOne(targetEntity: Evento::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['invitado:read'])]
+    #[Groups(['invitado:read', 'invitado:write'])]
     private Evento $evento;
 
     #[ORM\Column(type: Types::STRING, length: 255)]

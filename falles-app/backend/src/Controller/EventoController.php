@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\SeleccionParticipantesEvento;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
+use App\Repository\InvitadoRepository;
 use App\Repository\InscripcionRepository;
 use App\Repository\SeleccionParticipantesEventoRepository;
 use App\Repository\UsuarioRepository;
@@ -24,6 +25,7 @@ class EventoController extends AbstractController
         private readonly EventoRepository $eventoRepository,
         private readonly InscripcionService $inscripcionService,
         private readonly InscripcionRepository $inscripcionRepository,
+        private readonly InvitadoRepository $invitadoRepository,
         private readonly UsuarioRepository $usuarioRepository,
         private readonly SeleccionParticipantesEventoRepository $seleccionParticipantesEventoRepository,
         private readonly EntityManagerInterface $entityManager,
@@ -132,7 +134,6 @@ class EventoController extends AbstractController
         }
     }
 
-    #[Route('/eventos/{id}/seleccion_participantes', name: 'api_eventos_get_seleccion_participantes', methods: ['GET'])]
     public function getSeleccionParticipantes(string $id): JsonResponse
     {
         /** @var Usuario $user */
@@ -164,6 +165,33 @@ class EventoController extends AbstractController
         ]);
     }
 
+    public function getNoFalleros(string $id): JsonResponse
+    {
+        /** @var Usuario $user */
+        $user = $this->getUser();
+
+        $evento = $this->eventoRepository->find($id);
+        if (!$evento) {
+            return $this->json(['error' => 'Evento no encontrado'], 404);
+        }
+
+        if ($evento->getEntidad()->getId() !== $user->getEntidad()->getId()) {
+            return $this->json(['error' => 'No tienes acceso a este evento'], 403);
+        }
+
+        $invitados = $this->invitadoRepository->findByEventoAndUsuario($evento, $user);
+
+        return $this->json([
+            'hydra:member' => array_map(fn($invitado) => $this->mapInvitadoForEventoResponse($invitado), $invitados),
+            'hydra:totalItems' => count($invitados),
+        ]);
+    }
+
+    public function getParticipantesExternos(string $id): JsonResponse
+    {
+        return $this->getNoFalleros($id);
+    }
+
     #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
     public function getApuntados(string $id, Request $request): JsonResponse
     {
@@ -180,6 +208,12 @@ class EventoController extends AbstractController
         }
 
         $search = $request->query->get('q');
+        $paginateParam = $request->query->get('paginate', 'true');
+        $paginate = !is_string($paginateParam)
+            || !in_array(mb_strtolower(trim($paginateParam)), ['0', 'false', 'no', 'off'], true);
+        $page = max(1, (int) $request->query->get('page', '1'));
+        $itemsPerPage = 10;
+
         $inscripciones = $this->inscripcionRepository->findApuntadosByEvento(
             $evento,
             is_string($search) ? $search : null,
@@ -187,25 +221,58 @@ class EventoController extends AbstractController
 
         $member = array_map(static function (\App\Entity\Inscripcion $inscripcion): array {
             $usuario = $inscripcion->getUsuario();
+            $opciones = [];
+
+            foreach ($inscripcion->getLineas() as $linea) {
+                $opcion = trim($linea->getNombreMenuSnapshot());
+                if ($opcion !== '') {
+                    $opciones[$opcion] = true;
+                }
+            }
 
             return [
                 'inscripcionId' => $inscripcion->getId(),
-                'usuarioId' => $usuario->getId(),
-                'nombreUsuario' => trim(sprintf('%s %s', $usuario->getNombre(), $usuario->getApellidos())),
-                'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
-                'estadoPago' => $inscripcion->getEstadoPago()->value,
-                'totalLineas' => $inscripcion->getLineas()->count(),
-                'importeTotal' => $inscripcion->getImporteTotal(),
+                'nombreCompleto' => self::buildNombreCompleto($usuario->getNombre(), $usuario->getApellidos()),
+                'opciones' => array_keys($opciones),
             ];
         }, $inscripciones);
 
+        $totalItems = count($member);
+        $lastPage = max(1, (int) ceil($totalItems / $itemsPerPage));
+        $currentPage = min($page, $lastPage);
+
+        $paginatedMember = $member;
+        if ($paginate) {
+            $offset = ($currentPage - 1) * $itemsPerPage;
+            $paginatedMember = array_slice($member, $offset, $itemsPerPage);
+        }
+
         return $this->json([
-            'eventoId' => $evento->getId(),
-            'member' => $member,
+            'evento' => [
+                'id' => $evento->getId(),
+                'titulo' => $evento->getTitulo(),
+                'fechaEvento' => $evento->getFechaEvento()->format('Y-m-d'),
+            ],
+            'hydra:member' => $paginatedMember,
+            'hydra:totalItems' => $totalItems,
+            'hydra:itemsPerPage' => $paginate ? $itemsPerPage : $totalItems,
+            'hydra:currentPage' => $paginate ? $currentPage : 1,
+            'hydra:lastPage' => $paginate ? $lastPage : 1,
         ]);
     }
 
-    #[Route('/eventos/{id}/seleccion_participantes', name: 'api_eventos_put_seleccion_participantes', methods: ['PUT'])]
+    private static function buildNombreCompleto(?string $nombre, ?string $apellido): string
+    {
+        $partes = array_filter([
+            is_string($nombre) ? trim($nombre) : '',
+            is_string($apellido) ? trim($apellido) : '',
+        ], static fn (string $parte): bool => $parte !== '');
+
+        $nombreCompleto = trim(implode(' ', $partes));
+
+        return preg_replace('/\s+/', ' ', $nombreCompleto) ?? '';
+    }
+
     public function putSeleccionParticipantes(string $id, Request $request): JsonResponse
     {
         /** @var Usuario $user */
@@ -271,7 +338,6 @@ class EventoController extends AbstractController
         ]);
     }
 
-    #[Route('/eventos/{id}/seleccion_participantes', name: 'api_eventos_delete_seleccion_participantes', methods: ['DELETE'])]
     public function deleteSeleccionParticipantes(string $id): JsonResponse
     {
         /** @var Usuario $user */
@@ -354,6 +420,24 @@ class EventoController extends AbstractController
         }
 
         return $response;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapInvitadoForEventoResponse($invitado): array
+    {
+        return [
+            'id' => $invitado->getId(),
+            'nombre' => $invitado->getNombre(),
+            'apellidos' => $invitado->getApellidos(),
+            'nombreCompleto' => $invitado->getNombreCompleto(),
+            'tipoPersona' => $invitado->getTipoPersona()->value,
+            'observaciones' => $invitado->getObservaciones(),
+            'origen' => 'no_fallero',
+            'esNoFallero' => true,
+            '@id' => '/api/invitados/' . $invitado->getId(),
+        ];
     }
 
 }

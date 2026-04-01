@@ -10,11 +10,14 @@ use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\ApiProperty;
+use App\Dto\NoFalleroView;
 use App\Enum\TipoEventoEnum;
 use App\Enum\EstadoEventoEnum;
+use App\State\EventoNoFallerosProvider;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
@@ -41,6 +44,26 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             uriTemplate: '/eventos',
             security: "is_granted('ROLE_USER')",
             normalizationContext: ['groups' => ['evento:collection'], 'enable_max_depth' => 1]
+        ),
+        new GetCollection(
+            uriTemplate: '/eventos/{id}/no_falleros',
+            uriVariables: [
+                'id' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            provider: EventoNoFallerosProvider::class,
+            output: NoFalleroView::class,
+            normalizationContext: ['groups' => ['no_fallero:read']],
+            security: "is_granted('ROLE_USER')"
+        ),
+        new GetCollection(
+            uriTemplate: '/eventos/{id}/participantes_externos',
+            uriVariables: [
+                'id' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            provider: EventoNoFallerosProvider::class,
+            output: NoFalleroView::class,
+            normalizationContext: ['groups' => ['no_fallero:read']],
+            security: "is_granted('ROLE_USER')"
         ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('EVENTO_EDIT', object)"),

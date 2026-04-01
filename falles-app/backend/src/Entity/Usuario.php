@@ -8,12 +8,19 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
+use App\Dto\PersonaFamiliarView;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use App\Enum\TipoRelacionEconomicaEnum;
 use App\Enum\CensadoViaEnum;
 use App\Enum\EstadoValidacionEnum;
+use App\State\PersonaFamiliarMiasProvider;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -29,8 +36,32 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(security: "is_granted('VIEW', object)"),
         new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new GetCollection(
+            uriTemplate: '/persona_familiares/mias',
+            provider: PersonaFamiliarMiasProvider::class,
+            output: PersonaFamiliarView::class,
+            normalizationContext: ['groups' => ['persona_familiar_mia:read']],
+            security: "is_granted('ROLE_USER')"
+        ),
         new Patch(security: "is_granted('EDIT', object)"),
     ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'entidad' => 'exact',
+    'entidad.id' => 'exact',
+    'estadoValidacion' => 'exact',
+    'tipoUsuarioEconomico' => 'exact',
+    'nombre' => 'partial',
+    'apellidos' => 'partial',
+    'nombreCompleto' => 'partial',
+    'email' => 'partial',
+])]
+#[ApiFilter(BooleanFilter::class, properties: ['activo', 'esCensadoInterno'])]
+#[ApiFilter(DateFilter::class, properties: ['createdAt', 'fechaSolicitudAlta', 'fechaAltaCenso', 'fechaValidacion'])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['nombreCompleto', 'createdAt', 'fechaSolicitudAlta', 'fechaValidacion'],
+    arguments: ['orderParameterName' => 'order']
 )]
 class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -45,17 +76,17 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private Entidad $entidad;
 
     #[ORM\Column(type: Types::STRING, length: 100)]
-    #[Groups(['usuario:read', 'usuario:write', 'relacion:read'])]
+    #[Groups(['usuario:read', 'usuario:write'])]
     #[Assert\NotBlank]
     private string $nombre;
 
     #[ORM\Column(type: Types::STRING, length: 150)]
-    #[Groups(['usuario:read', 'usuario:write', 'relacion:read'])]
+    #[Groups(['usuario:read', 'usuario:write'])]
     #[Assert\NotBlank]
     private string $apellidos;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['usuario:read'])]
+    #[Groups(['usuario:read', 'relacion:read'])]
     private string $nombreCompleto;
 
     #[ORM\Column(type: Types::STRING, length: 180, unique: true)]

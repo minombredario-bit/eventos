@@ -7,6 +7,9 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use App\Enum\TipoRelacionEnum;
 use App\Repository\RelacionUsuarioRepository;
 use App\State\RelacionUsuarioProvider;
@@ -54,24 +57,19 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/relaciones/{id}',
             security: "is_granted('RELACION_DELETE', object)",
         ),
-        new Post(
-            uriTemplate: '/usuarios/{id}/relaciones',
-            uriVariables: [
-                'id' => new Link(
-                    fromClass: Usuario::class,
-                    identifiers: ['id'],
-                    toProperty: 'usuarioOrigen'
-                )
-            ],
-            processor: RelacionUsuarioProcessor::class,
-            security: "is_granted('ROLE_USER')",
-            denormalizationContext: ['groups' => ['relacion:write']],
-        ),
-        new Delete(
-            uriTemplate: '/relaciones/{id}',
-            security: "is_granted('RELACION_DELETE', object)",
-        ),
     ]
+)]
+#[ApiFilter(SearchFilter::class, properties: [
+    'usuarioOrigen' => 'exact',
+    'usuarioOrigen.id' => 'exact',
+    'usuarioDestino' => 'exact',
+    'usuarioDestino.id' => 'exact',
+    'tipoRelacion' => 'exact',
+])]
+#[ApiFilter(
+    OrderFilter::class,
+    properties: ['createdAt'],
+    arguments: ['orderParameterName' => 'order']
 )]
 class RelacionUsuario
 {
