@@ -1,0 +1,10 @@
+controllers_api:
+    resource: ../src/Controller/Api/
+    type: attribute
+
+evento_controller:
+    resource: ../src/Controller/EventoController.php
+    type: attribute
+
+security_routes:
+    resource: routes/security.yaml

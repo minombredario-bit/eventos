@@ -1,0 +1,87 @@
+<section class="screen perfil-screen">
+  <app-mobile-header
+    title="Mi perfil"
+    subtitle=""
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (loading()) {
+      <article class="panel loading-card">
+        <p class="eyebrow">Cargando</p>
+        <h2>Preparando tu perfil</h2>
+      </article>
+    } @else {
+      <article class="panel form-card">
+        <h2>Datos personales</h2>
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+          <label>
+            Teléfono
+            <input type="tel" formControlName="telefono" placeholder="Añade tu teléfono" />
+          </label>
+
+          <label>
+            Fecha de nacimiento
+            <input type="date" formControlName="fechaNacimiento" />
+          </label>
+
+          <label>
+            Forma de pago habitual
+            <select formControlName="formaPagoPreferida">
+              <option value="">Sin preferencia</option>
+              @for (metodo of metodosPago; track metodo.value) {
+                <option [value]="metodo.value">{{ metodo.label }}</option>
+              }
+            </select>
+          </label>
+
+          @if (profileMessage()) {
+            <p class="feedback">{{ profileMessage() }}</p>
+          }
+
+          <app-cta-button
+            type="submit"
+            [label]="savingProfile() ? 'Guardando...' : 'Guardar perfil'"
+            [disabled]="!canSaveProfile()"
+            [loading]="savingProfile()"
+          />
+        </form>
+      </article>
+
+      <article class="panel form-card">
+        <h2>Cambiar contraseña</h2>
+        <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
+          <label>
+            Contraseña actual
+            <input type="password" formControlName="currentPassword" />
+          </label>
+
+          <label>
+            Nueva contraseña
+            <input type="password" formControlName="newPassword" />
+          </label>
+
+          <label>
+            Confirmar contraseña
+            <input type="password" formControlName="confirmPassword" />
+          </label>
+
+          @if (passwordMessage()) {
+            <p class="feedback">{{ passwordMessage() }}</p>
+          }
+
+          <app-cta-button
+            type="submit"
+            [label]="savingPassword() ? 'Actualizando...' : 'Actualizar contraseña'"
+            [disabled]="!canSavePassword()"
+            [loading]="savingPassword()"
+          />
+        </form>
+      </article>
+    }
+  </div>
+</section>
+

@@ -1,0 +1,215 @@
+{
+  // ─── Componente standalone base ───────────────────────────────────────────
+  "Angular Standalone Component": {
+    "prefix": "ng-comp",
+    "description": "Componente standalone Angular 18 con OnPush",
+    "body": [
+      "import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';",
+      "import { CommonModule } from '@angular/common';",
+      "",
+      "@Component({",
+      "  selector: 'app-${1:nombre}',",
+      "  standalone: true,",
+      "  imports: [CommonModule],",
+      "  changeDetection: ChangeDetectionStrategy.OnPush,",
+      "  template: `",
+      "    <div>",
+      "      ${2:<!-- contenido -->}",
+      "    </div>",
+      "  `,",
+      "})",
+      "export class ${3:Nombre}Component {",
+      "  $0",
+      "}"
+    ]
+  },
+
+  // ─── Componente con HTTP ───────────────────────────────────────────────────
+  "Angular Container Component": {
+    "prefix": "ng-container-comp",
+    "description": "Componente contenedor con carga HTTP y signals",
+    "body": [
+      "import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';",
+      "import { CommonModule } from '@angular/common';",
+      "import { ${1:Entidad}Service } from '../../core/api/${2:entidad}.service';",
+      "import { ${1:Entidad} } from '../../core/models/${2:entidad}.model';",
+      "",
+      "@Component({",
+      "  selector: 'app-${3:nombre}',",
+      "  standalone: true,",
+      "  imports: [CommonModule],",
+      "  changeDetection: ChangeDetectionStrategy.OnPush,",
+      "  template: ``,",
+      "})",
+      "export class ${4:Nombre}Component implements OnInit {",
+      "  private service = inject(${1:Entidad}Service);",
+      "",
+      "  items    = signal<${1:Entidad}[]>([]);",
+      "  cargando = signal(false);",
+      "  error    = signal<string | null>(null);",
+      "  hayItems = computed(() => this.items().length > 0);",
+      "",
+      "  ngOnInit() {",
+      "    this.cargar();",
+      "  }",
+      "",
+      "  private cargar() {",
+      "    this.cargando.set(true);",
+      "    this.error.set(null);",
+      "    this.service.getAll().subscribe({",
+      "      next: data => { this.items.set(data); this.cargando.set(false); },",
+      "      error: ()   => { this.error.set('Error al cargar'); this.cargando.set(false); },",
+      "    });",
+      "  }",
+      "  $0",
+      "}"
+    ]
+  },
+
+  // ─── Formulario reactivo tipado ───────────────────────────────────────────
+  "Angular Reactive Form": {
+    "prefix": "ng-form",
+    "description": "Formulario reactivo tipado Angular 18",
+    "body": [
+      "import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';",
+      "import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';",
+      "import { MatFormFieldModule } from '@angular/material/form-field';",
+      "import { MatInputModule } from '@angular/material/input';",
+      "import { MatButtonModule } from '@angular/material/button';",
+      "",
+      "interface ${1:Nombre}Form {",
+      "  ${2:campo}: FormControl<string>;",
+      "}",
+      "",
+      "@Component({",
+      "  selector: 'app-${3:nombre}',",
+      "  standalone: true,",
+      "  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule],",
+      "  changeDetection: ChangeDetectionStrategy.OnPush,",
+      "  template: ``,",
+      "})",
+      "export class ${1:Nombre}Component {",
+      "  enviando = signal(false);",
+      "",
+      "  form = new FormGroup<${1:Nombre}Form>({",
+      "    ${2:campo}: new FormControl('', { nonNullable: true, validators: [Validators.required] }),",
+      "  });",
+      "",
+      "  onSubmit() {",
+      "    if (this.form.invalid) return;",
+      "    this.enviando.set(true);",
+      "    $0",
+      "  }",
+      "}"
+    ]
+  },
+
+  // ─── Servicio HTTP con HydraCollection ────────────────────────────────────
+  "Angular HTTP Service": {
+    "prefix": "ng-service",
+    "description": "Servicio HTTP Angular 18 tipado para API Platform",
+    "body": [
+      "import { inject, Injectable } from '@angular/core';",
+      "import { HttpClient, HttpParams } from '@angular/common/http';",
+      "import { Observable } from 'rxjs';",
+      "import { map } from 'rxjs/operators';",
+      "import { ${1:Entidad} } from '../models/${2:entidad}.model';",
+      "import { environment } from '../../../environments/environment';",
+      "",
+      "interface HydraCollection<T> {",
+      "  'hydra:member': T[];",
+      "  'hydra:totalItems': number;",
+      "}",
+      "",
+      "@Injectable({ providedIn: 'root' })",
+      "export class ${1:Entidad}Service {",
+      "  private http = inject(HttpClient);",
+      "  private base = `${environment.apiUrl}/api/${3:entidades}`;",
+      "",
+      "  getAll(params?: Record<string, string>): Observable<${1:Entidad}[]> {",
+      "    let httpParams = new HttpParams();",
+      "    if (params) Object.entries(params).forEach(([k, v]) => httpParams = httpParams.set(k, v));",
+      "    return this.http",
+      "      .get<HydraCollection<${1:Entidad}>>(this.base, { params: httpParams })",
+      "      .pipe(map(r => r['hydra:member']));",
+      "  }",
+      "",
+      "  getById(id: number | string): Observable<${1:Entidad}> {",
+      "    return this.http.get<${1:Entidad}>(`${this.base}/${id}`);",
+      "  }",
+      "",
+      "  create(data: Partial<${1:Entidad}>): Observable<${1:Entidad}> {",
+      "    return this.http.post<${1:Entidad}>(this.base, data);",
+      "  }",
+      "",
+      "  update(id: number | string, data: Partial<${1:Entidad}>): Observable<${1:Entidad}> {",
+      "    return this.http.patch<${1:Entidad}>(`${this.base}/${id}`, data, {",
+      "      headers: { 'Content-Type': 'application/merge-patch+json' },",
+      "    });",
+      "  }",
+      "",
+      "  delete(id: number | string): Observable<void> {",
+      "    return this.http.delete<void>(`${this.base}/${id}`);",
+      "  }",
+      "  $0",
+      "}"
+    ]
+  },
+
+  // ─── Pipe standalone ──────────────────────────────────────────────────────
+  "Angular Standalone Pipe": {
+    "prefix": "ng-pipe",
+    "description": "Pipe standalone puro Angular 18",
+    "body": [
+      "import { Pipe, PipeTransform } from '@angular/core';",
+      "",
+      "@Pipe({ name: '${1:nombre}', standalone: true, pure: true })",
+      "export class ${2:Nombre}Pipe implements PipeTransform {",
+      "  transform(value: ${3:TipoEntrada}): ${4:TipoSalida} {",
+      "    $0",
+      "  }",
+      "}"
+    ]
+  },
+
+  // ─── Guard funcional ──────────────────────────────────────────────────────
+  "Angular Functional Guard": {
+    "prefix": "ng-guard",
+    "description": "Guard funcional Angular 18",
+    "body": [
+      "import { inject } from '@angular/core';",
+      "import { CanActivateFn, Router } from '@angular/router';",
+      "import { AuthService } from '../auth/auth.service';",
+      "",
+      "export const ${1:nombre}Guard: CanActivateFn = () => {",
+      "  const auth   = inject(AuthService);",
+      "  const router = inject(Router);",
+      "  $0",
+      "  return auth.isAuthenticated() ? true : router.createUrlTree(['/auth/login']);",
+      "};"
+    ]
+  },
+
+  // ─── Modelo TypeScript ────────────────────────────────────────────────────
+  "Angular Model Interface": {
+    "prefix": "ng-model",
+    "description": "Interface TypeScript para entidad de API Platform",
+    "body": [
+      "export type ${1:Estado} = '${2:valor_a}' | '${3:valor_b}';",
+      "",
+      "export interface ${4:Entidad} {",
+      "  id: number;",
+      "  ${5:nombre}: string;",
+      "  createdAt?: string;",
+      "  updatedAt?: string;",
+      "}",
+      "",
+      "export interface Create${4:Entidad}Dto {",
+      "  ${5:nombre}: string;",
+      "}",
+      "",
+      "export type Update${4:Entidad}Dto = Partial<Create${4:Entidad}Dto>;",
+      "$0"
+    ]
+  }
+}

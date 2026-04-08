@@ -81,6 +81,53 @@ describe('Detalle locking rules', () => {
     expect(component.participantActionLabel(member)).toBe('');
     expect(component.isParticipantActionDisabled(member)).toBeTrue();
   });
+
+  it('calcula estado de pago por líneas y muestra parcial con mezcla pagada/no pagada', () => {
+    const fixture = createDetalleFixture();
+    const component = fixture.componentInstance as unknown as {
+      inscritos: { set: (value: ParticipanteSeleccionApi[]) => void };
+      inscritosRows: () => Array<FamilyMember & { enrollment?: { paymentStatusRaw?: string } }>;
+    };
+
+    component.inscritos.set([
+      {
+        id: 'u-1',
+        origen: 'familiar',
+        nombre: 'Usuario',
+        apellidos: 'Test',
+        inscripcionRelacion: {
+          id: 'ins-1',
+          codigo: 'ENT-TEST',
+          estadoPago: 'pagado',
+          lineas: [
+            {
+              id: 'line-1',
+              menuId: 'menu-1',
+              usuarioId: 'u-1',
+              nombreMenuSnapshot: 'Menu general',
+              franjaComidaSnapshot: 'comida',
+              estadoLinea: 'confirmada',
+              precioUnitario: 12,
+              pagada: true,
+            },
+            {
+              id: 'line-2',
+              menuId: 'menu-2',
+              usuarioId: 'u-1',
+              nombreMenuSnapshot: 'Menu noche',
+              franjaComidaSnapshot: 'cena',
+              estadoLinea: 'confirmada',
+              precioUnitario: 10,
+              pagada: false,
+            },
+          ],
+        },
+      } as ParticipanteSeleccionApi,
+    ]);
+
+    const row = component.inscritosRows()[0];
+    expect(row.enrollment?.paymentStatusRaw).toBe('parcial');
+  });
 });
 
 function createDetalleFixture() {

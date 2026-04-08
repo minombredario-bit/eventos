@@ -1,0 +1,4 @@
+api_platform:
+    resource: '%kernel.project_dir%/src'
+    type: api_platform
+    prefix: /api

@@ -1,0 +1,174 @@
+<section class="screen">
+  <app-mobile-header
+    title="Detalle del evento"
+    subtitle=""
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    <div class="detail-layout">
+      @if (eventSummary()) {
+        <article class="panel event-hero">
+          <p class="eyebrow">Evento seleccionado</p>
+          <h2>{{ eventSummary()?.title }}</h2>
+          <div class="meta-grid">
+            <p>{{ eventSummary()?.date }} · {{ eventSummary()?.time }}</p>
+            <p>{{ eventSummary()?.location }}</p>
+          </div>
+          <p class="description">{{ eventSummary()?.description }}</p>
+          <span class="status-chip" [class]="'status-chip ' + eventSummary()?.status">{{ eventStatusLabel() }}</span>
+        </article>
+      } @else if (loading()) {
+        <article class="panel event-hero">
+          <p class="eyebrow">Evento seleccionado</p>
+          <h2>Cargando detalle...</h2>
+        </article>
+      }
+
+      <div class="detail-panels">
+
+        <article class="panel family-list" aria-label="Inscripciones ya guardadas">
+          <h2>A quién he apuntado</h2>
+          <p class="supporting-copy">Inscripciones ya guardadas para este evento.</p>
+          <p class="selection-summary">{{ inscritosSummary() }}</p>
+
+          @if (loadingInscritos()) {
+            <p>Cargando inscripciones...</p>
+          } @else if (inscritosError()) {
+            <p class="supporting-copy">{{ inscritosError() }}</p>
+          } @else if (!inscritosRows().length) {
+            <p class="supporting-copy">Todavía no hay inscripciones para mostrar.</p>
+          } @else {
+            @for (member of inscritosRows(); track inscritoTrackKey(member)) {
+              <app-member-row
+                [member]="member"
+                [showEnrollmentInfo]="true"
+                aria-label="Fila de invitado o familiar inscrito"
+              />
+            }
+          }
+        </article>
+
+        @if (!inscripcionCerrada()) {
+          @if (!hasActiveMenus()) {
+            <article class="panel family-list" aria-label="Evento sin comidas">
+              <h2>Evento sin comidas</h2>
+              <p class="supporting-copy">Este evento no tiene menús activos, así que no se puede inscribir personas ni crear invitados.</p>
+            </article>
+          } @else if (!guestManagementEnabled()) {
+            <article class="panel family-list" aria-label="Evento sin invitados">
+              <h2>Invitados no disponibles</h2>
+              <p class="supporting-copy">Este evento no admite invitados, por lo que no se pueden añadir nuevas inscripciones desde esta pantalla.</p>
+            </article>
+          } @else {
+            <article class="panel family-list" aria-label="Listado de familiares">
+              <h2>Inscripciones y familiares</h2>
+              <p class="supporting-copy">Toca en "Inscribir" para elegir quiénes pasan a la pantalla de menús.</p>
+              <p class="selection-summary">{{ selectedCountLabel() }}</p>
+
+              @if (loadingPeople()) {
+                <p>Cargando familiares...</p>
+              } @else if (participants().length === 0) {
+                <p class="supporting-copy">No tienes personas disponibles para este evento.</p>
+              } @else {
+                @for (member of participants(); track participantTrackKey(member)) {
+                  <app-member-row
+                    [member]="member"
+                    [actionLabel]="participantActionLabel(member)"
+                    [secondaryActionLabel]="participantSecondaryActionLabel(member)"
+                    [secondaryDisabled]="isDeletingInvitado(member.id)"
+                    [disabled]="isParticipantActionDisabled(member)"
+                    [showEnrollmentInfo]="true"
+                    aria-label="Fila de persona para inscribir"
+                    (actionPressed)="toggleMemberSelection(member)"
+                    (secondaryActionPressed)="handleParticipantSecondaryAction($event)"
+                  />
+                }
+              }
+            </article>
+
+            @if (guestManagementEnabled()) {
+              <article class="panel invitados" aria-label="Gestión de invitados">
+                <h2>Alta de invitados</h2>
+                <p class="supporting-copy">Añade invitados y gestiona su inscripción desde la lista principal.</p>
+
+                <form class="invitados-form" [formGroup]="invitadoForm" (ngSubmit)="submitInvitado()" novalidate>
+                  <div class="field-grid">
+                    <label>
+                      Nombre
+                      <input type="text" formControlName="nombre" placeholder="Nombre" />
+                    </label>
+
+                    <label>
+                      Apellidos
+                      <input type="text" formControlName="apellidos" placeholder="Apellidos" />
+                    </label>
+                  </div>
+
+                  <div class="field-grid">
+                    <label>
+                      Tipo
+                      <select formControlName="tipoPersona">
+                        <option value="adulto">Adulto</option>
+                        <option value="infantil">Infantil</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      Relación
+                      <input type="text" formControlName="parentesco" placeholder="Invitado/a" />
+                    </label>
+                  </div>
+
+                  <label>
+                    Observaciones
+                    <textarea formControlName="observaciones" rows="2" placeholder="Alergias, notas, etc. (opcional)"></textarea>
+                  </label>
+
+                    <app-cta-button
+                      class="form-cta"
+                      label="Dar de alta invitado"
+                      loadingLabel="Guardando..."
+                      type="submit"
+                      [loading]="submittingInvitado()"
+                      [disabled]="submittingInvitado()"
+                    />
+                </form>
+
+                @if (invitadosError()) {
+                  <p class="inline-error" role="alert">{{ invitadosError() }}</p>
+                }
+
+                @if (loadingInvitados()) {
+                  <p class="supporting-copy">Cargando invitados...</p>
+                }
+              </article>
+            }
+          }
+        }
+
+      </div>
+    </div>
+
+    @if (errorMessage(); as error) {
+      <article class="panel">
+        <p>{{ error }}</p>
+      </article>
+    }
+
+    @if (!inscripcionCerrada() && hasActiveMenus()) {
+      <div class="cta-wrap">
+        <app-cta-button
+          [label]="menusButtonLabel()"
+          [disabled]="!canContinueToMenus()"
+          [loading]="savingSelection()"
+          loadingLabel="Guardando selección..."
+          (pressed)="openMenus()"
+        />
+      </div>
+    }
+  </div>
+</section>

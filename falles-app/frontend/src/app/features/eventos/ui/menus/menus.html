@@ -196,9 +196,13 @@
           }
 
           @if (!allMenusAreFree()) {
-            <article class="panel total-card">
-              <h2>Total estimado</h2>
-              <p class="summary">Revisa las selecciones antes de confirmar la inscripción. Elige al menos un menú para registrar</p>
+            <article class="panel total-card" [class.total-card--paid]="allActiveLinesPaid()">
+              <h2>{{ allActiveLinesPaid() ? 'Total pagado' : 'Total estimado' }}</h2>
+              <p class="summary">
+                {{ allActiveLinesPaid()
+                  ? 'Todas las líneas activas de la inscripción están pagadas.'
+                  : 'Revisa las selecciones antes de confirmar la inscripción. Elige al menos un menú para registrar' }}
+              </p>
               @for (slot of slotSummary(); track slot.slot) {
                 <div class="total-line">
                   <span>
@@ -208,7 +212,7 @@
                 </div>
               }
               <p class="grand-total">
-                <span>Total</span>
+                <span>{{ allActiveLinesPaid() ? 'Pagado' : 'Total' }}</span>
                 <strong>{{ totalPrice() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
               </p>
             </article>
@@ -219,13 +223,15 @@
             </article>
           }
 
-          <div class="cta-wrap">
-            <app-cta-button
-              [label]="confirmButtonLabel()"
-              [disabled]="!readyToConfirm() || submitting()"
-              (pressed)="confirmSelection()"
-            />
-          </div>
+          @if (showPayCta()) {
+            <div class="cta-wrap">
+              <app-cta-button
+                [label]="confirmButtonLabel()"
+                [disabled]="!readyToConfirm() || submitting()"
+                (pressed)="confirmSelection()"
+              />
+            </div>
+          }
         }
       }
     }

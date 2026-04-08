@@ -126,7 +126,7 @@ export class Detalle {
         .trim();
       const fallbackLabel = inscrito.origen === 'invitado' ? 'Invitado' : 'Familiar';
       const name = fullName || knownMember?.name || `${fallbackLabel} ${inscrito.id}`;
-      const rawPaymentStatus = inscrito.inscripcionRelacion?.estadoPago ?? 'pendiente';
+      const rawPaymentStatus = this.resolveInscritoPaymentStatus(inscrito);
       const menuNames = inscrito.inscripcionRelacion?.lineas
         ?.map((linea) => linea.nombreMenuSnapshot.trim())
         .filter(Boolean)
@@ -218,7 +218,7 @@ export class Detalle {
   protected readonly hasActiveMenus = computed(() => this.hasActiveMenusFromEvent(this.event()));
   protected readonly guestManagementEnabled = computed(() => this.canUseGuestParticipantsFromEvent(this.event()));
   protected readonly canManageParticipants = computed(() =>
-    Boolean(this.event()?.inscripcionAbierta === true && this.hasActiveMenus()),
+    Boolean(this.event()?.inscripcionAbierta === true && this.hasActiveMenus() && this.guestManagementEnabled()),
   );
 
   protected readonly selectedCountLabel = computed(() => {
@@ -751,6 +751,37 @@ export class Detalle {
     return detail ?? fallbackMessage;
   }
 
+  private resolveInscritoPaymentStatus(inscrito: ParticipanteSeleccionApi): string {
+    const relation = inscrito.inscripcionRelacion;
+    if (!relation || !Array.isArray(relation.lineas)) {
+      return 'pendiente';
+    }
+
+    const activeLines = relation.lineas.filter((linea) =>
+      linea.estadoLinea !== 'cancelada'
+      && this.lineBelongsToParticipant(inscrito, linea.usuarioId, linea.invitadoId),
+    );
+
+    if (!activeLines.length) {
+      return (relation.estadoPago ?? 'pendiente').trim().toLowerCase() || 'pendiente';
+    }
+
+    if (activeLines.every((linea) => Number(linea.precioUnitario ?? 0) <= 0)) {
+      return 'no_requiere';
+    }
+
+    const paidLines = activeLines.filter((linea) => this.isLinePaid(linea));
+    if (!paidLines.length) {
+      return 'pendiente';
+    }
+
+    if (paidLines.length === activeLines.length) {
+      return 'pagado';
+    }
+
+    return 'parcial';
+  }
+
   private isPaidEnrollmentLocked(member: FamilyMember): boolean {
     const hasPaidLines = this.findInscritoHasPaidLines(member);
     if (hasPaidLines) {
@@ -777,12 +808,16 @@ export class Detalle {
         continue;
       }
 
-      if (Boolean((linea as { pagada?: unknown }).pagada)) {
+      if (this.isLinePaid(linea)) {
         return true;
       }
     }
 
     return false;
+  }
+
+  private isLinePaid(linea: { estadoLinea?: string; pagada?: unknown }): boolean {
+    return Boolean(linea.pagada);
   }
 
   private resolveAltaInvitadoErrorMessage(error: unknown): string {

@@ -225,7 +225,7 @@ export class Menus {
         menuLabel: linea.nombreMenuSnapshot,
         slot: this.normalizeMealSlot(linea.franjaComidaSnapshot),
         price: linea.precioUnitario,
-        stateLabel: this.formatLineStateLabel(linea.estadoLinea),
+        stateLabel: this.formatLineStatusByPayment(linea.estadoLinea, Boolean(linea.pagada)),
         pagada: Boolean(linea.pagada),
       });
 
@@ -335,6 +335,20 @@ export class Menus {
     if (this.submitting()) return 'Guardando menús...';
     if (!this.resolveExistingInscriptionId()) return 'Seleccioná un menú para continuar';
     return 'Ir al pago';
+  });
+
+  protected readonly showPayCta = computed(() => {
+    const activeLines = this.existingInscriptionRows().flatMap((row) => row.lines);
+    if (!activeLines.length) {
+      return true;
+    }
+
+    return activeLines.some((line) => !line.pagada);
+  });
+
+  protected readonly allActiveLinesPaid = computed(() => {
+    const activeLines = this.existingInscriptionRows().flatMap((row) => row.lines);
+    return activeLines.length > 0 && activeLines.every((line) => line.pagada);
   });
 
   constructor() {
@@ -988,9 +1002,53 @@ export class Menus {
       eventLabel: firstActiveLine
         ? `${firstActiveLine.franjaComidaSnapshot} · ${firstActiveLine.nombreMenuSnapshot}`
         : `${eventTitle} · ${inscripcion.codigo}`,
-      paymentStatus: this.eventosMapper.toPaymentBadgeStatus(inscripcion.estadoPago),
-      paymentStatusRaw: inscripcion.estadoPago,
+      paymentStatus: this.eventosMapper.toPaymentBadgeStatus(this.resolveParticipantPaymentStatusFromLines(participant)),
+      paymentStatusRaw: this.resolveParticipantPaymentStatusFromLines(participant),
     };
+  }
+
+  private resolveParticipantPaymentStatusFromLines(participant: ParticipanteSeleccionApi): string {
+    const relation = participant.inscripcionRelacion;
+    if (!relation || !Array.isArray(relation.lineas) || relation.lineas.length === 0) {
+      return 'pendiente';
+    }
+
+    const activeLines = relation.lineas.filter((linea) => {
+      if ((linea.estadoLinea ?? '').trim().toLowerCase() === 'cancelada') {
+        return false;
+      }
+
+      const usuarioLinea = String((linea as { usuarioId?: string }).usuarioId ?? '').trim();
+      const invitadoLinea = String((linea as { invitadoId?: string }).invitadoId ?? '').trim();
+
+      if (!usuarioLinea && !invitadoLinea) {
+        return true;
+      }
+
+      return participant.origen === 'invitado'
+        ? invitadoLinea === participant.id
+        : usuarioLinea === participant.id;
+    });
+
+    if (!activeLines.length) {
+      return 'pendiente';
+    }
+
+    const allFree = activeLines.every((linea) => Number(linea.precioUnitario ?? 0) <= 0);
+    if (allFree) {
+      return 'no_requiere';
+    }
+
+    const paidCount = activeLines.filter((linea) => Boolean((linea as { pagada?: unknown }).pagada)).length;
+    if (paidCount === 0) {
+      return 'pendiente';
+    }
+
+    if (paidCount === activeLines.length) {
+      return 'pagado';
+    }
+
+    return 'parcial';
   }
 
   private buildRowsFromSelectionContract(): ExistingInscriptionRowView[] {
@@ -1014,7 +1072,7 @@ export class Menus {
             menuLabel: menuOption?.label ?? (line.menuLabel || line.menuId),
             slot: line.slot,
             price: line.price > 0 ? line.price : (menuOption?.price ?? 0),
-            stateLabel: this.formatLineStateLabel(line.estadoLinea),
+            stateLabel: this.formatLineStatusByPayment(line.estadoLinea, line.pagada),
             pagada: line.pagada,
           } satisfies ExistingInscriptionLineView;
         });
@@ -1059,6 +1117,22 @@ export class Menus {
     };
 
     return labels[state] ?? state;
+  }
+
+  private formatLineStatusByPayment(state: string, pagada: boolean): string {
+    if (pagada) {
+      return 'Pagada';
+    }
+
+    if (state === 'cancelada') {
+      return 'Cancelada';
+    }
+
+    if (state === 'lista_espera') {
+      return 'Lista de espera';
+    }
+
+    return 'Pendiente';
   }
 
   private normalizeMealSlot(value: string | undefined): MealSlot | null {

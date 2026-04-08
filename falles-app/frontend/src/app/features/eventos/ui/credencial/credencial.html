@@ -1,0 +1,66 @@
+<section class="screen">
+  <app-mobile-header
+    title="Mi credencial"
+    subtitle=""
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (credential()) {
+      <article class="ticket" aria-label="Credencial del evento">
+        <span class="ticket-cut ticket-cut-left" aria-hidden="true"></span>
+        <span class="ticket-cut ticket-cut-right" aria-hidden="true"></span>
+        <header class="ticket-header">
+          <div>
+            <p class="event-name">{{ credential()?.eventTitle }}</p>
+            <strong>{{ credential()?.eventDate | date: 'EEEE d MMM · HH:mm' }}</strong>
+          </div>
+          <span class="entry-pill">Acceso válido</span>
+        </header>
+
+        <section class="identity">
+          <p class="holder">Titular: {{ credential()?.holderName }}</p>
+          <p class="zone">{{ credential()?.eventZone }}</p>
+          <p class="payment-summary">
+            {{ credential()?.paymentLabel }} · {{ credential()?.paymentAmount | currency: 'EUR' : 'symbol' : '1.0-0' }}
+          </p>
+        </section>
+
+        <div class="divider" aria-hidden="true"></div>
+
+        <section class="lines">
+          <p class="lines-label">Detalle de asistentes</p>
+          @for (line of credential()?.lines ?? []; track line.id) {
+            <div class="line-item">
+              <p class="line-main">
+                <span>{{ line.nombrePersonaSnapshot }}</span>
+                <strong>{{ lineMenuLabel(line) }}</strong>
+              </p>
+              <small class="line-status">{{ lineStatusLabel(line.estadoLinea) }}</small>
+            </div>
+          }
+        </section>
+
+        <section class="qr-block">
+          <p class="qr-caption">Presentá este código al ingresar al evento.</p>
+          <img class="qr-image" [src]="credential()?.qrImageUrl" alt="Código QR de acceso" loading="lazy" />
+          <p class="token" aria-live="polite">Token: {{ credential()?.qrToken }}</p>
+        </section>
+
+        <p class="ticket-footnote">Credencial personal e intransferible.</p>
+      </article>
+    } @else if (loading()) {
+      <article class="ticket" aria-label="Cargando credencial">
+        <p class="event-name">Cargando credencial...</p>
+      </article>
+    } @else if (errorMessage()) {
+      <article class="ticket error-card" aria-label="Error de credencial">
+        <p class="event-name">No disponible</p>
+        <p>{{ errorMessage() }}</p>
+      </article>
+    }
+  </div>
+</section>

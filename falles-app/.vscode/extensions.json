@@ -1,0 +1,30 @@
+{
+  "recommendations": [
+    // ─── Angular ──────────────────────────────────────────────────────────
+    "angular.ng-template",               // Angular Language Service (autocompletado templates)
+    "esbenp.prettier-vscode",            // Prettier (formato TS, HTML, SCSS, JSON)
+    "dbaeumer.vscode-eslint",            // ESLint
+
+    // ─── PHP / Symfony ────────────────────────────────────────────────────
+    "bmewburn.vscode-intelephense-client", // PHP Intelephense (autocompletado PHP)
+    "junstyle.php-cs-fixer",              // PHP CS Fixer (formato PHP)
+    "MehediDracula.php-namespace-resolver", // Resolver namespaces PHP con un click
+    "DEVSENSE.phptools-vscode",           // PHP Tools (debug, profiling)
+    "TheNouillet.symfony-vscode",         // Symfony for VS Code (rutas, servicios, twig)
+
+    // ─── Twig ─────────────────────────────────────────────────────────────
+    "mblode.twig-language-2",            // Syntax highlighting y formato Twig
+
+    // ─── General ──────────────────────────────────────────────────────────
+    "editorconfig.editorconfig",          // Respetar .editorconfig
+    "streetsidesoftware.code-spell-checker", // Corrector ortográfico en código
+    "streetsidesoftware.code-spell-checker-spanish", // Diccionario español
+    "gruntfuggly.todo-tree",             // Listar TODOs y FIXMEs del proyecto
+    "eamodio.gitlens",                   // Git blame, historial inline
+    "mhutchie.git-graph",               // Grafo visual de commits
+    "formulahendry.auto-rename-tag",     // Renombrar tags HTML/Twig en pareja
+    "naumovs.color-highlight",           // Previsualizar colores CSS inline
+    "PKief.material-icon-theme",         // Iconos de archivos en el explorador
+    "usernamehw.errorlens"               // Mostrar errores inline en el editor
+  ]
+}
