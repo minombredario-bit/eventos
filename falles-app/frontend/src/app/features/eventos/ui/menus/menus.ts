@@ -296,6 +296,27 @@ export class Menus {
     this.selectionSummary().reduce((total, row) => total + row.price, 0),
   );
 
+  protected readonly totalAlreadyPaid = computed(() => {
+    const fromInscription = Number(this.selectedInscription()?.importePagado ?? 0);
+    if (fromInscription > 0) {
+      return fromInscription;
+    }
+
+    // Evita duplicar importes cuando varios participantes comparten la misma inscripción.
+    const uniqueByInscription = new Map<string, number>();
+    for (const participant of this.preselectedParticipants()) {
+      const summary = participant.relationSummary;
+      if (!summary?.id) continue;
+      uniqueByInscription.set(summary.id, Number(summary.totalPagado ?? 0));
+    }
+
+    return [...uniqueByInscription.values()].reduce((acc, value) => acc + value, 0);
+  });
+
+  protected readonly totalPending = computed(() =>
+    Math.max(0, this.totalPrice() - this.totalAlreadyPaid()),
+  );
+
   protected readonly slotSummary = computed<SlotSelectionSummary[]>(() => {
     const grouped = new Map<MealSlot, SlotSelectionSummary>();
 
@@ -1289,5 +1310,5 @@ export function shouldUseLegacyMenusFallback(evento: { menus?: unknown }): boole
 export function shouldLoadLegacyInscripcionesFallback(
   participantes: ParticipanteSeleccionApi[],
 ): boolean {
-  return participantes.length === 0;
+  return participantes.length === 0 || participantes.every((item) => !item.inscripcionRelacion);
 }

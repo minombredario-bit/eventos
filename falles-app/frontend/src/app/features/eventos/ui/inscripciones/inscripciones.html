@@ -1,0 +1,104 @@
+<section class="screen inscripciones-screen">
+  <app-mobile-header
+    title="Mis eventos"
+    subtitle=""
+    actionType="logout"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (errorMessage()) {
+      <article class="panel error-card">
+        <h2>No pudimos cargar tus inscripciones</h2>
+        <p>{{ errorMessage() }}</p>
+      </article>
+    } @else if (loading()) {
+        <article class="panel loading-card">
+          <p class="eyebrow">Cargando</p>
+          <h2>Preparando tus eventos inscritos</h2>
+          <p>Estamos trayendo tus inscripciones.</p>
+        </article>
+    } @else if (!inscripciones().length) {
+      <article class="panel empty-card">
+        <p class="eyebrow">Sin inscripciones</p>
+        <h2>Todavía no tenés eventos registrados</h2>
+        <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a los menús.</p>
+      </article>
+    } @else {
+      <article class="panel list-card">
+        <div class="card-head">
+          <div>
+            <p class="eyebrow">Inscripciones activas</p>
+            <h2>Seleccioná un evento para revisar sus menús</h2>
+          </div>
+          <span class="count-chip">{{ inscripciones().length }}</span>
+        </div>
+
+        <div class="inscriptions-list">
+          @for (inscripcion of inscripciones(); track inscripcion.id) {
+            <article class="inscription-card">
+              <a
+                class="inscription-main-link"
+                [routerLink]="['/eventos', eventRouteId(inscripcion), 'detalle']"
+                [attr.aria-label]="'Ver detalle de ' + eventTitle(inscripcion)"
+              >
+                <div class="inscription-copy">
+                  <h3>{{ eventTitle(inscripcion) }}</h3>
+                  <span class="status-badge" [class.closed]="isEventoCerrado(inscripcion)">
+                    {{ estadoInscripcionEventoLabel(inscripcion) }}
+                  </span>
+                  <p>{{ eventDate(inscripcion) }} · {{ eventTime(inscripcion) }} · {{ eventLocation(inscripcion) }}</p>
+                  <p class="description">{{ eventDescription(inscripcion) }}</p>
+                  <p class="status-hint" [class.closed]="isEventoCerrado(inscripcion)">{{ cierreEventoHint(inscripcion) }}</p>
+                </div>
+
+                <div class="inscription-meta">
+                  <span>{{ lineasLabel(inscripcion) }}</span>
+                  <span>{{ estadoPagoLabel(inscripcion.estadoPago) }}</span>
+                  <small>{{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.0-0' }}</small>
+                </div>
+              </a>
+
+              <div class="inscription-actions" aria-label="Acciones del evento inscrito">
+                @if (isEventoCerrado(inscripcion)) {
+                  <div class="inscription-actions-closed" aria-label="Evento cerrado">
+                    <span class="action-link disabled" aria-disabled="true">Cambios bloqueados</span>
+                    <a
+                      class="action-link secondary apuntados-action closed-apuntados-link"
+                      [routerLink]="['/eventos', eventRouteId(inscripcion), 'apuntados']"
+                      [attr.aria-label]="'Ver apuntados en ' + eventTitle(inscripcion)"
+                    >
+                      Listado de apuntados
+                    </a>
+                  </div>
+                } @else {
+                  <a
+                    class="action-link"
+                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'menus']"
+                    [attr.aria-label]="'Abrir menús de ' + eventTitle(inscripcion)"
+                  >
+                    Menús
+                  </a>
+                  <a
+                    class="action-link"
+                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'pago']"
+                    [attr.aria-label]="'Abrir pago de ' + eventTitle(inscripcion)"
+                  >
+                    Pago
+                  </a>
+                  <a
+                    class="action-link secondary apuntados-action"
+                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'apuntados']"
+                    [attr.aria-label]="'Ver apuntados en ' + eventTitle(inscripcion)"
+                  >
+                    Listado de apuntados
+                  </a>
+                }
+              </div>
+            </article>
+          }
+        </div>
+      </article>
+    }
+  </div>
+</section>

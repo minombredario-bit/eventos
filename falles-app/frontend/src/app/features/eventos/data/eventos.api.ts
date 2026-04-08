@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
-import { catchError, map, Observable, of, throwError } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, throwError } from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
 import { AuthService } from '../../../core/auth/auth';
 
@@ -531,9 +531,8 @@ export class EventosApi {
         { participantes: requestParticipantes },
       )
       .pipe(
-        map((r) => (Array.isArray(r.participantes) ? r.participantes : [])
-          .map((item) => this.normalizeParticipanteSeleccion(item))
-          .filter((item): item is ParticipanteSeleccionApi => item !== null)),
+        // El PUT puede devolver snapshot reducido; recargamos GET para mantener campos de relación (lineas/pagada).
+        switchMap(() => this.getSeleccionParticipantes(normalizedEventoId)),
       );
   }
 

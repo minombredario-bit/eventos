@@ -32,7 +32,7 @@
 
         <article class="panel family-list" aria-label="Inscripciones ya guardadas">
           <h2>A quién he apuntado</h2>
-          <p class="supporting-copy">Inscripciones ya guardadas para este evento.</p>
+          <p class="supporting-copy">Inscripciones activas guardadas para este evento.</p>
           <p class="selection-summary">{{ inscritosSummary() }}</p>
 
           @if (loadingInscritos()) {
@@ -79,7 +79,8 @@
                     [member]="member"
                     [actionLabel]="participantActionLabel(member)"
                     [secondaryActionLabel]="participantSecondaryActionLabel(member)"
-                    [secondaryDisabled]="isDeletingInvitado(member.id)"
+                    [actionsLocked]="participantActionsLocked()"
+                    [secondaryDisabled]="isParticipantActionDisabled(member)"
                     [disabled]="isParticipantActionDisabled(member)"
                     [showEnrollmentInfo]="true"
                     aria-label="Fila de persona para inscribir"

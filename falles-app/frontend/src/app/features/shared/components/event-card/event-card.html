@@ -1,0 +1,20 @@
+<article class="event-card" [attr.aria-label]="event().title">
+  <div class="date-badge">
+    <strong>{{ event().date | date: 'dd' }}</strong>
+    <small>{{ event().date | date: 'MMM' }}</small>
+  </div>
+
+  <div class="content">
+    <div class="title-row">
+      <h3>{{ event().title }}</h3>
+      <span class="state" [ngClass]="event().status">{{ statusLabel() }}</span>
+    </div>
+
+    <p class="meta">{{ event().time }} · {{ event().location }}</p>
+    <p class="description">{{ event().description }}</p>
+
+    <a [routerLink]="['/eventos', event().id, 'detalle']" class="details-link" aria-label="Ver detalle del evento">
+      Ver detalle
+    </a>
+  </div>
+</article>

@@ -15,7 +15,6 @@ use App\Repository\RelacionUsuarioRepository;
 use App\Repository\MenuEventoRepository;
 use App\Repository\UsuarioRepository;
 use App\Enum\FranjaComidaEnum;
-use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\EstadoInscripcionEnum;
 use App\Enum\TipoMenuEnum;
 use App\Enum\TipoPersonaEnum;
@@ -316,7 +315,7 @@ class InscripcionService
     }
 
     /**
-     * Cancela una línea de inscripción aplicando reglas de negocio de usuario final.
+     * Elimina físicamente una línea de inscripción aplicando reglas de negocio de usuario final.
      */
     public function cancelarLineaInscripcion(Inscripcion $inscripcion, InscripcionLinea $linea): void
     {
@@ -329,14 +328,11 @@ class InscripcionService
         }
 
         if ($linea->isPagada()) {
-            throw new BadRequestHttpException('No puedes cancelar una línea ya pagada');
+            throw new BadRequestHttpException('No puedes eliminar una línea ya pagada');
         }
 
-        if ($linea->getEstadoLinea() === EstadoLineaInscripcionEnum::CANCELADA) {
-            throw new BadRequestHttpException('La línea ya está cancelada');
-        }
-
-        $linea->setEstadoLinea(EstadoLineaInscripcionEnum::CANCELADA);
+        $inscripcion->removeLinea($linea);
+        $this->entityManager->remove($linea);
 
         $inscripcion->setImporteTotal($inscripcion->calcularImporteTotal());
         $inscripcion->actualizarEstadoPago();

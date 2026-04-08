@@ -72,6 +72,9 @@ export class Detalle {
   protected readonly inscripcionExistente = signal<InscripcionApi | null>(null);
   protected readonly selectedMemberIds = signal<string[]>([]);
   protected readonly savingSelection = signal(false);
+  protected readonly participantActionsLocked = computed(() =>
+    this.savingSelection() || this.deletingInvitadoId() !== null,
+  );
 
   private readonly selectionSaveRequests$ = new Subject<SelectionSaveRequest>();
 
@@ -118,6 +121,12 @@ export class Detalle {
         continue;
       }
 
+      const activeLines = this.getActiveParticipantLines(inscrito);
+      if (inscrito.inscripcionRelacion && activeLines.length === 0) {
+        // Si solo quedan líneas canceladas, el participante ya no debe figurar como inscrito.
+        continue;
+      }
+
       const key = this.inscritoKey(inscrito);
       const knownMember = this.participantsLookup().get(key);
       const fullName = [inscrito.nombre?.trim() ?? '', inscrito.apellidos?.trim() ?? '']
@@ -126,9 +135,9 @@ export class Detalle {
         .trim();
       const fallbackLabel = inscrito.origen === 'invitado' ? 'Invitado' : 'Familiar';
       const name = fullName || knownMember?.name || `${fallbackLabel} ${inscrito.id}`;
-      const rawPaymentStatus = this.resolveInscritoPaymentStatus(inscrito);
-      const menuNames = inscrito.inscripcionRelacion?.lineas
-        ?.map((linea) => linea.nombreMenuSnapshot.trim())
+      const rawPaymentStatus = this.resolveInscritoPaymentStatus(inscrito, activeLines);
+      const menuNames = activeLines
+        .map((linea) => linea.nombreMenuSnapshot.trim())
         .filter(Boolean)
         .join(', ');
 
@@ -305,7 +314,11 @@ export class Detalle {
   }
 
   protected participantActionLabel(member: FamilyMember): string {
-    if (this.isAlreadyEnrolled(member) || this.isPaidEnrollmentLocked(member)) {
+    if (this.inscripcionCerrada()) {
+      return '';
+    }
+
+    if (this.isPaidEnrollmentLocked(member)) {
       return '';
     }
 
@@ -318,11 +331,15 @@ export class Detalle {
   }
 
   protected participantSecondaryActionLabel(member: FamilyMember): string {
+    if (this.inscripcionCerrada()) {
+      return '';
+    }
+
     if (member.origin !== 'invitado') {
       return '';
     }
 
-    if (this.isAlreadyEnrolled(member) || this.isPaidEnrollmentLocked(member)) {
+    if (this.isPaidEnrollmentLocked(member)) {
       return '';
     }
 
@@ -330,7 +347,15 @@ export class Detalle {
   }
 
   protected isParticipantActionDisabled(member: FamilyMember): boolean {
-    if (this.isAlreadyEnrolled(member) || this.isPaidEnrollmentLocked(member)) {
+    if (this.participantActionsLocked()) {
+      return true;
+    }
+
+    if (this.inscripcionCerrada()) {
+      return true;
+    }
+
+    if (this.isPaidEnrollmentLocked(member)) {
       return true;
     }
 
@@ -338,7 +363,11 @@ export class Detalle {
   }
 
   protected toggleMemberSelection(member: FamilyMember): void {
-    if (this.isAlreadyEnrolled(member) || this.isPaidEnrollmentLocked(member)) {
+    if (this.inscripcionCerrada()) {
+      return;
+    }
+
+    if (this.isPaidEnrollmentLocked(member)) {
       return;
     }
 
@@ -381,6 +410,10 @@ export class Detalle {
   // ── Acciones con Observables ──────────────────────────────────────────
 
   protected submitInvitado(): void {
+    if (this.inscripcionCerrada()) {
+      return;
+    }
+
     if (!this.guestManagementEnabled()) {
       return;
     }
@@ -434,6 +467,10 @@ export class Detalle {
   }
 
   protected removeInvitado(memberId: string): void {
+    if (this.inscripcionCerrada()) {
+      return;
+    }
+
     if (!this.guestManagementEnabled()) {
       return;
     }
@@ -751,19 +788,19 @@ export class Detalle {
     return detail ?? fallbackMessage;
   }
 
-  private resolveInscritoPaymentStatus(inscrito: ParticipanteSeleccionApi): string {
+  private resolveInscritoPaymentStatus(
+    inscrito: ParticipanteSeleccionApi,
+    activeLinesFromCaller?: Array<NonNullable<ParticipanteSeleccionApi['inscripcionRelacion']>['lineas'][number]>,
+  ): string {
     const relation = inscrito.inscripcionRelacion;
     if (!relation || !Array.isArray(relation.lineas)) {
       return 'pendiente';
     }
 
-    const activeLines = relation.lineas.filter((linea) =>
-      linea.estadoLinea !== 'cancelada'
-      && this.lineBelongsToParticipant(inscrito, linea.usuarioId, linea.invitadoId),
-    );
+    const activeLines = activeLinesFromCaller ?? this.getActiveParticipantLines(inscrito);
 
     if (!activeLines.length) {
-      return (relation.estadoPago ?? 'pendiente').trim().toLowerCase() || 'pendiente';
+      return 'pendiente';
     }
 
     if (activeLines.every((linea) => Number(linea.precioUnitario ?? 0) <= 0)) {
@@ -818,6 +855,20 @@ export class Detalle {
 
   private isLinePaid(linea: { estadoLinea?: string; pagada?: unknown }): boolean {
     return Boolean(linea.pagada);
+  }
+
+  private getActiveParticipantLines(
+    inscrito: ParticipanteSeleccionApi,
+  ): Array<NonNullable<ParticipanteSeleccionApi['inscripcionRelacion']>['lineas'][number]> {
+    const relation = inscrito.inscripcionRelacion;
+    if (!relation || !Array.isArray(relation.lineas)) {
+      return [];
+    }
+
+    return relation.lineas.filter((linea) =>
+      linea.estadoLinea !== 'cancelada'
+      && this.lineBelongsToParticipant(inscrito, linea.usuarioId, linea.invitadoId),
+    );
   }
 
   private resolveAltaInvitadoErrorMessage(error: unknown): string {
@@ -896,6 +947,10 @@ export function toSelectedMemberKeys(participantes: ParticipanteSeleccionApi[]):
     const id = normalizeParticipantId(participante.id);
     if (!id) continue;
 
+    if (hasOnlyCancelledParticipantLines(participante)) {
+      continue;
+    }
+
     const origin = participante.origen === 'invitado' ? 'invitado' : 'familiar';
     const key = `${origin}:${id}`;
 
@@ -905,6 +960,33 @@ export function toSelectedMemberKeys(participantes: ParticipanteSeleccionApi[]):
   }
 
   return selected;
+}
+
+function hasOnlyCancelledParticipantLines(participante: ParticipanteSeleccionApi): boolean {
+  const relation = participante.inscripcionRelacion;
+  if (!relation || !Array.isArray(relation.lineas) || relation.lineas.length === 0) {
+    return false;
+  }
+
+  const participantId = normalizeParticipantId(participante.id);
+
+  const hasActiveOwnLine = relation.lineas.some((linea) => {
+    if (linea.estadoLinea === 'cancelada') {
+      return false;
+    }
+
+    if (!linea.usuarioId && !linea.invitadoId) {
+      return true;
+    }
+
+    if (participante.origen === 'invitado') {
+      return normalizeParticipantId(linea.invitadoId) === participantId;
+    }
+
+    return normalizeParticipantId(linea.usuarioId) === participantId;
+  });
+
+  return !hasActiveOwnLine;
 }
 
 function normalizeParticipantId(rawId: string | null | undefined): string {

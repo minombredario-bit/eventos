@@ -24,6 +24,7 @@ class InscripcionLineaDeleteProcessor implements ProcessorInterface
             throw new BadRequestHttpException('Línea de inscripción inválida.');
         }
 
+        // DELETE de línea: eliminación física si cumple reglas (no pagada y evento abierto).
         $this->inscripcionService->cancelarLineaInscripcion($data->getInscripcion(), $data);
     }
 }

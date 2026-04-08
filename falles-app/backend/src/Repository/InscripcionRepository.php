@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Inscripcion;
 use App\Entity\Evento;
 use App\Entity\Usuario;
+use App\Enum\EstadoInscripcionEnum;
 use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\FranjaComidaEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -59,7 +60,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->where('i.evento = :evento')
             ->andWhere('i.estadoInscripcion != :cancelada')
             ->setParameter('evento', $evento)
-            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
             ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)
             ->orderBy('u.nombre', 'ASC')
             ->addOrderBy('u.apellidos', 'ASC');
@@ -87,7 +88,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->andWhere('i.estadoInscripcion != :cancelada')
             ->setParameter('evento', $evento)
             ->setParameter('usuarioParticipante', $usuarioParticipanteId)
-            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA);
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA);
 
         return (int) $qb->getQuery()->getSingleScalarResult() > 0;
     }
@@ -105,7 +106,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->andWhere('i.estadoInscripcion != :cancelada')
             ->setParameter('usuarioId', $usuarioId)
             ->setParameter('eventoId', $eventoId)
-            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
             ->getQuery()
             ->getOneOrNullResult();
     }
@@ -124,7 +125,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->andWhere('i.estadoInscripcion != :cancelada')
             ->setParameter('invitadoId', $invitadoId)
             ->setParameter('eventoId', $eventoId)
-            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
             ->orderBy('i.createdAt', 'DESC')
             ->setMaxResults(1)
             ->getQuery()
@@ -149,7 +150,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->setParameter('usuarioId', $usuarioId)
             ->setParameter('eventoId', $eventoId)
             ->setParameter('usuarioParticipanteId', $usuarioParticipanteId)
-            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -180,7 +181,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->setParameter('usuarioParticipanteId', $usuarioParticipanteId)
             ->setParameter('franjaComida', $franjaComida)
             ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)
-            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -211,7 +212,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->setParameter('invitadoId', $invitadoId)
             ->setParameter('franjaComida', $franjaComida)
             ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)
-            ->setParameter('cancelada', \App\Enum\EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
             ->getQuery()
             ->getSingleScalarResult();
 

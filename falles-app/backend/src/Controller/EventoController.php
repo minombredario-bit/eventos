@@ -268,7 +268,7 @@ class EventoController extends AbstractController
                     continue;
                 }
 
-                $nombreCompleto = self::buildNombreCompleto($usuario->getNombre(), $usuario->getApellidos());
+                $nombreCompleto = $usuario->getNombreCompleto() !== '' ? $usuario->getNombreCompleto() : self::buildNombreCompleto($usuario->getNombre(), $usuario->getApellidos());
                 $inscripcion = $this->inscripcionRepository->findOneByUsuarioAndEvento($participanteId, $evento->getId());
 
                 if ($inscripcion !== null) {
@@ -287,6 +287,10 @@ class EventoController extends AbstractController
                 }
 
                 $nombreCompleto = self::buildNombreCompleto($invitado->getNombre(), $invitado->getApellidos());
+
+                $inscripcion = $this->inscripcionRepository->findOneByInvitadoAndEvento($participanteId, $evento->getId());
+                $inscripcionId = (string) $inscripcion->getId();
+                $opciones = $this->extractUniqueMenuOptions($inscripcion->getLineas()->toArray());
             }
 
             if ($nombreCompleto === '') {

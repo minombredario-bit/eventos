@@ -211,9 +211,19 @@
                   <strong>{{ slot.total | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
                 </div>
               }
+              @if (!allActiveLinesPaid() && totalAlreadyPaid() > 0) {
+                <div class="total-line">
+                  <span>Ya pagado</span>
+                  <strong>{{ totalAlreadyPaid() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                </div>
+                <div class="total-line">
+                  <span>Pendiente</span>
+                  <strong>{{ totalPending() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                </div>
+              }
               <p class="grand-total">
-                <span>{{ allActiveLinesPaid() ? 'Pagado' : 'Total' }}</span>
-                <strong>{{ totalPrice() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                <span>{{ allActiveLinesPaid() ? 'Pagado' : (totalAlreadyPaid() > 0 ? 'Pendiente' : 'Total') }}</span>
+                <strong>{{ (allActiveLinesPaid() || totalAlreadyPaid() <= 0 ? totalPrice() : totalPending()) | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
               </p>
             </article>
           } @else {

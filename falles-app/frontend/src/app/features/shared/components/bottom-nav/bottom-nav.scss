@@ -1,0 +1,32 @@
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  min-height: var(--bottom-nav-height);
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -6px 14px rgba(15, 23, 42, 0.08);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+
+
+  a {
+    min-height: var(--bottom-nav-height);
+    text-decoration: none;
+    color: #64748b;
+    display: grid;
+    place-items: center;
+    gap: 0.16rem;
+    font-size: 2rem;
+    //font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.22rem 0 0.3rem;
+  }
+
+  a.is-active {
+    color: #9a3412;
+    font-weight: 700;
+  }
+}
