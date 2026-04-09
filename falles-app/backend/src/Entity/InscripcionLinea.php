@@ -279,6 +279,20 @@ class InscripcionLinea
         return $this->nombreMenuSnapshot;
     }
 
+    #[Groups(['inscripcion-linea:read', 'inscripcion:read', 'inscripcion:collection'])]
+    #[SerializedName('nombreActividadSnapshot')]
+    public function getNombreActividadSnapshot(): string
+    {
+        return $this->nombreMenuSnapshot;
+    }
+
+    #[Groups(['inscripcion-linea:read', 'inscripcion:read', 'inscripcion:collection'])]
+    #[SerializedName('actividadId')]
+    public function getActividadId(): ?string
+    {
+        return $this->menu?->getId();
+    }
+
     public function getFranjaComidaSnapshot(): string
     {
         return $this->franjaComidaSnapshot;

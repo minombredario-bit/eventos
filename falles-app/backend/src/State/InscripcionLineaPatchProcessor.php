@@ -44,31 +44,31 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
             throw new BadRequestHttpException('No puedes modificar una línea ya pagada.');
         }
 
-        $menu = $data->getMenu();
-        if ($menu === null) {
-            throw new BadRequestHttpException('Debes indicar un menú válido. Para no incluir, usa DELETE sobre la línea.');
+        $actividad = $data->getMenu();
+        if ($actividad === null) {
+            throw new BadRequestHttpException('Debes indicar una actividad válida. Para no incluir, usa DELETE sobre la línea.');
         }
-        if ($menu->getEvento()->getId() !== $inscripcion->getEvento()->getId()) {
-            throw new BadRequestHttpException('El menú no pertenece a este evento.');
+        if ($actividad->getEvento()->getId() !== $inscripcion->getEvento()->getId()) {
+            throw new BadRequestHttpException('La actividad no pertenece a este evento.');
         }
 
-        if (!$menu->isActivo()) {
-            throw new BadRequestHttpException('El menú seleccionado no está activo.');
+        if (!$actividad->isActivo()) {
+            throw new BadRequestHttpException('La actividad seleccionada no está activa.');
         }
 
         $tipoPersona = $data->getInvitado()?->getTipoPersona() ?? TipoPersonaEnum::ADULTO;
-        if (!$menu->esCompatibleConTipoPersona($tipoPersona)) {
-            throw new BadRequestHttpException('El menú seleccionado no es compatible con el tipo de persona.');
+        if (!$actividad->esCompatibleConTipoPersona($tipoPersona)) {
+            throw new BadRequestHttpException('La actividad seleccionada no es compatible con el tipo de persona.');
         }
 
         if ($data->getInvitado() !== null) {
-            $precio = $this->calculatePriceForInvitado($menu);
+            $precio = $this->calculatePriceForInvitado($actividad);
         } else {
             $usuario = $data->getUsuario();
             if ($usuario === null) {
                 throw new BadRequestHttpException('La línea no tiene participante válido.');
             }
-            $precio = $this->priceCalculatorService->calculatePrice($usuario, $menu);
+            $precio = $this->priceCalculatorService->calculatePrice($usuario, $actividad);
         }
 
         $data->setPrecioUnitario($precio);
@@ -83,17 +83,17 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
         return $data;
     }
 
-    private function calculatePriceForInvitado(\App\Entity\MenuEvento $menu): float
+    private function calculatePriceForInvitado(\App\Entity\MenuEvento $actividad): float
     {
-        if (!$menu->isEsDePago()) {
+        if (!$actividad->isEsDePago()) {
             return 0.0;
         }
 
-        if ($menu->getTipoMenu() === TipoMenuEnum::INFANTIL) {
-            return (float) ($menu->getPrecioInfantil() ?? $menu->getPrecioBase());
+        if ($actividad->getTipoMenu() === TipoMenuEnum::INFANTIL) {
+            return (float) ($actividad->getPrecioInfantil() ?? $actividad->getPrecioBase());
         }
 
-        return (float) ($menu->getPrecioAdultoExterno() ?? $menu->getPrecioBase());
+        return (float) ($actividad->getPrecioAdultoExterno() ?? $actividad->getPrecioBase());
     }
 }
 
