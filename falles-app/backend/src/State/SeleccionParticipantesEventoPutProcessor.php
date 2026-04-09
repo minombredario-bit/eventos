@@ -65,9 +65,9 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        if (!$evento->tieneMenusActivos()) {
+        if (!$evento->tieneActividadesActivas()) {
             if ($data->participantes !== []) {
-                throw new BadRequestHttpException('Este evento no tiene comidas activas y no admite selección de participantes.');
+                throw new BadRequestHttpException('Este evento no tiene actividades activas y no admite selección de participantes.');
             }
 
             $response = new SeleccionParticipantesView();
@@ -99,7 +99,7 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
             ];
         }
 
-        if (!$evento->permiteGestionInvitados()) {
+        if (!$evento->permiteGestionInvitadosConActividades()) {
             foreach ($participantes as $participante) {
                 if (($participante['origen'] ?? 'familiar') === 'invitado') {
                     throw new BadRequestHttpException('Este evento no permite invitados.');

@@ -50,7 +50,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        if (!$evento->tieneMenusActivos()) {
+        if (!$evento->tieneActividadesActivas()) {
             $response = new SeleccionParticipantesView();
             $response->eventoId = $evento->getId();
             $response->participantes = [];
@@ -62,7 +62,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
         $seleccionGranular = $this->seleccionParticipanteEventoRepository->findByEventoAndInscritoPorUsuario($evento, $user);
         $participantes = $this->buildParticipantesFromGranular($seleccionGranular);
 
-        if (!$evento->permiteGestionInvitados()) {
+        if (!$evento->permiteGestionInvitadosConActividades()) {
             $participantes = array_values(array_filter(
                 $participantes,
                 static fn(array $participante): bool => ($participante['origen'] ?? 'familiar') !== 'invitado',

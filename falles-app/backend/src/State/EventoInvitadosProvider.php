@@ -43,7 +43,7 @@ class EventoInvitadosProvider implements ProviderInterface
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        if (!$evento->permiteGestionInvitados()) {
+        if (!$evento->permiteGestionInvitadosConActividades()) {
             return [];
         }
 

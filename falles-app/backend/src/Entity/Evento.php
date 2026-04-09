@@ -564,7 +564,7 @@ class Evento
             && $this->estado === EstadoEventoEnum::PUBLICADO;
     }
 
-    public function tieneMenusActivos(): bool
+    public function tieneActividadesActivas(): bool
     {
         foreach ($this->menus as $menu) {
             if ($menu->isActivo()) {
@@ -575,8 +575,18 @@ class Evento
         return false;
     }
 
+    public function tieneMenusActivos(): bool
+    {
+        return $this->tieneActividadesActivas();
+    }
+
+    public function permiteGestionInvitadosConActividades(): bool
+    {
+        return $this->permiteInvitados && $this->tieneActividadesActivas();
+    }
+
     public function permiteGestionInvitados(): bool
     {
-        return $this->permiteInvitados && $this->tieneMenusActivos();
+        return $this->permiteGestionInvitadosConActividades();
     }
 }

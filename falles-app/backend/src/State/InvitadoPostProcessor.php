@@ -25,7 +25,7 @@ class InvitadoPostProcessor implements ProcessorInterface
             return $data;
         }
 
-        if (!$data->getEvento()->permiteGestionInvitados()) {
+        if (!$data->getEvento()->permiteGestionInvitadosConActividades()) {
             throw new UnprocessableEntityHttpException('Este evento no permite gestión de invitados.');
         }
 
