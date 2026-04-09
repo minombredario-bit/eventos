@@ -47,7 +47,7 @@ class InscripcionService
      * - Las inscripciones deben estar abiertas
      * - Si ya existe una inscripción activa del usuario para el evento, se reutiliza
      * - Cada participante solo puede tener una selección por franja de comida
-     * - Los menús deben pertenecer al evento y estar activos
+     * - Las actividades (menús) deben pertenecer al evento y estar activas
      */
     public function crearInscripcion(
         string|Evento $eventoInput,
@@ -103,11 +103,17 @@ class InscripcionService
                 ?? $lineaData['persona']
                 ?? null;
             $participanteId = $this->extractResourceId($usuarioReference);
-            $menuId = $this->extractResourceId($lineaData['menu_id'] ?? $lineaData['menu'] ?? null);
+            $menuId = $this->extractResourceId(
+                $lineaData['actividad_id']
+                ?? $lineaData['actividad']
+                ?? $lineaData['menu_id']
+                ?? $lineaData['menu']
+                ?? null,
+            );
             $observaciones = $lineaData['observaciones'] ?? null;
 
             if (!$participanteId || !$menuId) {
-                throw new BadRequestHttpException('Se requiere usuario/invitado y menú');
+                throw new BadRequestHttpException('Se requiere usuario/invitado y actividad');
             }
 
             $isInvitado = $this->isInvitadoReference($usuarioReference);
@@ -133,30 +139,30 @@ class InscripcionService
             }
 
             if (!$menu) {
-                throw new BadRequestHttpException('Menú no encontrado');
+                throw new BadRequestHttpException('Actividad no encontrada');
             }
 
-            // Verificar que el menú pertenece al evento
+            // Verificar que la actividad pertenece al evento
             if ($menu->getEvento()->getId() !== $evento->getId()) {
-                throw new BadRequestHttpException('El menú no pertenece a este evento');
+                throw new BadRequestHttpException('La actividad no pertenece a este evento');
             }
 
-            // Verificar que el menú está activo
+            // Verificar que la actividad está activa
             if (!$menu->isActivo()) {
-                throw new BadRequestHttpException('El menú seleccionado no está activo');
+                throw new BadRequestHttpException('La actividad seleccionada no está activa');
             }
 
             $tipoPersonaParticipante = $invitado?->getTipoPersona() ?? TipoPersonaEnum::ADULTO;
 
             if (!$menu->esCompatibleConTipoPersona($tipoPersonaParticipante)) {
-                throw new BadRequestHttpException('El menú seleccionado no es compatible con el tipo de persona');
+                throw new BadRequestHttpException('La actividad seleccionada no es compatible con el tipo de persona');
             }
 
             $franjaComida = $menu->getFranjaComida();
             $origenParticipante = $isInvitado ? 'invitado' : 'usuario';
             $claveLinea = sprintf('%s|%s|%s', $origenParticipante, $participanteId, $franjaComida->value);
             if (isset($lineasRegistradasPorParticipanteYFranja[$claveLinea])) {
-                throw new BadRequestHttpException('No puedes seleccionar más de un menú por participante en la misma franja');
+                throw new BadRequestHttpException('No puedes seleccionar más de una actividad por participante en la misma franja');
             }
             $lineasRegistradasPorParticipanteYFranja[$claveLinea] = true;
 

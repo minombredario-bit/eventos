@@ -32,9 +32,10 @@ class EventoController extends AbstractController
     }
 
     /**
-     * Get menus for an event.
+     * Get activities for an event (legacy endpoint name preserved).
      */
     #[Route('/menu_eventos', name: 'api_menu_eventos_by_evento', methods: ['GET'])]
+    #[Route('/actividad_eventos', name: 'api_actividad_eventos_by_evento', methods: ['GET'])]
     public function menus(Request $request): JsonResponse
     {
         $eventoId = $request->query->get('evento');
@@ -109,6 +110,9 @@ class EventoController extends AbstractController
                     'tipoPersonaSnapshot' => $linea->getTipoPersonaSnapshot(),
                     'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
                     'nombreMenuSnapshot' => $linea->getNombreMenuSnapshot(),
+                    'nombreActividadSnapshot' => $linea->getNombreMenuSnapshot(),
+                    'menuId' => $linea->getMenu()->getId(),
+                    'actividadId' => $linea->getMenu()->getId(),
                     'precioUnitario' => $linea->getPrecioUnitario(),
                     'esDePagoSnapshot' => $linea->isEsDePagoSnapshot(),
                     'estadoLinea' => $linea->getEstadoLinea()->value,
