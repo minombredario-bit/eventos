@@ -6,7 +6,7 @@ import {
   PersonaFamiliarApi,
   RelacionUsuarioApi,
 } from './eventos.api';
-import { EventSummary, FamilyMember, MenuOption, ParticipantOrigin, PaymentBadgeStatus } from '../domain/eventos.models';
+import { ActivityOption, EventSummary, FamilyMember, ParticipantOrigin, PaymentBadgeStatus } from '../domain/eventos.models';
 
 interface InvitadoDeleteMapped {
   id: string;
@@ -115,7 +115,7 @@ export class EventosMapper {
     };
   }
 
-  toMenuOption(menu: MenuEventoApi): MenuOption {
+  toActivityOption(menu: MenuEventoApi): ActivityOption {
     return {
       id: menu.id,
       label: menu.nombre,
@@ -125,6 +125,11 @@ export class EventosMapper {
       isPaid: menu.esDePago,
       price: menu.precioBase,
     };
+  }
+
+  // Compatibilidad temporal: nombre antiguo.
+  toMenuOption(menu: MenuEventoApi): ActivityOption {
+    return this.toActivityOption(menu);
   }
 
   toPaymentBadgeStatus(estadoPago: string): PaymentBadgeStatus {

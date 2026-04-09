@@ -181,7 +181,7 @@
                   [selectorLabel]="''"
                   [selectorAriaLabel]="'Seleccionar actividad para ' + member.name + ' en ' + slotLabel(slot)"
                   [slot]="slot"
-                  [menuOptions]="getMenusForSlotAndMember(slot, member)"
+                  [activityOptions]="getActivitiesForSlotAndMember(slot, member)"
                   [selectedMenuId]="getSelectedMenu(member, slot)"
                   [emptyMessage]="'Sin actividad compatible para esta franja'"
                   [disabled]="submitting() || !event()?.inscripcionAbierta || isSelectorLocked(member, slot)"

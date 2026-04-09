@@ -14,11 +14,11 @@ import { AuthService } from '../../../../core/auth/auth';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../../shared/components/member-row/member-row';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
-import { FamilyMember, MealSlot, MenuOption, ParticipantOrigin } from '../../domain/eventos.models';
+import { ActivityOption, FamilyMember, MealSlot, MenuOption, ParticipantOrigin } from '../../domain/eventos.models';
 import { EventosMapper } from '../../data/eventos.mapper';
 import { EventoDetalleApi, EventosApi, InscripcionApi, ParticipanteSeleccionApi } from '../../data/eventos.api';
 
-interface MenuChangePayload {
+interface ActivityChangePayload {
   memberId: string;
   memberOrigin: ParticipantOrigin;
   menuId: string | null;
@@ -93,14 +93,14 @@ interface ExistingInscriptionTotalsView {
 }
 
 @Component({
-  selector: 'app-menus',
+  selector: 'app-actividades',
   standalone: true,
   imports: [MobileHeader, MemberRow, CtaButton, CurrencyPipe],
-  templateUrl: './menus.html',
-  styleUrl: './menus.scss',
+  templateUrl: './actividades.html',
+  styleUrl: './actividades.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Menus {
+export class Actividades {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -128,7 +128,7 @@ export class Menus {
 
   protected readonly event          = signal<EventoDetalleApi | null>(null);
   protected readonly preselectedParticipants = signal<ParticipantReference[]>([]);
-  protected readonly options        = signal<MenuOption[]>([]);
+  protected readonly options        = signal<ActivityOption[]>([]);
   protected readonly removedMemberIds = signal<string[]>([]);
   protected readonly selectedMenus  = signal<Record<string, Partial<Record<MealSlot, string | null>>>>({});
   private readonly hydratedInscripcionId = signal<string | null>(null);
@@ -384,7 +384,7 @@ export class Menus {
 
   // ── Handlers de UI ────────────────────────────────────────────────────
 
-  protected updateMenu(payload: MenuChangePayload): void {
+  protected updateMenu(payload: ActivityChangePayload): void {
     if (!payload.slot) return;
     const slot = payload.slot as MealSlot;
     const previousMenuId = this.getSelectedMenuByParticipant(payload.memberId, payload.memberOrigin, slot);
@@ -431,7 +431,7 @@ export class Menus {
       this.submitting.set(true);
       this.submitError.set(null);
       this.eventosApi
-        .actualizarMenuLineaInscripcion(existingLine.lineId, nextMenuId)
+        .actualizarActividadLineaInscripcion(existingLine.lineId, nextMenuId)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: () => {
@@ -495,10 +495,15 @@ export class Menus {
     }));
   }
 
-  protected getMenusForSlotAndMember(slot: MealSlot, member: FamilyMember): MenuOption[] {
+  protected getActivitiesForSlotAndMember(slot: MealSlot, member: FamilyMember): ActivityOption[] {
     return this.options().filter(
       (m) => m.slot === slot && (m.compatibility === 'ambos' || m.compatibility === member.personType),
     );
+  }
+
+  // Compatibilidad temporal para plantilla antigua.
+  protected getMenusForSlotAndMember(slot: MealSlot, member: FamilyMember): ActivityOption[] {
+    return this.getActivitiesForSlotAndMember(slot, member);
   }
 
   protected isSelectorLocked(member: FamilyMember, slot: MealSlot): boolean {
@@ -534,11 +539,11 @@ export class Menus {
   }
 
   protected hasSlotForAnyMember(slot: MealSlot): boolean {
-    return this.membersInScope().some((m) => this.getMenusForSlotAndMember(slot, m).length > 0);
+    return this.membersInScope().some((m) => this.getActivitiesForSlotAndMember(slot, m).length > 0);
   }
 
   protected getCompatibleMembersForSlot(slot: MealSlot): FamilyMember[] {
-    return this.membersInScope().filter((member) => this.getMenusForSlotAndMember(slot, member).length > 0);
+    return this.membersInScope().filter((member) => this.getActivitiesForSlotAndMember(slot, member).length > 0);
   }
 
   protected slotLabel(slot: MealSlot): string {
@@ -664,11 +669,11 @@ export class Menus {
 
   private loadMenusByEvento(eventId: string): void {
     this.eventosApi
-      .getMenusByEvento(eventId)
+      .getActividadesByEvento(eventId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (menus) => {
-          this.options.set(this.toMenuOptions(menus, eventId));
+          this.options.set(this.toActivityOptions(menus, eventId));
           this.reconcileSelectedMenus();
         },
         error: () => {
@@ -751,7 +756,7 @@ export class Menus {
         const previous = state[key] ?? {};
         const perSlot: Partial<Record<MealSlot, string | null>> = {};
         for (const slot of this.getAvailableSlotsForMember(member)) {
-          const opts = this.getMenusForSlotAndMember(slot, member);
+          const opts = this.getActivitiesForSlotAndMember(slot, member);
           const prev = previous[slot] ?? null;
           perSlot[slot] = prev === null || opts.some((o) => o.id === prev) ? prev : null;
         }
@@ -913,19 +918,24 @@ export class Menus {
       return true;
     }
 
-    this.options.set(this.toMenuOptions(evento.menus, eventId));
+    this.options.set(this.toActivityOptions(evento.menus, eventId));
     return false;
   }
 
-  private toMenuOptions(menus: EventoDetalleApi['menus'], eventId: string): MenuOption[] {
+  private toActivityOptions(menus: EventoDetalleApi['menus'], eventId: string): ActivityOption[] {
     return menus
       .filter((menu) => this.menuBelongsToEvent(menu, eventId))
       .filter((menu) => menu.activo !== false)
-      .map((menu) => this.eventosMapper.toMenuOption(menu));
+      .map((menu) => this.eventosMapper.toActivityOption(menu));
+  }
+
+  // Compatibilidad temporal para código legacy.
+  private toMenuOptions(menus: EventoDetalleApi['menus'], eventId: string): ActivityOption[] {
+    return this.toActivityOptions(menus, eventId);
   }
 
   private getAvailableSlotsForMember(member: FamilyMember): MealSlot[] {
-    return this.slots.filter((slot) => this.getMenusForSlotAndMember(slot, member).length > 0);
+    return this.slots.filter((slot) => this.getActivitiesForSlotAndMember(slot, member).length > 0);
   }
 
   private isInfantOnlySlot(slot: MealSlot): boolean {
@@ -1324,4 +1334,5 @@ export function activityNoun(count: number): string {
 export function buildActivityCountLabel(count: number): string {
   return `${count} ${activityNoun(count)}`;
 }
+
 

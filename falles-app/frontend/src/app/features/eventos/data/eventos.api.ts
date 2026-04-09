@@ -313,11 +313,16 @@ export class EventosApi {
       .pipe(map((evento) => this.normalizeEventoDetalle(evento)));
   }
 
-  // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya `menus`.
-  getMenusByEvento(eventoId: string): Observable<MenuEventoApi[]> {
+  // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya `menus`/`actividades`.
+  getActividadesByEvento(eventoId: string): Observable<MenuEventoApi[]> {
     return this.http
       .get<ApiCollection<MenuEventoApi>>(`${this.apiBaseUrl}/api/menu_eventos?evento=${encodeURIComponent(eventoId)}`)
       .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
+  }
+
+  // Compatibilidad temporal: nombre antiguo.
+  getMenusByEvento(eventoId: string): Observable<MenuEventoApi[]> {
+    return this.getActividadesByEvento(eventoId);
   }
 
   // ── Inscripciones ─────────────────────────────────────────────────────
@@ -435,14 +440,19 @@ export class EventosApi {
     );
   }
 
-  actualizarMenuLineaInscripcion(lineaId: string, menuId: string): Observable<unknown> {
+  actualizarActividadLineaInscripcion(lineaId: string, actividadId: string): Observable<unknown> {
     return this.http.patch(
       `${this.apiBaseUrl}/api/inscripcion_lineas/${encodeURIComponent(lineaId)}`,
-      { menu: `/api/menu_eventos/${menuId}` },
+      { menu: `/api/menu_eventos/${actividadId}` },
       {
         headers: new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' }),
       },
     );
+  }
+
+  // Compatibilidad temporal: nombre antiguo.
+  actualizarMenuLineaInscripcion(lineaId: string, menuId: string): Observable<unknown> {
+    return this.actualizarActividadLineaInscripcion(lineaId, menuId);
   }
 
   actualizarFormaPagoPreferida(formaPagoPreferida: MetodoPagoApp | null): Observable<unknown> {

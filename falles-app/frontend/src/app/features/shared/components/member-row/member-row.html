@@ -27,7 +27,7 @@
       @if (selectorLabel().trim()) {
         <span class="selector-label">{{ selectorLabel() }}</span>
       }
-      @if (menuOptions().length === 0) {
+      @if (selectorOptions().length === 0) {
         <small class="empty-message">{{ emptyMessage() }}</small>
       } @else {
         <select
@@ -38,7 +38,7 @@
           (change)="onMenuChange($event)"
         >
           <option value="">No incluir en la inscripción</option>
-          @for (menu of menuOptions(); track menu.id) {
+          @for (menu of selectorOptions(); track menu.id) {
             <option [value]="menu.id" [selected]="menu.id === selectedMenuId()" [disabled]="menu.disabled ?? false">
               {{ menu.label }}@if (menu.price > 0) { · {{ menu.price | currency: 'EUR' : 'symbol' : '1.0-0' }} }
             </option>

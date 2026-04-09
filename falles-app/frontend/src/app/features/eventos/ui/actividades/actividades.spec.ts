@@ -3,7 +3,7 @@ import {
   buildActivityCountLabel,
   shouldLoadLegacyInscripcionesFallback,
   shouldUseLegacyMenusFallback,
-} from './menus';
+} from './actividades';
 import { ParticipanteSeleccionApi } from '../../data/eventos.api';
 
 describe('activityNoun', () => {

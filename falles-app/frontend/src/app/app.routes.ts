@@ -49,7 +49,7 @@ export const routes: Routes = [
       {
         path: ':id/actividades',
         loadComponent: () =>
-          import('./features/eventos/ui/menus/menus').then((m) => m.Menus),
+          import('./features/eventos/ui/actividades/actividades').then((m) => m.Actividades),
       },
       {
         path: ':id/menus',

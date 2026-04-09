@@ -32,18 +32,21 @@ export interface MemberEnrollment {
 }
 
 export type MealSlot = 'almuerzo' | 'comida' | 'merienda' | 'cena';
-export type MenuCompatibility = 'adulto' | 'infantil' | 'ambos';
+export type ActivityCompatibility = 'adulto' | 'infantil' | 'ambos';
+export type MenuCompatibility = ActivityCompatibility;
 
-export interface MenuOption {
+export interface ActivityOption {
   id: string;
   label: string;
   description: string;
   slot: MealSlot;
-  compatibility: MenuCompatibility;
+  compatibility: ActivityCompatibility;
   isPaid?: boolean;
   price: number;
   disabled?: boolean;
 }
+
+export type MenuOption = ActivityOption;
 
 export interface NavItem {
   key: string;
@@ -55,6 +58,7 @@ export interface NavItem {
 export interface CredentialLine {
   id: string;
   personName: string;
+  activityName?: string;
   menuName: string;
 }
 
