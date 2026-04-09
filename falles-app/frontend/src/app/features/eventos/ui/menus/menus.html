@@ -233,7 +233,7 @@
             </article>
           }
 
-          @if (showPayCta()) {
+          @if (showPayCta() && !allMenusAreFree()) {
             <div class="cta-wrap">
               <app-cta-button
                 [label]="confirmButtonLabel()"

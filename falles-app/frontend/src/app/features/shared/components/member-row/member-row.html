@@ -40,7 +40,7 @@
           <option value="">No incluir en la inscripción</option>
           @for (menu of menuOptions(); track menu.id) {
             <option [value]="menu.id" [selected]="menu.id === selectedMenuId()" [disabled]="menu.disabled ?? false">
-              {{ menu.label }} · {{ menu.price | currency: 'EUR' : 'symbol' : '1.0-0' }}
+              {{ menu.label }}@if (menu.price > 0) { · {{ menu.price | currency: 'EUR' : 'symbol' : '1.0-0' }} }
             </option>
           }
         </select>
