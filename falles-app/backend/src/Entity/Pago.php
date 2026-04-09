@@ -22,8 +22,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: PagoRepository::class)]
 #[ORM\Table(name: 'pago')]
 #[ApiResource(
-    normalizationContext: ['groups' => ['pago:read']],
-    denormalizationContext: ['groups' => ['pago:write']],
     operations: [
         new Get(security: "is_granted('INSCRIPCION_VIEW', object.getInscripcion())"),
         new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
@@ -32,7 +30,9 @@ use Symfony\Component\Validator\Constraints as Assert;
             securityPostDenormalize: "is_granted('INSCRIPCION_EDIT', object.getInscripcion())",
             processor: PagoWriteProcessor::class,
         ),
-    ]
+    ],
+    normalizationContext: ['groups' => ['pago:read']],
+    denormalizationContext: ['groups' => ['pago:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'inscripcion' => 'exact',

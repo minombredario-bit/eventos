@@ -19,14 +19,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: CargoRepository::class)]
 #[ORM\Table(name: 'cargo')]
 #[ApiResource(
-    normalizationContext: ['groups' => ['cargo:read']],
-    denormalizationContext: ['groups' => ['cargo:write']],
     operations: [
         new Get(security: "is_granted('ROLE_USER')"),
         new GetCollection(security: "is_granted('ROLE_USER')"),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
-    ]
+    ],
+    normalizationContext: ['groups' => ['cargo:read']],
+    denormalizationContext: ['groups' => ['cargo:write']]
 )]
 class Cargo
 {

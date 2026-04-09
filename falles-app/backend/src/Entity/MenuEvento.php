@@ -26,8 +26,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'menu_evento')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['menu-evento:read']],
-    denormalizationContext: ['groups' => ['menu-evento:write']],
     operations: [
         new Get(security: "is_granted('EVENTO_VIEW', object.getEvento())"),
         new GetCollection(security: "is_granted('ROLE_USER')"),
@@ -53,7 +51,9 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/actividad_eventos/{id}',
             security: "is_granted('EVENTO_EDIT', object.getEvento())"
         ),
-    ]
+    ],
+    normalizationContext: ['groups' => ['menu-evento:read']],
+    denormalizationContext: ['groups' => ['menu-evento:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'evento' => 'exact',

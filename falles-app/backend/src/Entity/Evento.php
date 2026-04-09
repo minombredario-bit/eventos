@@ -33,42 +33,42 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 #[ORM\Table(name: 'evento')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['evento:read'], 'enable_max_depth' => 1],
-    denormalizationContext: ['groups' => ['evento:write']],
     operations: [
         new Get(
             uriTemplate: '/eventos/{id}',
-            security: "is_granted('EVENTO_VIEW', object)",
-            normalizationContext: ['groups' => ['evento:item:min', 'menu-evento:evento:item:min'], 'enable_max_depth' => 1]
+            normalizationContext: ['groups' => ['evento:item:min', 'menu-evento:evento:item:min'], 'enable_max_depth' => 1],
+            security: "is_granted('EVENTO_VIEW', object)"
         ),
         new GetCollection(
             uriTemplate: '/eventos',
-            security: "is_granted('ROLE_USER')",
-            normalizationContext: ['groups' => ['evento:collection'], 'enable_max_depth' => 1]
+            normalizationContext: ['groups' => ['evento:collection'], 'enable_max_depth' => 1],
+            security: "is_granted('ROLE_USER')"
         ),
         new GetCollection(
             uriTemplate: '/eventos/{id}/invitados',
             uriVariables: [
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
-            provider: EventoInvitadosProvider::class,
-            output: InvitadoView::class,
             normalizationContext: ['groups' => ['invitado:read']],
-            security: "is_granted('ROLE_USER')"
+            security: "is_granted('ROLE_USER')",
+            output: InvitadoView::class,
+            provider: EventoInvitadosProvider::class
         ),
         new GetCollection(
             uriTemplate: '/eventos/{id}/participantes_externos',
             uriVariables: [
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
-            provider: EventoInvitadosProvider::class,
-            output: InvitadoView::class,
             normalizationContext: ['groups' => ['invitado:read']],
-            security: "is_granted('ROLE_USER')"
+            security: "is_granted('ROLE_USER')",
+            output: InvitadoView::class,
+            provider: EventoInvitadosProvider::class
         ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')", processor: EventoWriteProcessor::class),
         new Patch(security: "is_granted('EVENTO_EDIT', object)", processor: EventoWriteProcessor::class),
     ],
+    normalizationContext: ['groups' => ['evento:read'], 'enable_max_depth' => 1],
+    denormalizationContext: ['groups' => ['evento:write']],
     order: ['fechaEvento' => 'ASC']
 )]
 

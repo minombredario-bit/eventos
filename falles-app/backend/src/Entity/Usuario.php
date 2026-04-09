@@ -32,20 +32,20 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'usuario')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['usuario:read']],
-    denormalizationContext: ['groups' => ['usuario:write']],
     operations: [
         new Get(security: "is_granted('VIEW', object)"),
         new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
         new GetCollection(
             uriTemplate: '/persona_familiares/mias',
-            provider: PersonaFamiliarMiasProvider::class,
-            output: PersonaFamiliarView::class,
             normalizationContext: ['groups' => ['persona_familiar_mia:read']],
-            security: "is_granted('ROLE_USER')"
+            security: "is_granted('ROLE_USER')",
+            output: PersonaFamiliarView::class,
+            provider: PersonaFamiliarMiasProvider::class
         ),
         new Patch(security: "is_granted('EDIT', object)"),
-    ]
+    ],
+    normalizationContext: ['groups' => ['usuario:read']],
+    denormalizationContext: ['groups' => ['usuario:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'entidad' => 'exact',

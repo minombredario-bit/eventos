@@ -26,32 +26,32 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'invitado')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['invitado:read']],
-    denormalizationContext: ['groups' => ['invitado:write']],
     operations: [
         new Get(
-            provider: InvitadoProvider::class,
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user",
+            provider: InvitadoProvider::class
         ),
         new GetCollection(
-            provider: InvitadoProvider::class,
-            security: "is_granted('ROLE_ADMIN_ENTIDAD')"
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
+            provider: InvitadoProvider::class
         ),
         new Post(
-            processor: InvitadoPostProcessor::class,
             security: "is_granted('ROLE_USER')",
-            securityPostDenormalize: "object.getCreadoPor() == user"
+            securityPostDenormalize: "object.getCreadoPor() == user",
+            processor: InvitadoPostProcessor::class
         ),
         new Patch(
-            provider: InvitadoProvider::class,
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user",
+            provider: InvitadoProvider::class
         ),
         new Delete(
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user",
             provider: InvitadoProvider::class,
-            processor: InvitadoDeleteProcessor::class,
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or object.getCreadoPor() == user"
+            processor: InvitadoDeleteProcessor::class
         ),
-    ]
+    ],
+    normalizationContext: ['groups' => ['invitado:read']],
+    denormalizationContext: ['groups' => ['invitado:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'creadoPor' => 'exact',
@@ -78,7 +78,7 @@ class Invitado
     #[ORM\ManyToOne(targetEntity: Usuario::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['invitado:read', 'invitado:write'])]
-    private Usuario $creadoPor; // El fallero que lo da de alta
+    private Usuario $creadoPor;
 
     #[ORM\ManyToOne(targetEntity: Evento::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -128,64 +128,64 @@ class Invitado
         $this->nombreCompleto = trim($this->nombre . ' ' . $this->apellidos);
     }
 
-    public function getId(): ?string { 
-        return $this->id; 
+    public function getId(): ?string {
+        return $this->id;
     }
 
-    public function getCreadoPor(): Usuario { 
-        return $this->creadoPor; 
+    public function getCreadoPor(): Usuario {
+        return $this->creadoPor;
     }
 
-    public function setCreadoPor(Usuario $creadoPor): static { 
-        $this->creadoPor = $creadoPor; return $this; 
+    public function setCreadoPor(Usuario $creadoPor): static {
+        $this->creadoPor = $creadoPor; return $this;
     }
 
-    public function getEvento(): Evento { 
-        return $this->evento; 
+    public function getEvento(): Evento {
+        return $this->evento;
     }
 
-    public function setEvento(Evento $evento): static { 
-        $this->evento = $evento; return $this; 
+    public function setEvento(Evento $evento): static {
+        $this->evento = $evento; return $this;
     }
 
-    public function getNombre(): string { 
-        return $this->nombre; 
+    public function getNombre(): string {
+        return $this->nombre;
     }
 
-    public function setNombre(string $nombre): static { 
-        $this->nombre = $nombre; return $this; 
+    public function setNombre(string $nombre): static {
+        $this->nombre = $nombre; return $this;
     }
 
-    public function getApellidos(): string { 
-        return $this->apellidos; 
+    public function getApellidos(): string {
+        return $this->apellidos;
     }
 
-    public function setApellidos(string $apellidos): static { 
-        $this->apellidos = $apellidos; return $this; 
+    public function setApellidos(string $apellidos): static {
+        $this->apellidos = $apellidos; return $this;
     }
 
-    public function getNombreCompleto(): string { 
-        return $this->nombreCompleto; 
+    public function getNombreCompleto(): string {
+        return $this->nombreCompleto;
     }
 
-    public function getTipoPersona(): TipoPersonaEnum { 
-        return $this->tipoPersona; 
+    public function getTipoPersona(): TipoPersonaEnum {
+        return $this->tipoPersona;
     }
 
-    public function setTipoPersona(TipoPersonaEnum $tipoPersona): static { 
-        $this->tipoPersona = $tipoPersona; return $this; 
+    public function setTipoPersona(TipoPersonaEnum $tipoPersona): static {
+        $this->tipoPersona = $tipoPersona; return $this;
     }
 
-    public function getObservaciones(): ?string { 
-        return $this->observaciones; 
+    public function getObservaciones(): ?string {
+        return $this->observaciones;
     }
 
-    public function setObservaciones(?string $observaciones): static { 
+    public function setObservaciones(?string $observaciones): static {
         $this->observaciones = $observaciones; return $this;
     }
 
-    public function getCreatedAt(): \DateTimeImmutable { 
-        return $this->createdAt; 
+    public function getCreatedAt(): \DateTimeImmutable {
+        return $this->createdAt;
     }
 
     public function getDeletedAt(): ?\DateTimeImmutable

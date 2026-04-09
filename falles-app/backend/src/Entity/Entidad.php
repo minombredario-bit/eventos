@@ -26,14 +26,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'entidad')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['entidad:read']],
-    denormalizationContext: ['groups' => ['entidad:write']],
     operations: [
         new Get(security: "is_granted('ENTIDAD_VIEW', object)"),
         new GetCollection(security: "is_granted('ROLE_USER')"),
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
         new Patch(security: "is_granted('ROLE_SUPERADMIN')"),
-    ]
+    ],
+    normalizationContext: ['groups' => ['entidad:read']],
+    denormalizationContext: ['groups' => ['entidad:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'nombre' => 'partial',

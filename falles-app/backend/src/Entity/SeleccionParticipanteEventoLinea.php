@@ -12,10 +12,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: SeleccionParticipanteEventoLineaRepository::class)]
 #[ORM\Table(
     name: 'seleccion_participante_evento_linea',
-    uniqueConstraints: [
-        new ORM\UniqueConstraint(name: 'uniq_sel_part_evento_menu_usuario', columns: ['evento_id', 'menu_id', 'usuario_id']),
-        new ORM\UniqueConstraint(name: 'uniq_sel_part_evento_menu_invitado', columns: ['evento_id', 'menu_id', 'invitado_id']),
-    ],
     indexes: [
         new ORM\Index(name: 'idx_sel_part_evento_linea_sel_part', columns: ['seleccion_participante_evento_id']),
         new ORM\Index(name: 'idx_sel_part_evento_evento', columns: ['evento_id']),
@@ -23,6 +19,10 @@ use Symfony\Component\Validator\Constraints as Assert;
         new ORM\Index(name: 'idx_sel_part_evento_usuario', columns: ['usuario_id']),
         new ORM\Index(name: 'idx_sel_part_evento_invitado', columns: ['invitado_id']),
         new ORM\Index(name: 'idx_sel_part_evento_inscripcion_linea', columns: ['inscripcion_linea_id']),
+    ],
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_sel_part_evento_menu_usuario', columns: ['evento_id', 'menu_id', 'usuario_id']),
+        new ORM\UniqueConstraint(name: 'uniq_sel_part_evento_menu_invitado', columns: ['evento_id', 'menu_id', 'invitado_id']),
     ]
 )]
 #[ORM\HasLifecycleCallbacks]

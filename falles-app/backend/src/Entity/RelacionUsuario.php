@@ -24,40 +24,40 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'relacion_usuario')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['relacion:read'], 'enable_max_depth' => 2],
-    denormalizationContext: ['groups' => ['relacion:write']],
     operations: [
         new GetCollection(
             uriTemplate: '/usuarios/{id}/relaciones',
             uriVariables: [
                 'id' => new Link(
+                    toProperty: 'usuarioOrigen',
                     fromClass: Usuario::class,
-                    identifiers: ['id'],
-                    toProperty: 'usuarioOrigen'
+                    identifiers: ['id']
                 )
             ],
-            provider: RelacionUsuarioProvider::class,
-            security: "is_granted('ROLE_USER')",
             normalizationContext: ['groups' => ['relacion:read'], 'enable_max_depth' => 2],
+            security: "is_granted('ROLE_USER')",
+            provider: RelacionUsuarioProvider::class,
         ),
         new Post(
             uriTemplate: '/usuarios/{id}/relaciones',
             uriVariables: [
                 'id' => new Link(
+                    toProperty: 'usuarioOrigen',
                     fromClass: Usuario::class,
-                    identifiers: ['id'],
-                    toProperty: 'usuarioOrigen'
+                    identifiers: ['id']
                 )
             ],
-            processor: RelacionUsuarioProcessor::class,
-            security: "is_granted('ROLE_USER')",
             denormalizationContext: ['groups' => ['relacion:write']],
+            security: "is_granted('ROLE_USER')",
+            processor: RelacionUsuarioProcessor::class,
         ),
         new Delete(
             uriTemplate: '/relaciones/{id}',
             security: "is_granted('RELACION_DELETE', object)",
         ),
-    ]
+    ],
+    normalizationContext: ['groups' => ['relacion:read'], 'enable_max_depth' => 2],
+    denormalizationContext: ['groups' => ['relacion:write']]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
     'usuarioOrigen' => 'exact',

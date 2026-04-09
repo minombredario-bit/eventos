@@ -26,8 +26,6 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 #[ORM\Table(name: 'inscripcion')]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
-    normalizationContext: ['groups' => ['inscripcion:read']],
-    denormalizationContext: ['groups' => ['inscripcion:write']],
     operations: [
         new Get(security: "is_granted('INSCRIPCION_VIEW', object)"),
         new GetCollection(
@@ -35,7 +33,9 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
             security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"
             ),
         new Patch(security: "is_granted('INSCRIPCION_EDIT', object) and object.getEvento().estaInscripcionAbierta()"),
-    ]
+    ],
+    normalizationContext: ['groups' => ['inscripcion:read']],
+    denormalizationContext: ['groups' => ['inscripcion:write']]
 )]
 
 #[ApiFilter(SearchFilter::class, properties: [
@@ -352,7 +352,7 @@ class Inscripcion
     public function actualizarEstadoPago(): void
     {
         $total = $this->calcularImporteTotal();
-        
+
         if ($total === 0.0) {
             $this->estadoPago = EstadoPagoEnum::NO_REQUIERE_PAGO;
         } elseif ($this->importePagado >= $total) {
