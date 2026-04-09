@@ -181,9 +181,11 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             $lineas[] = [
                 'id' => $linea->getId(),
                 'menuId' => $linea->getMenu()->getId(),
+                'actividadId' => $linea->getMenu()->getId(),
                 'usuarioId' => $linea->getUsuario()?->getId(),
                 'invitadoId' => $linea->getInvitado()?->getId(),
                 'nombreMenuSnapshot' => $linea->getNombreMenuSnapshot(),
+                'nombreActividadSnapshot' => $linea->getNombreMenuSnapshot(),
                 'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
                 'estadoLinea' => $linea->getEstadoLinea()->value,
                 'pagada' => $linea->isPagada(),

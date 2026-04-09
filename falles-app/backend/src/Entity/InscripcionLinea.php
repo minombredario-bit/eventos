@@ -17,6 +17,7 @@ use App\State\InscripcionLineaPatchProcessor;
 use App\State\InscripcionLineaDeleteProcessor;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: InscripcionLineaRepository::class)]
@@ -232,11 +233,25 @@ class InscripcionLinea
         return $this->menu;
     }
 
+    #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write', 'inscripcion-linea:update', 'inscripcion:read', 'inscripcion:collection'])]
+    #[SerializedName('actividad')]
+    public function getActividad(): MenuEvento
+    {
+        return $this->menu;
+    }
+
 
     public function setMenu(MenuEvento $menu): static
     {
         $this->menu = $menu;
         return $this;
+    }
+
+    #[Groups(['inscripcion-linea:write', 'inscripcion-linea:update'])]
+    #[SerializedName('actividad')]
+    public function setActividad(MenuEvento $actividad): static
+    {
+        return $this->setMenu($actividad);
     }
 
     public function getNombrePersonaSnapshot(): string

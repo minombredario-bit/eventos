@@ -488,6 +488,34 @@ class Evento
         return $this->menus;
     }
 
+    /** @return Collection<int, MenuEvento> */
+    #[Groups(['evento:read', 'evento:write', 'menu-evento:read', 'evento:item:min'])]
+    #[SerializedName('actividades')]
+    public function getActividades(): Collection
+    {
+        return $this->menus;
+    }
+
+    /**
+     * @param iterable<MenuEvento> $actividades
+     */
+    #[Groups(['evento:write'])]
+    #[SerializedName('actividades')]
+    public function setActividades(iterable $actividades): static
+    {
+        foreach ($this->menus as $menu) {
+            $this->menus->removeElement($menu);
+        }
+
+        foreach ($actividades as $actividad) {
+            if ($actividad instanceof MenuEvento) {
+                $this->addMenu($actividad);
+            }
+        }
+
+        return $this;
+    }
+
     public function addMenu(MenuEvento $menu): static
     {
         if (!$this->menus->contains($menu)) {

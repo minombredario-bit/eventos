@@ -31,11 +31,28 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(security: "is_granted('EVENTO_VIEW', object.getEvento())"),
         new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Get(
+            uriTemplate: '/actividad_eventos/{id}',
+            security: "is_granted('EVENTO_VIEW', object.getEvento())"
+        ),
+        new GetCollection(
+            uriTemplate: '/actividad_eventos',
+            security: "is_granted('ROLE_USER')"
+        ),
         new Post(
             security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
             securityPostDenormalize: "is_granted('EVENTO_EDIT', object.getEvento())"
         ),
+        new Post(
+            uriTemplate: '/actividad_eventos',
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            securityPostDenormalize: "is_granted('EVENTO_EDIT', object.getEvento())"
+        ),
         new Patch(security: "is_granted('EVENTO_EDIT', object.getEvento())"),
+        new Patch(
+            uriTemplate: '/actividad_eventos/{id}',
+            security: "is_granted('EVENTO_EDIT', object.getEvento())"
+        ),
     ]
 )]
 #[ApiFilter(SearchFilter::class, properties: [
