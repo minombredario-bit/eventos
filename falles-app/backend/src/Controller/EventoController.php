@@ -133,6 +133,7 @@ class EventoController extends AbstractController
                 $response->headers->set('Deprecation', 'true');
                 $response->headers->set('Sunset', 'Wed, 31 Dec 2026 23:59:59 GMT');
                 $response->headers->set('Warning', '299 - "Legacy payload key menu/menu_id is deprecated, use actividad/actividad_id"');
+                $response->headers->set('Link', '</api/actividad_eventos>; rel="successor-version"');
             }
 
             return $response;
