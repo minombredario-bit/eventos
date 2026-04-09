@@ -103,7 +103,7 @@ class InscripcionService
                 ?? $lineaData['persona']
                 ?? null;
             $participanteId = $this->extractResourceId($usuarioReference);
-            $menuId = $this->extractResourceId(
+            $actividadId = $this->extractResourceId(
                 $lineaData['actividad_id']
                 ?? $lineaData['actividad']
                 ?? $lineaData['menu_id']
@@ -112,11 +112,16 @@ class InscripcionService
             );
             $observaciones = $lineaData['observaciones'] ?? null;
 
-            if (!$participanteId || !$menuId) {
+            if (!$participanteId || !$actividadId) {
                 throw new BadRequestHttpException('Se requiere usuario/invitado y actividad');
             }
 
             $isInvitado = $this->isInvitadoReference($usuarioReference);
+
+            if ($isInvitado && !$evento->isPermiteInvitados()) {
+                throw new BadRequestHttpException('Este evento no permite invitados');
+            }
+
             $usuarioParticipante = null;
             $invitado = null;
 
@@ -128,7 +133,7 @@ class InscripcionService
                     : $this->relacionUsuarioRepository->findRelacionadoByUsuarioYRelacionadoId($usuario, $participanteId);
             }
 
-            $menu = $this->menuEventoRepository->find($menuId);
+            $actividad = $this->menuEventoRepository->find($actividadId);
 
             if ($isInvitado && !$invitado) {
                 throw new BadRequestHttpException('Invitado no encontrado');
@@ -138,27 +143,27 @@ class InscripcionService
                 throw new BadRequestHttpException('Usuario no encontrado o no vinculado a tu cuenta');
             }
 
-            if (!$menu) {
+            if (!$actividad) {
                 throw new BadRequestHttpException('Actividad no encontrada');
             }
 
             // Verificar que la actividad pertenece al evento
-            if ($menu->getEvento()->getId() !== $evento->getId()) {
+            if ($actividad->getEvento()->getId() !== $evento->getId()) {
                 throw new BadRequestHttpException('La actividad no pertenece a este evento');
             }
 
             // Verificar que la actividad está activa
-            if (!$menu->isActivo()) {
+            if (!$actividad->isActivo()) {
                 throw new BadRequestHttpException('La actividad seleccionada no está activa');
             }
 
             $tipoPersonaParticipante = $invitado?->getTipoPersona() ?? TipoPersonaEnum::ADULTO;
 
-            if (!$menu->esCompatibleConTipoPersona($tipoPersonaParticipante)) {
+            if (!$actividad->esCompatibleConTipoPersona($tipoPersonaParticipante)) {
                 throw new BadRequestHttpException('La actividad seleccionada no es compatible con el tipo de persona');
             }
 
-            $franjaComida = $menu->getFranjaComida();
+            $franjaComida = $actividad->getFranjaComida();
             $origenParticipante = $isInvitado ? 'invitado' : 'usuario';
             $claveLinea = sprintf('%s|%s|%s', $origenParticipante, $participanteId, $franjaComida->value);
             if (isset($lineasRegistradasPorParticipanteYFranja[$claveLinea])) {
@@ -183,14 +188,14 @@ class InscripcionService
             } else {
                 $linea->setUsuario($usuarioParticipante);
             }
-            $linea->setMenu($menu);
+            $linea->setActividad($actividad);
             $linea->setObservaciones($observaciones);
             $linea->setPagada(false);
 
             // Calcular precio usando el servicio
             $precio = $isInvitado
-                ? $this->calculatePriceForInvitado($invitado, $menu)
-                : $this->priceCalculator->calculatePrice($usuarioParticipante, $menu);
+                ? $this->calculatePriceForInvitado($invitado, $actividad)
+                : $this->priceCalculator->calculatePrice($usuarioParticipante, $actividad);
             $linea->setPrecioUnitario($precio);
 
             // Crear snapshot de datos
@@ -205,6 +210,7 @@ class InscripcionService
         );
         $inscripcion->setImporteTotal($importeTotal);
         $inscripcion->actualizarEstadoPago();
+        $this->actualizarEstadoInscripcionSegunImporte($inscripcion);
 
         // 6. Guardar
         $this->entityManager->flush();
@@ -304,6 +310,16 @@ class InscripcionService
         }
 
         return $value;
+    }
+
+    /**
+     * Confirma automáticamente inscripciones sin coste total.
+     */
+    private function actualizarEstadoInscripcionSegunImporte(Inscripcion $inscripcion): void
+    {
+        if (abs($inscripcion->getImporteTotal()) < 0.00001) {
+            $inscripcion->setEstadoInscripcion(EstadoInscripcionEnum::CONFIRMADA);
+        }
     }
 
     /**
