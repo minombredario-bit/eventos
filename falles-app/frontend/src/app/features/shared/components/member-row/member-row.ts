@@ -23,12 +23,12 @@ export class MemberRow {
   readonly secondaryActionLabel = input('');
   readonly actionsLocked = input(false);
   readonly showSelect = input(false);
-  readonly selectorLabel = input('Menú');
+  readonly selectorLabel = input('Actividad');
   readonly selectorAriaLabel = input('');
   readonly slot = input<string | null>(null);
   readonly menuOptions = input<MenuOption[]>([]);
   readonly selectedMenuId = input<string | null>(null);
-  readonly emptyMessage = input('No hay menús disponibles para esta persona');
+  readonly emptyMessage = input('No hay actividades disponibles para esta persona');
   readonly showEnrollmentInfo = input(false);
   readonly disabled = input(false);
   readonly secondaryDisabled = input(false);

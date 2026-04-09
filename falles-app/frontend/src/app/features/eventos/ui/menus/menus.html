@@ -1,6 +1,6 @@
 <section class="screen menus-screen">
   <app-mobile-header
-    title="Selección de menús"
+    title="Selección de actividades"
     subtitle=""
     [showBack]="true"
     actionType="logout"
@@ -18,12 +18,12 @@
       <article class="panel event-summary">
         <p class="eyebrow">Cargando</p>
         <h2>Preparando datos del evento</h2>
-        <p>Estamos trayendo menús y participantes seleccionados.</p>
+        <p>Estamos trayendo actividades y participantes seleccionados.</p>
       </article>
     } @else {
       @if (event()) {
         <article class="panel event-summary">
-          <p class="eyebrow">Evento y menús</p>
+          <p class="eyebrow">Evento y actividades</p>
           <h2>{{ event()?.titulo }}</h2>
           <p class="venue">{{ event()?.lugar ?? 'Sin ubicación definida' }}</p>
           <small>La selección se organiza por franja: almuerzo, comida, merienda y cena.</small>
@@ -47,7 +47,7 @@
                 @for (inscripcion of myInscriptions(); track inscripcion.id) {
                   <div class="participant-item event-item" [class.event-item--active]="inscripcion.evento.id === eventId()">
                     <span>
-                      {{ inscripcion.evento.titulo }} · {{ inscripcion.lineas.length }} menús
+                      {{ inscripcion.evento.titulo }} · {{ activityCountLabel(inscripcion.lineas.length) }}
                     </span>
                     <button type="button" class="restore-participant" (click)="openInscriptionEvent(inscripcion.evento.id)">
                       {{ inscripcion.evento.id === eventId() ? 'Viendo' : 'Ver' }}
@@ -59,7 +59,7 @@
           </article>
 
           @if (selectedInscription()) {
-            <article class="panel member-list existing-inscription-card" aria-label="Usuarios inscritos y menús del evento seleccionado">
+            <article class="panel member-list existing-inscription-card" aria-label="Usuarios inscritos y actividades del evento seleccionado">
               <div class="card-head">
                 <h2>Usuarios inscritos</h2>
                 <span class="inline-count">{{ existingInscriptionRows().length }}</span>
@@ -88,7 +88,7 @@
                             · {{ participant.memberTypeLabel }}
                           }
                         </span>
-                        <small>{{ participant.lines.length }} menú{{ participant.lines.length === 1 ? '' : 's' }}</small>
+                        <small>{{ activityCountLabel(participant.lines.length) }}</small>
                       </div>
 
                       <div class="inscription-user__lines">
@@ -123,7 +123,7 @@
           } @else {
             <article class="panel error-card">
               <h2>Sin inscripción en este evento</h2>
-              <p>Elegí uno de tus eventos inscritos para ver usuarios y menús.</p>
+              <p>Elegí uno de tus eventos inscritos para ver usuarios y actividades.</p>
             </article>
           }
 
@@ -165,13 +165,13 @@
 
           @if (!availableSlots().length && membersInScope().length) {
             <article class="panel error-card">
-              <h2>Sin menús disponibles</h2>
-              <p>Este evento no tiene menús activos para los participantes seleccionados.</p>
+              <h2>Sin actividades disponibles</h2>
+              <p>Este evento no tiene actividades activas para los participantes seleccionados.</p>
             </article>
           }
 
           @for (slot of availableSlots(); track slot) {
-            <article class="panel member-list" [attr.aria-label]="'Selector de menú por familiar para ' + slotLabel(slot)">
+            <article class="panel member-list" [attr.aria-label]="'Selector de actividad por familiar para ' + slotLabel(slot)">
               <h2>{{ slotTitle(slot) }}</h2>
               @for (member of getCompatibleMembersForSlot(slot); track trackMember(member)) {
                 <app-member-row
@@ -179,11 +179,11 @@
                   [showSelect]="true"
                   [showEnrollmentInfo]="true"
                   [selectorLabel]="''"
-                  [selectorAriaLabel]="'Seleccionar menú para ' + member.name + ' en ' + slotLabel(slot)"
+                  [selectorAriaLabel]="'Seleccionar actividad para ' + member.name + ' en ' + slotLabel(slot)"
                   [slot]="slot"
                   [menuOptions]="getMenusForSlotAndMember(slot, member)"
                   [selectedMenuId]="getSelectedMenu(member, slot)"
-                  [emptyMessage]="'Sin menú compatible para esta franja'"
+                  [emptyMessage]="'Sin actividad compatible para esta franja'"
                   [disabled]="submitting() || !event()?.inscripcionAbierta || isSelectorLocked(member, slot)"
                   (menuChanged)="updateMenu($event)"
                 />
@@ -201,7 +201,7 @@
               <p class="summary">
                 {{ allActiveLinesPaid()
                   ? 'Todas las líneas activas de la inscripción están pagadas.'
-                  : 'Revisa las selecciones antes de confirmar la inscripción. Elige al menos un menú para registrar' }}
+                  : 'Revisa las selecciones antes de confirmar la inscripción. Elige al menos una actividad para registrar' }}
               </p>
               @for (slot of slotSummary(); track slot.slot) {
                 <div class="total-line">
@@ -229,7 +229,7 @@
           } @else {
             <article class="panel free-confirm-card">
               <h2>Evento sin coste</h2>
-              <p>Todos los menús son sin precio. Solo necesitas aceptar para confirmar la inscripción.</p>
+              <p>Todas las actividades son sin precio. Solo necesitas aceptar para confirmar la inscripción.</p>
             </article>
           }
 

@@ -57,7 +57,7 @@
           @if (hasActiveMenus()) {
             <article class="panel family-list" aria-label="Listado de familiares">
               <h2>Inscripciones y familiares</h2>
-              <p class="supporting-copy">Toca en "Inscribir" para elegir quiénes pasan a la pantalla de menús.</p>
+              <p class="supporting-copy">Toca en "Inscribir" para elegir quiénes pasan a la pantalla de actividades.</p>
               @if (participantsCompatibilityMessage(); as message) {
                 <p class="supporting-copy">{{ message }}</p>
               }
@@ -168,11 +168,11 @@
     @if (!inscripcionCerrada() && hasActiveMenus()) {
       <div class="cta-wrap">
         <app-cta-button
-          [label]="menusButtonLabel()"
-          [disabled]="!canContinueToMenus()"
+          [label]="activitiesButtonLabel()"
+          [disabled]="!canContinueToActivities()"
           [loading]="savingSelection()"
           loadingLabel="Guardando selección..."
-          (pressed)="openMenus()"
+          (pressed)="openActivities()"
         />
       </div>
     }

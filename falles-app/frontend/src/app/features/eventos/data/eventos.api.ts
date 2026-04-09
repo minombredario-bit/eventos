@@ -100,6 +100,7 @@ export interface EventoDetalleApi {
   inscripcionAbierta?: boolean;
   permiteInvitados?: boolean;
   menus: MenuEventoApi[];
+  actividades?: MenuEventoApi[];
 }
 
 export interface EventoResumenApi {
@@ -307,7 +308,9 @@ export class EventosApi {
   }
 
   getEvento(id: string): Observable<EventoDetalleApi> {
-    return this.http.get<EventoDetalleApi>(this.eventoBasePath(id));
+    return this.http
+      .get<EventoDetalleApi & { actividades?: MenuEventoApi[] }>(this.eventoBasePath(id))
+      .pipe(map((evento) => this.normalizeEventoDetalle(evento)));
   }
 
   // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya `menus`.
@@ -555,6 +558,20 @@ export class EventosApi {
 
   private eventoBasePath(eventoId: string): string {
     return `${this.apiBaseUrl}/api/eventos/${this.normalizeEventoId(eventoId)}`;
+  }
+
+  private normalizeEventoDetalle(
+    evento: EventoDetalleApi & { actividades?: MenuEventoApi[] },
+  ): EventoDetalleApi {
+    const actividades = Array.isArray(evento.actividades) ? evento.actividades : undefined;
+    const menus = Array.isArray(evento.menus) ? evento.menus : [];
+    const normalizedMenus = actividades ?? menus;
+
+    return {
+      ...evento,
+      menus: normalizedMenus,
+      actividades: actividades ?? normalizedMenus,
+    };
   }
 
   private normalizeEventoId(eventoId: string): string {

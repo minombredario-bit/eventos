@@ -27,7 +27,7 @@ export class Eventos {
 
   private readonly currentEventId = computed(() => {
     const pathOnly = this.currentUrl().split('?')[0] ?? this.currentUrl();
-    const match = pathOnly.match(/^\/eventos\/([^/]+)\/(detalle|menus|credencial)$/);
+    const match = pathOnly.match(/^\/eventos\/([^/]+)\/(detalle|actividades|menus|credencial)$/);
     return match?.[1] ?? null;
   });
 
@@ -37,7 +37,7 @@ export class Eventos {
       { key: 'inicio',     label: 'Inicio',     icon: '🏠',  route: '/eventos/inicio' },
       { key: 'eventos',    label: 'Eventos',     icon: '🎫',  route: '/eventos/inscripciones' },
       { key: 'detalle',    label: 'Detalle',     icon: '📅',  route: eventId ? `/eventos/${eventId}/detalle`    : '/eventos/inicio' },
-      { key: 'menus',      label: 'Menús',       icon: '🍽️', route: eventId ? `/eventos/${eventId}/menus`      : '/eventos/inicio' },
+      { key: 'actividades', label: 'Actividades', icon: '🍽️', route: eventId ? `/eventos/${eventId}/actividades` : '/eventos/inicio' },
       { key: 'credencial', label: 'Credencial',  icon: '🎟️', route: eventId ? `/eventos/${eventId}/credencial` : '/eventos/inicio' },
     ];
   });

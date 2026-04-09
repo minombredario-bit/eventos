@@ -22,14 +22,14 @@
       <article class="panel empty-card">
         <p class="eyebrow">Sin inscripciones</p>
         <h2>Todavía no tenés eventos registrados</h2>
-        <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a los menús.</p>
+        <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a las actividades.</p>
       </article>
     } @else {
       <article class="panel list-card">
         <div class="card-head">
           <div>
             <p class="eyebrow">Inscripciones activas</p>
-            <h2>Seleccioná un evento para revisar sus menús</h2>
+            <h2>Seleccioná un evento para revisar sus actividades</h2>
           </div>
           <span class="count-chip">{{ inscripciones().length }}</span>
         </div>
@@ -74,10 +74,10 @@
                 } @else {
                   <a
                     class="action-link"
-                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'menus']"
-                    [attr.aria-label]="'Abrir menús de ' + eventTitle(inscripcion)"
+                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'actividades']"
+                    [attr.aria-label]="'Abrir actividades de ' + eventTitle(inscripcion)"
                   >
-                    Menús
+                    Actividades
                   </a>
                   <a
                     class="action-link"

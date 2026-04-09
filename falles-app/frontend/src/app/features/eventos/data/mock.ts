@@ -10,7 +10,7 @@ export const UPCOMING_EVENTS: EventSummary[] = [
     time: '14:00',
     location: 'Casal Faller Central',
     status: 'abierto',
-    description: 'Comida de germanor con menú adulto e infantil. Confirmación inmediata.',
+    description: 'Comida de germanor con actividad adulta e infantil. Confirmación inmediata.',
   },
   {
     id: 'sopar-plant-2026',
@@ -49,7 +49,7 @@ export const FAMILY_MEMBERS: FamilyMember[] = [
     personType: 'infantil',
     origin: 'familiar',
     avatarInitial: 'V',
-    notes: 'Menú infantil preferente',
+    notes: 'Actividad infantil preferente',
   },
   {
     id: 'member-3',
@@ -65,7 +65,7 @@ export const FAMILY_MEMBERS: FamilyMember[] = [
 export const MENU_OPTIONS: MenuOption[] = [
   {
     id: 'menu-adulto',
-    label: 'Menú adulto',
+    label: 'Actividad adulta',
     description: 'Entrantes + principal + postre',
     slot: 'comida',
     compatibility: 'adulto',
@@ -73,7 +73,7 @@ export const MENU_OPTIONS: MenuOption[] = [
   },
   {
     id: 'menu-infantil',
-    label: 'Menú infantil',
+    label: 'Actividad infantil',
     description: 'Pasta + snack + postre',
     slot: 'comida',
     compatibility: 'infantil',
@@ -81,7 +81,7 @@ export const MENU_OPTIONS: MenuOption[] = [
   },
   {
     id: 'menu-veg',
-    label: 'Menú vegetariano',
+    label: 'Actividad vegetariana',
     description: 'Opción sin carne y sin pescado',
     slot: 'comida',
     compatibility: 'ambos',
@@ -120,15 +120,15 @@ export const CREDENTIAL_DATA: CredentialData = {
   eventZone: 'Acceso puerta A',
   qrToken: 'MASCLETA-2026-PAULA-ROS-08F9',
   lines: [
-    { id: 'line-1', personName: 'Paula Ros', menuName: 'Menú adulto' },
-    { id: 'line-2', personName: 'Víctor Ros', menuName: 'Menú infantil' },
-    { id: 'line-3', personName: 'Clara Ros', menuName: 'Menú vegetariano' },
+    { id: 'line-1', personName: 'Paula Ros', menuName: 'Actividad adulta' },
+    { id: 'line-2', personName: 'Víctor Ros', menuName: 'Actividad infantil' },
+    { id: 'line-3', personName: 'Clara Ros', menuName: 'Actividad vegetariana' },
   ],
 };
 
 export const BOTTOM_NAV_ITEMS: NavItem[] = [
   { key: 'inicio', label: 'Inicio', icon: '🏠', route: '/eventos/inicio' },
   { key: 'detalle', label: 'Detalle', icon: '📅', route: `/eventos/${DEFAULT_EVENT_ID}/detalle` },
-  { key: 'menus', label: 'Menús', icon: '🍽️', route: `/eventos/${DEFAULT_EVENT_ID}/menus` },
+  { key: 'actividades', label: 'Actividades', icon: '🍽️', route: `/eventos/${DEFAULT_EVENT_ID}/actividades` },
   { key: 'credencial', label: 'Credencial', icon: '🎟️', route: `/eventos/${DEFAULT_EVENT_ID}/credencial` },
 ];

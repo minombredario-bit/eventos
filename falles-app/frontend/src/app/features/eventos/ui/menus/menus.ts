@@ -272,7 +272,7 @@ export class Menus {
       return `Esta inscripción no tiene líneas activas. ${modeText}${totalsText}`;
     }
 
-    return `Esta inscripción reúne ${userCount} usuario${userCount === 1 ? '' : 's'} y ${menuCount} menú${menuCount === 1 ? '' : 's'}. ${modeText}${totalsText}`;
+    return `Esta inscripción reúne ${userCount} usuario${userCount === 1 ? '' : 's'} y ${buildActivityCountLabel(menuCount)}. ${modeText}${totalsText}`;
   });
 
   protected readonly selectionSummary = computed<SelectionSummaryRow[]>(() => {
@@ -353,8 +353,8 @@ export class Menus {
   });
 
   protected readonly confirmButtonLabel = computed(() => {
-    if (this.submitting()) return 'Guardando menús...';
-    if (!this.resolveExistingInscriptionId()) return 'Seleccioná un menú para continuar';
+    if (this.submitting()) return 'Guardando actividades...';
+    if (!this.resolveExistingInscriptionId()) return 'Seleccioná una actividad para continuar';
     return 'Ir al pago';
   });
 
@@ -420,7 +420,7 @@ export class Menus {
             this.setSelectedMenuByParticipant(payload.memberId, payload.memberOrigin, slot, previousMenuId);
             this.submitError.set(
               this.resolveApiErrorMessage(error)
-              ?? 'No se pudo actualizar la línea del menú.',
+              ?? 'No se pudo actualizar la línea de la actividad.',
             );
           },
         });
@@ -443,7 +443,7 @@ export class Menus {
             this.setSelectedMenuByParticipant(payload.memberId, payload.memberOrigin, slot, previousMenuId);
             this.submitError.set(
               this.resolveApiErrorMessage(error)
-              ?? 'No se pudo actualizar la línea del menú.',
+              ?? 'No se pudo actualizar la línea de la actividad.',
             );
           },
         });
@@ -468,7 +468,7 @@ export class Menus {
           this.setSelectedMenuByParticipant(payload.memberId, payload.memberOrigin, slot, previousMenuId);
           this.submitError.set(
             this.resolveApiErrorMessage(error)
-            ?? 'No se pudo registrar la línea del menú.',
+            ?? 'No se pudo registrar la línea de la actividad.',
           );
         },
       });
@@ -502,7 +502,7 @@ export class Menus {
   }
 
   protected isSelectorLocked(member: FamilyMember, slot: MealSlot): boolean {
-    // Si ya hay una línea pagada para esta persona y franja, no se puede cambiar el menú.
+    // Si ya hay una línea pagada para esta persona y franja, no se puede cambiar la actividad.
     const fromSelection = this.preselectedParticipants().find(
       (participant) => participant.id === member.id && participant.origin === member.origin,
     );
@@ -572,7 +572,7 @@ export class Menus {
 
   protected openInscriptionEvent(eventId: string): void {
     if (!eventId || eventId === this.eventId()) return;
-    void this.router.navigate(['/eventos', eventId, 'menus']);
+    void this.router.navigate(['/eventos', eventId, 'actividades']);
   }
 
   protected cancelInscriptionLine(lineId: string, inscripcionId: string): void {
@@ -607,6 +607,10 @@ export class Menus {
     return !linea.pagada;
   }
 
+  protected activityCountLabel(count: number): string {
+    return buildActivityCountLabel(count);
+  }
+
   protected trackMember(member: FamilyMember): string {
     return this.participantKey(member.id, member.origin);
   }
@@ -619,7 +623,7 @@ export class Menus {
 
     const existingInscriptionId = this.resolveExistingInscriptionId();
     if (!existingInscriptionId) {
-      this.submitError.set('Seleccioná y guardá al menos un menú antes de ir al pago.');
+      this.submitError.set('Seleccioná y guardá al menos una actividad antes de ir al pago.');
       return;
     }
 
@@ -721,7 +725,7 @@ export class Menus {
         error: () => {
           this.myInscriptions.set([]);
           this.loadingInscriptions.set(false);
-          this.existingFlowError.set('No pudimos cargar tus inscripciones para gestionar menús.');
+          this.existingFlowError.set('No pudimos cargar tus inscripciones para gestionar actividades.');
         },
       });
   }
@@ -1303,8 +1307,8 @@ export class Menus {
   }
 }
 
-export function shouldUseLegacyMenusFallback(evento: { menus?: unknown }): boolean {
-  return !Array.isArray(evento.menus);
+export function shouldUseLegacyMenusFallback(evento: { menus?: unknown; actividades?: unknown }): boolean {
+  return !Array.isArray(evento.menus) && !Array.isArray(evento.actividades);
 }
 
 export function shouldLoadLegacyInscripcionesFallback(
@@ -1312,3 +1316,12 @@ export function shouldLoadLegacyInscripcionesFallback(
 ): boolean {
   return participantes.length === 0 || participantes.every((item) => !item.inscripcionRelacion);
 }
+
+export function activityNoun(count: number): string {
+  return count === 1 ? 'actividad' : 'actividades';
+}
+
+export function buildActivityCountLabel(count: number): string {
+  return `${count} ${activityNoun(count)}`;
+}
+

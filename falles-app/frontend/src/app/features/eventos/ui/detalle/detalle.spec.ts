@@ -114,7 +114,7 @@ describe('Detalle autosave y navegación', () => {
     expect(guardarSeleccionParticipantes.calls.argsFor(1)).toEqual(['evt-1', []]);
   });
 
-  it('Solicitar menús solo navega y no guarda', () => {
+  it('Solicitar actividades solo navega y no guarda', () => {
     const guardarSeleccionParticipantes = jasmine
       .createSpy('guardarSeleccionParticipantes')
       .and.returnValue(of([]));
@@ -123,14 +123,14 @@ describe('Detalle autosave y navegación', () => {
     const fixture = createDetalleFixture({ guardarSeleccionParticipantes, navigate });
     const component = fixture.componentInstance as unknown as {
       selectedMemberIds: { set: (value: string[]) => void };
-      openMenus: () => void;
+      openActivities: () => void;
     };
 
     component.selectedMemberIds.set(['familiar:10']);
-    component.openMenus();
+    component.openActivities();
 
     expect(guardarSeleccionParticipantes).not.toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith(['/eventos', 'evt-1', 'menus']);
+    expect(navigate).toHaveBeenCalledWith(['/eventos', 'evt-1', 'actividades']);
   });
 
   it('tras alta de invitado lo selecciona para inscripción y no queda en gestión de invitados', () => {

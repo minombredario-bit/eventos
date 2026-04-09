@@ -78,7 +78,7 @@ export class Credencial {
   });
 
   protected goBack(): void {
-    void this.router.navigate(['/eventos', this.eventId(), 'menus']);
+    void this.router.navigate(['/eventos', this.eventId(), 'actividades']);
   }
 
   protected logout(): void {
@@ -87,11 +87,11 @@ export class Credencial {
   }
 
   protected lineMenuLabel(line: InscripcionApi['lineas'][number]): string {
-    return line.estadoLinea === 'cancelada' ? 'Sin menú' : line.nombreMenuSnapshot;
+    return line.estadoLinea === 'cancelada' ? 'Sin actividad' : line.nombreMenuSnapshot;
   }
 
   protected lineStatusLabel(lineState: string): string {
-    if (lineState === 'cancelada') return 'Línea cancelada · Sin menú';
+    if (lineState === 'cancelada') return 'Línea cancelada · Sin actividad';
     return 'Línea confirmada';
   }
 

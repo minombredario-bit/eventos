@@ -151,7 +151,7 @@ export class Detalle {
         personType: knownMember?.personType ?? 'adulto',
         origin: inscrito.origen,
         avatarInitial: name.charAt(0).toUpperCase() || '?',
-        notes: menuNames ? `Menús: ${menuNames}` : undefined,
+        notes: menuNames ? `Actividades: ${menuNames}` : undefined,
         enrollment: eventSummary
           ? {
             eventId: eventSummary.id,
@@ -282,11 +282,11 @@ export class Detalle {
     }
 
     if (scope.allowsInfantil) {
-      return 'Este evento solo tiene menús infantiles: se muestran únicamente perfiles infantiles.';
+      return 'Este evento solo tiene actividades infantiles: se muestran únicamente perfiles infantiles.';
     }
 
     if (scope.allowsAdult) {
-      return 'Este evento solo tiene menús para adultos: se muestran únicamente perfiles adultos.';
+      return 'Este evento solo tiene actividades para adultos: se muestran únicamente perfiles adultos.';
     }
 
     return null;
@@ -343,15 +343,15 @@ export class Detalle {
   protected readonly selectedCountLabel = computed(() => {
     const count = this.selectedMemberIdsInScope().length;
     if (count === 0) return 'Todavía no seleccionaste personas para inscribir.';
-    if (count === 1) return '1 persona seleccionada para pasar a menús.';
-    return `${count} personas seleccionadas para pasar a menús.`;
+    if (count === 1) return '1 persona seleccionada para pasar a actividades.';
+    return `${count} personas seleccionadas para pasar a actividades.`;
   });
 
-  protected readonly canContinueToMenus = computed(() =>
+  protected readonly canContinueToActivities = computed(() =>
     Boolean(this.canManageParticipants() && this.selectedMemberIdsInScope().length > 0),
   );
 
-  protected readonly menusButtonLabel = computed(() => {
+  protected readonly activitiesButtonLabel = computed(() => {
     if (!this.hasActiveMenus()) {
       return 'Este evento no tiene comidas';
     }
@@ -359,7 +359,7 @@ export class Detalle {
     const count = this.selectedMemberIdsInScope().length;
     return count === 0
       ? 'Seleccioná al menos una persona'
-      : `Seleccionar menús (${count})`;
+      : `Seleccionar actividades (${count})`;
   });
 
   constructor() {
@@ -500,12 +500,12 @@ export class Detalle {
     void this.router.navigate(['/eventos/inicio']);
   }
 
-  protected openMenus(): void {
+  protected openActivities(): void {
     const selected = this.selectedMemberIdsInScope();
     const eventId = this.eventId();
     if (!selected.length || !eventId || !this.canManageParticipants()) return;
 
-    void this.router.navigate(['/eventos', eventId, 'menus']);
+    void this.router.navigate(['/eventos', eventId, 'actividades']);
   }
 
   protected logout(): void {
@@ -762,7 +762,7 @@ export class Detalle {
           origin,
           avatarInitial: (linea.nombrePersonaSnapshot.trim().charAt(0) || '?').toUpperCase(),
           notes: linea.nombreMenuSnapshot.trim()
-            ? `Menús: ${linea.nombreMenuSnapshot.trim()}`
+            ? `Actividades: ${linea.nombreMenuSnapshot.trim()}`
             : undefined,
         });
         continue;
@@ -774,7 +774,7 @@ export class Detalle {
       }
 
       const existingNote = current.notes ?? '';
-      const prefix = 'Menús: ';
+      const prefix = 'Actividades: ';
       const existingMenus = existingNote.startsWith(prefix)
         ? existingNote.slice(prefix.length).split(',').map((item) => item.trim()).filter(Boolean)
         : [];

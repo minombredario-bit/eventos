@@ -69,7 +69,7 @@ export class Pago {
   }
 
   protected goBack(): void {
-    void this.router.navigate(['/eventos', this.eventId(), 'menus']);
+    void this.router.navigate(['/eventos', this.eventId(), 'actividades']);
   }
 
   protected logout(): void {

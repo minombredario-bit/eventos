@@ -47,9 +47,13 @@ export const routes: Routes = [
           import('./features/eventos/ui/detalle/detalle').then((m) => m.Detalle),
       },
       {
-        path: ':id/menus',
+        path: ':id/actividades',
         loadComponent: () =>
           import('./features/eventos/ui/menus/menus').then((m) => m.Menus),
+      },
+      {
+        path: ':id/menus',
+        redirectTo: ':id/actividades',
       },
       {
         path: ':id/apuntados',
