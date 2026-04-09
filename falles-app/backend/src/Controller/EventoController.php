@@ -97,6 +97,7 @@ class EventoController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
+        $usesLegacyMenuPayload = $this->usesLegacyMenuPayload($data['personas'] ?? null);
 
         if (empty($data['personas']) || !is_array($data['personas'])) {
             return $this->json(['error' => 'Se requiere al menos una persona'], 400);
@@ -105,7 +106,7 @@ class EventoController extends AbstractController
         try {
             $inscripcion = $this->inscripcionService->crearInscripcion($evento, $user, $data['personas']);
 
-            return $this->json([
+            $response = $this->json([
                 'id' => $inscripcion->getId(),
                 'codigo' => $inscripcion->getCodigo(),
                 'estado' => $inscripcion->getEstadoInscripcion()->value,
@@ -127,6 +128,14 @@ class EventoController extends AbstractController
                     'pagada' => $linea->isPagada(),
                 ], $inscripcion->getLineas()->toArray()),
             ], 201);
+
+            if ($usesLegacyMenuPayload) {
+                $response->headers->set('Deprecation', 'true');
+                $response->headers->set('Sunset', 'Wed, 31 Dec 2026 23:59:59 GMT');
+                $response->headers->set('Warning', '299 - "Legacy payload key menu/menu_id is deprecated, use actividad/actividad_id"');
+            }
+
+            return $response;
         } catch (UnprocessableEntityHttpException $e) {
             return $this->json([
                 'error' => $e->getMessage(),
@@ -230,6 +239,25 @@ class EventoController extends AbstractController
         $nombreCompleto = trim(implode(' ', $partes));
 
         return preg_replace('/\s+/', ' ', $nombreCompleto) ?? '';
+    }
+
+    private function usesLegacyMenuPayload(mixed $personas): bool
+    {
+        if (!is_array($personas)) {
+            return false;
+        }
+
+        foreach ($personas as $persona) {
+            if (!is_array($persona)) {
+                continue;
+            }
+
+            if (array_key_exists('menu', $persona) || array_key_exists('menu_id', $persona)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

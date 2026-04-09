@@ -102,6 +102,9 @@ class EventoControllerTest extends TestCase
         $this->assertSame('act-1', $payload['lineas'][0]['menuId']);
         $this->assertSame('Taller de paella', $payload['lineas'][0]['nombreActividadSnapshot']);
         $this->assertSame('Taller de paella', $payload['lineas'][0]['nombreMenuSnapshot']);
+        $this->assertNull($response->headers->get('Deprecation'));
+        $this->assertNull($response->headers->get('Sunset'));
+        $this->assertNull($response->headers->get('Warning'));
     }
 
     public function testInscribirmeAcceptsLegacyMenuPayload(): void
@@ -162,6 +165,9 @@ class EventoControllerTest extends TestCase
         $response = $controller->inscribirme('evento-1', $request);
 
         $this->assertSame(201, $response->getStatusCode());
+        $this->assertSame('true', $response->headers->get('Deprecation'));
+        $this->assertSame('Wed, 31 Dec 2026 23:59:59 GMT', $response->headers->get('Sunset'));
+        $this->assertSame('299 - "Legacy payload key menu/menu_id is deprecated, use actividad/actividad_id"', $response->headers->get('Warning'));
     }
 
     public function testMenusLegacyRouteReturnsDeprecationHeaders(): void
