@@ -3,9 +3,15 @@
 namespace App\Tests\Unit\Controller;
 
 use App\Controller\EventoController;
+use App\Entity\Inscripcion;
+use App\Entity\InscripcionLinea;
 use App\Entity\Invitado;
+use App\Entity\MenuEvento;
 use App\Entity\SeleccionParticipanteEvento;
 use App\Entity\Usuario;
+use App\Enum\EstadoInscripcionEnum;
+use App\Enum\EstadoLineaInscripcionEnum;
+use App\Enum\EstadoPagoEnum;
 use App\Repository\EventoRepository;
 use App\Repository\InscripcionRepository;
 use App\Repository\InvitadoRepository;
@@ -19,6 +25,145 @@ use Symfony\Component\HttpFoundation\Request;
 
 class EventoControllerTest extends TestCase
 {
+    public function testInscribirmeAcceptsActividadPayloadAndReturnsDualAliases(): void
+    {
+        $entidad = $this->createConfiguredMock(\App\Entity\Entidad::class, ['getId' => 'entidad-1']);
+
+        $evento = $this->createConfiguredMock(\App\Entity\Evento::class, [
+            'getId' => 'evento-1',
+            'getEntidad' => $entidad,
+        ]);
+
+        $usuario = $this->createConfiguredMock(Usuario::class, [
+            'getId' => 'user-1',
+            'getEntidad' => $entidad,
+        ]);
+
+        $linea = $this->createConfiguredMock(InscripcionLinea::class, [
+            'getId' => 'linea-1',
+            'getNombrePersonaSnapshot' => 'Ana Invitada',
+            'getTipoPersonaSnapshot' => 'adulto',
+            'getFranjaComidaSnapshot' => 'comida',
+            'getNombreActividadSnapshot' => 'Taller de paella',
+            'getActividad' => $this->createConfiguredMock(MenuEvento::class, ['getId' => 'act-1']),
+            'getPrecioUnitario' => 12.5,
+            'isEsDePagoSnapshot' => true,
+            'getEstadoLinea' => EstadoLineaInscripcionEnum::PENDIENTE,
+            'isPagada' => false,
+        ]);
+
+        $inscripcion = $this->createConfiguredMock(Inscripcion::class, [
+            'getId' => 'insc-1',
+            'getCodigo' => 'ENT-2026-AAAAAA',
+            'getEstadoInscripcion' => EstadoInscripcionEnum::PENDIENTE,
+            'getEstadoPago' => EstadoPagoEnum::PENDIENTE,
+            'getImporteTotal' => 12.5,
+            'getImportePagado' => 0.0,
+            'getLineas' => new ArrayCollection([$linea]),
+        ]);
+
+        $inscripcionService = $this->createMock(InscripcionService::class);
+        $inscripcionService
+            ->expects($this->once())
+            ->method('crearInscripcion')
+            ->with(
+                $evento,
+                $usuario,
+                $this->callback(static fn(array $personas): bool => ($personas[0]['actividad'] ?? null) === '/api/menu_eventos/act-1'),
+            )
+            ->willReturn($inscripcion);
+
+        $eventoRepository = $this->createMock(EventoRepository::class);
+        $eventoRepository->method('find')->with('evento-1')->willReturn($evento);
+
+        $controller = $this->buildController(
+            $usuario,
+            $eventoRepository,
+            $this->createMock(InscripcionRepository::class),
+            $this->createMock(InvitadoRepository::class),
+            $this->createMock(UsuarioRepository::class),
+            $this->createMock(SeleccionParticipanteEventoRepository::class),
+            $inscripcionService,
+        );
+
+        $request = Request::create('/api/eventos/evento-1/inscribirme', 'POST', [], [], [], [], json_encode([
+            'personas' => [[
+                'usuario' => '/api/usuarios/user-1',
+                'actividad' => '/api/menu_eventos/act-1',
+            ]],
+        ],
+            \JSON_THROW_ON_ERROR));
+
+        $response = $controller->inscribirme('evento-1', $request);
+        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+
+        $this->assertSame(201, $response->getStatusCode());
+        $this->assertSame('act-1', $payload['lineas'][0]['actividadId']);
+        $this->assertSame('act-1', $payload['lineas'][0]['menuId']);
+        $this->assertSame('Taller de paella', $payload['lineas'][0]['nombreActividadSnapshot']);
+        $this->assertSame('Taller de paella', $payload['lineas'][0]['nombreMenuSnapshot']);
+    }
+
+    public function testInscribirmeAcceptsLegacyMenuPayload(): void
+    {
+        $entidad = $this->createConfiguredMock(\App\Entity\Entidad::class, ['getId' => 'entidad-1']);
+
+        $evento = $this->createConfiguredMock(\App\Entity\Evento::class, [
+            'getId' => 'evento-1',
+            'getEntidad' => $entidad,
+        ]);
+
+        $usuario = $this->createConfiguredMock(Usuario::class, [
+            'getId' => 'user-1',
+            'getEntidad' => $entidad,
+        ]);
+
+        $inscripcion = $this->createConfiguredMock(Inscripcion::class, [
+            'getId' => 'insc-1',
+            'getCodigo' => 'ENT-2026-BBBBBB',
+            'getEstadoInscripcion' => EstadoInscripcionEnum::PENDIENTE,
+            'getEstadoPago' => EstadoPagoEnum::PENDIENTE,
+            'getImporteTotal' => 0.0,
+            'getImportePagado' => 0.0,
+            'getLineas' => new ArrayCollection([]),
+        ]);
+
+        $inscripcionService = $this->createMock(InscripcionService::class);
+        $inscripcionService
+            ->expects($this->once())
+            ->method('crearInscripcion')
+            ->with(
+                $evento,
+                $usuario,
+                $this->callback(static fn(array $personas): bool => ($personas[0]['menu'] ?? null) === '/api/menu_eventos/legacy-1'),
+            )
+            ->willReturn($inscripcion);
+
+        $eventoRepository = $this->createMock(EventoRepository::class);
+        $eventoRepository->method('find')->with('evento-1')->willReturn($evento);
+
+        $controller = $this->buildController(
+            $usuario,
+            $eventoRepository,
+            $this->createMock(InscripcionRepository::class),
+            $this->createMock(InvitadoRepository::class),
+            $this->createMock(UsuarioRepository::class),
+            $this->createMock(SeleccionParticipanteEventoRepository::class),
+            $inscripcionService,
+        );
+
+        $request = Request::create('/api/eventos/evento-1/inscribirme', 'POST', [], [], [], [], json_encode([
+            'personas' => [[
+                'usuario' => '/api/usuarios/user-1',
+                'menu' => '/api/menu_eventos/legacy-1',
+            ]],
+        ], \JSON_THROW_ON_ERROR));
+
+        $response = $controller->inscribirme('evento-1', $request);
+
+        $this->assertSame(201, $response->getStatusCode());
+    }
+
     public function testMenusLegacyRouteReturnsDeprecationHeaders(): void
     {
         $evento = $this->createConfiguredMock(\App\Entity\Evento::class, [
@@ -227,11 +372,12 @@ class EventoControllerTest extends TestCase
         InvitadoRepository $invitadoRepository,
         UsuarioRepository $usuarioRepository,
         SeleccionParticipanteEventoRepository $seleccionRepository,
+        ?InscripcionService $inscripcionService = null,
     ): EventoController {
         $controller = $this->getMockBuilder(EventoController::class)
             ->setConstructorArgs([
                 $eventoRepository,
-                $this->createMock(InscripcionService::class),
+                $inscripcionService ?? $this->createMock(InscripcionService::class),
                 $inscripcionRepository,
                 $invitadoRepository,
                 $usuarioRepository,
