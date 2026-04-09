@@ -143,9 +143,21 @@ class SeleccionParticipanteEventoLinea
         return $this->menu;
     }
 
+    public function getActividad(): MenuEvento
+    {
+        return $this->menu;
+    }
+
     public function setMenu(MenuEvento $menu): static
     {
         $this->menu = $menu;
+
+        return $this;
+    }
+
+    public function setActividad(MenuEvento $actividad): static
+    {
+        $this->menu = $actividad;
 
         return $this;
     }

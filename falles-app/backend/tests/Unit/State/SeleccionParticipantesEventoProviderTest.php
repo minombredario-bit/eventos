@@ -36,8 +36,8 @@ class SeleccionParticipantesEventoProviderTest extends TestCase
         $evento = $this->createMock(Evento::class);
         $evento->method('getId')->willReturn('evento-1');
         $evento->method('getEntidad')->willReturn($entidad);
-        $evento->method('tieneMenusActivos')->willReturn(true);
-        $evento->method('permiteGestionInvitados')->willReturn(true);
+        $evento->method('tieneActividadesActivas')->willReturn(true);
+        $evento->method('permiteGestionInvitadosConActividades')->willReturn(true);
 
         $participante = $this->createMock(Usuario::class);
         $participante->method('getId')->willReturn('u-2');
@@ -60,6 +60,7 @@ class SeleccionParticipantesEventoProviderTest extends TestCase
         $lineaActiva->method('getMenu')->willReturn($menu);
         $lineaActiva->method('getNombreMenuSnapshot')->willReturn('Menú especial');
         $lineaActiva->method('getFranjaComidaSnapshot')->willReturn('comida');
+        $lineaActiva->method('isPagada')->willReturn(false);
         $lineaActiva->method('getPrecioUnitario')->willReturn(12.5);
         $lineaActiva->method('getTipoPersonaSnapshot')->willReturn('adulto');
 
@@ -106,6 +107,8 @@ class SeleccionParticipantesEventoProviderTest extends TestCase
         $this->assertArrayHasKey('inscripcionRelacion', $response->participantes[0]);
         $this->assertSame(12.5, $response->participantes[0]['inscripcionRelacion']['totalLineas']);
         $this->assertSame(7.75, $response->participantes[0]['inscripcionRelacion']['totalPagado']);
+        $this->assertSame('menu-1', $response->participantes[0]['inscripcionRelacion']['lineas'][0]['actividadId']);
+        $this->assertSame('Menú especial', $response->participantes[0]['inscripcionRelacion']['lineas'][0]['nombreActividadSnapshot']);
         $this->assertSame('u-2', $response->participantes[0]['inscripcionRelacion']['lineas'][0]['usuarioId']);
         $this->assertNull($response->participantes[0]['inscripcionRelacion']['lineas'][0]['invitadoId']);
     }
@@ -121,8 +124,8 @@ class SeleccionParticipantesEventoProviderTest extends TestCase
         $evento = $this->createMock(Evento::class);
         $evento->method('getId')->willReturn('evento-1');
         $evento->method('getEntidad')->willReturn($entidad);
-        $evento->method('tieneMenusActivos')->willReturn(true);
-        $evento->method('permiteGestionInvitados')->willReturn(true);
+        $evento->method('tieneActividadesActivas')->willReturn(true);
+        $evento->method('permiteGestionInvitadosConActividades')->willReturn(true);
 
         $invitado = new \App\Entity\Invitado();
         $invitado->setNombre('Ana')->setApellidos('Compartida')->setTipoPersona(TipoPersonaEnum::ADULTO);
@@ -179,7 +182,7 @@ class SeleccionParticipantesEventoProviderTest extends TestCase
         $evento = $this->createMock(Evento::class);
         $evento->method('getId')->willReturn('evento-1');
         $evento->method('getEntidad')->willReturn($entidad);
-        $evento->method('tieneMenusActivos')->willReturn(false);
+        $evento->method('tieneActividadesActivas')->willReturn(false);
 
         $security = $this->createMock(Security::class);
         $security->method('getUser')->willReturn($user);
@@ -228,8 +231,8 @@ class SeleccionParticipantesEventoProviderTest extends TestCase
         $evento = $this->createMock(Evento::class);
         $evento->method('getId')->willReturn('evento-1');
         $evento->method('getEntidad')->willReturn($entidad);
-        $evento->method('tieneMenusActivos')->willReturn(true);
-        $evento->method('permiteGestionInvitados')->willReturn(true);
+        $evento->method('tieneActividadesActivas')->willReturn(true);
+        $evento->method('permiteGestionInvitadosConActividades')->willReturn(true);
 
         $security = $this->createMock(Security::class);
         $security->method('getUser')->willReturn($user);

@@ -331,29 +331,29 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
     ): void {
         foreach ($seleccionesPrincipales as $seleccionPrincipal) {
             $lineasExistentes = $seleccionParticipanteEventoLineaRepository->findBySeleccionParticipanteEvento($seleccionPrincipal);
-            $lineasExistentesPorMenuId = [];
+            $lineasExistentesPorActividadId = [];
 
             foreach ($lineasExistentes as $lineaExistente) {
-                $menuId = (string) $lineaExistente->getMenu()->getId();
-                if ($menuId !== '') {
-                    $lineasExistentesPorMenuId[$menuId] = $lineaExistente;
+                $actividadId = (string) $lineaExistente->getActividad()->getId();
+                if ($actividadId !== '') {
+                    $lineasExistentesPorActividadId[$actividadId] = $lineaExistente;
                 }
             }
 
-            $lineasDeseadasPorMenuId = $this->buildDesiredLineSelections(
+            $lineasDeseadasPorActividadId = $this->buildDesiredLineSelections(
                 $evento,
                 $seleccionPrincipal,
                 $inscripcionRepository,
             );
 
-            foreach ($lineasExistentesPorMenuId as $menuId => $lineaExistente) {
-                if (!isset($lineasDeseadasPorMenuId[$menuId])) {
+            foreach ($lineasExistentesPorActividadId as $actividadId => $lineaExistente) {
+                if (!isset($lineasDeseadasPorActividadId[$actividadId])) {
                     $this->entityManager->remove($lineaExistente);
                 }
             }
 
-            foreach ($lineasDeseadasPorMenuId as $menuId => $lineaDeseada) {
-                $lineaExistente = $lineasExistentesPorMenuId[$menuId] ?? null;
+            foreach ($lineasDeseadasPorActividadId as $actividadId => $lineaDeseada) {
+                $lineaExistente = $lineasExistentesPorActividadId[$actividadId] ?? null;
 
                 if ($lineaExistente instanceof SeleccionParticipanteEventoLinea) {
                     $this->hydrateLineaSelection($lineaExistente, $lineaDeseada);
@@ -369,7 +369,7 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
     }
 
     /**
-     * @return array<string, array{evento: Evento, usuario: ?Usuario, invitado: ?Invitado, menu: MenuEvento, inscripcionLinea: ?InscripcionLinea}>
+     * @return array<string, array{evento: Evento, usuario: ?Usuario, invitado: ?Invitado, actividad: MenuEvento, inscripcionLinea: ?InscripcionLinea}>
      */
     private function buildDesiredLineSelections(
         Evento $evento,
@@ -380,16 +380,16 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
         $lineasDeseadas = [];
 
         foreach ($lineasInscripcion as $lineaInscripcion) {
-            $menuId = (string) $lineaInscripcion->getMenu()->getId();
-            if ($menuId === '' || isset($lineasDeseadas[$menuId])) {
+            $actividadId = (string) $lineaInscripcion->getActividad()->getId();
+            if ($actividadId === '' || isset($lineasDeseadas[$actividadId])) {
                 continue;
             }
 
-            $lineasDeseadas[$menuId] = [
+            $lineasDeseadas[$actividadId] = [
                 'evento' => $evento,
                 'usuario' => $seleccionPrincipal->getUsuario(),
                 'invitado' => $seleccionPrincipal->getInvitado(),
-                'menu' => $lineaInscripcion->getMenu(),
+                'actividad' => $lineaInscripcion->getActividad(),
                 'inscripcionLinea' => $lineaInscripcion,
             ];
         }
@@ -455,14 +455,14 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
     }
 
     /**
-     * @param array{evento: Evento, usuario: ?Usuario, invitado: ?Invitado, menu: MenuEvento, inscripcionLinea: ?InscripcionLinea} $data
+     * @param array{evento: Evento, usuario: ?Usuario, invitado: ?Invitado, actividad: MenuEvento, inscripcionLinea: ?InscripcionLinea} $data
      */
     private function hydrateLineaSelection(SeleccionParticipanteEventoLinea $linea, array $data): void
     {
         $linea->setEvento($data['evento']);
         $linea->setUsuario($data['usuario']);
         $linea->setInvitado($data['invitado']);
-        $linea->setMenu($data['menu']);
+        $linea->setActividad($data['actividad']);
         $linea->setInscripcionLinea($data['inscripcionLinea']);
     }
 

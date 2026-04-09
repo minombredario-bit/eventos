@@ -35,8 +35,8 @@ class SeleccionParticipantesEventoPutProcessorTest extends TestCase
         $evento = $this->createMock(Evento::class);
         $evento->method('getId')->willReturn('evento-1');
         $evento->method('getEntidad')->willReturn($entidad);
-        $evento->method('tieneMenusActivos')->willReturn(true);
-        $evento->method('permiteGestionInvitados')->willReturn(true);
+        $evento->method('tieneActividadesActivas')->willReturn(true);
+        $evento->method('permiteGestionInvitadosConActividades')->willReturn(true);
 
         $security = $this->createMock(Security::class);
         $security->method('getUser')->willReturn($user);
@@ -117,8 +117,8 @@ class SeleccionParticipantesEventoPutProcessorTest extends TestCase
         $evento = $this->createMock(Evento::class);
         $evento->method('getId')->willReturn('evento-1');
         $evento->method('getEntidad')->willReturn($entidad);
-        $evento->method('tieneMenusActivos')->willReturn(true);
-        $evento->method('permiteGestionInvitados')->willReturn(true);
+        $evento->method('tieneActividadesActivas')->willReturn(true);
+        $evento->method('permiteGestionInvitadosConActividades')->willReturn(true);
 
         $security = $this->createMock(Security::class);
         $security->method('getUser')->willReturn($user);
