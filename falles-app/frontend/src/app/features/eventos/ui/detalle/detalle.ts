@@ -83,7 +83,10 @@ export class Detalle {
     nombre:        ['', [Validators.required, Validators.minLength(2)]],
     apellidos:     ['', [Validators.required, Validators.minLength(2)]],
     tipoPersona:   this.fb.nonNullable.control<'adulto' | 'infantil'>('adulto'),
-    parentesco:    ['Invitado/a', [Validators.required, Validators.minLength(2)]],
+    parentesco:    this.fb.nonNullable.control(
+      { value: 'Invitado/a', disabled: true },
+      [Validators.required, Validators.minLength(2)],
+    ),
     observaciones: [''],
   });
 
@@ -227,18 +230,125 @@ export class Detalle {
   protected readonly hasActiveMenus = computed(() => this.hasActiveMenusFromEvent(this.event()));
   protected readonly guestManagementEnabled = computed(() => this.canUseGuestParticipantsFromEvent(this.event()));
   protected readonly canManageParticipants = computed(() =>
-    Boolean(this.event()?.inscripcionAbierta === true && this.hasActiveMenus() && this.guestManagementEnabled()),
+    Boolean(this.event()?.inscripcionAbierta === true && this.hasActiveMenus()),
   );
+  protected readonly activeMenuCompatibilityScope = computed(() => {
+    const event = this.event();
+    if (!event || !Array.isArray(event.menus)) {
+      return { allowsAdult: false, allowsInfantil: false };
+    }
+
+    const activeMenus = event.menus.filter((menu) => menu.activo !== false);
+    if (!activeMenus.length) {
+      return { allowsAdult: false, allowsInfantil: false };
+    }
+
+    let allowsAdult = false;
+    let allowsInfantil = false;
+
+    for (const menu of activeMenus) {
+      if (menu.compatibilidadPersona === 'ambos') {
+        allowsAdult = true;
+        allowsInfantil = true;
+        continue;
+      }
+
+      if (menu.compatibilidadPersona === 'adulto') {
+        allowsAdult = true;
+      }
+
+      if (menu.compatibilidadPersona === 'infantil') {
+        allowsInfantil = true;
+      }
+    }
+
+    return { allowsAdult, allowsInfantil };
+  });
+
+  protected readonly guestTypeInfantilOnly = computed(() => {
+    const scope = this.activeMenuCompatibilityScope();
+    return this.guestManagementEnabled() && scope.allowsInfantil && !scope.allowsAdult;
+  });
+
+  protected readonly guestTypeAdultOnly = computed(() => {
+    const scope = this.activeMenuCompatibilityScope();
+    return this.guestManagementEnabled() && scope.allowsAdult && !scope.allowsInfantil;
+  });
+
+  protected readonly participantsCompatibilityMessage = computed(() => {
+    const scope = this.activeMenuCompatibilityScope();
+    if (scope.allowsAdult && scope.allowsInfantil) {
+      return null;
+    }
+
+    if (scope.allowsInfantil) {
+      return 'Este evento solo tiene menús infantiles: se muestran únicamente perfiles infantiles.';
+    }
+
+    if (scope.allowsAdult) {
+      return 'Este evento solo tiene menús para adultos: se muestran únicamente perfiles adultos.';
+    }
+
+    return null;
+  });
+
+  protected readonly emptySelectionMessage = computed(() => {
+    const scope = this.activeMenuCompatibilityScope();
+    if (scope.allowsInfantil && !scope.allowsAdult) {
+      return 'No hay perfiles infantiles disponibles para este evento.';
+    }
+
+    if (scope.allowsAdult && !scope.allowsInfantil) {
+      return 'No hay perfiles adultos disponibles para este evento.';
+    }
+
+    return 'No tienes personas disponibles para este evento.';
+  });
+
+  protected readonly guestTypeRestrictionMessage = computed(() => {
+    if (this.guestTypeInfantilOnly()) {
+      return 'Este evento solo permite crear invitados infantiles.';
+    }
+
+    if (this.guestTypeAdultOnly()) {
+      return 'Este evento solo permite crear invitados adultos.';
+    }
+
+    return null;
+  });
+
+  protected readonly participantsForSelection = computed<FamilyMember[]>(() => {
+    const allParticipants = this.participants();
+    const scope = this.activeMenuCompatibilityScope();
+    if (scope.allowsAdult && scope.allowsInfantil) {
+      return allParticipants;
+    }
+
+    if (scope.allowsInfantil) {
+      return allParticipants.filter((member) => member.personType === 'infantil');
+    }
+
+    if (scope.allowsAdult) {
+      return allParticipants.filter((member) => member.personType === 'adulto');
+    }
+
+    return [];
+  });
+
+  protected readonly selectedMemberIdsInScope = computed(() => {
+    const allowed = new Set(this.participantsForSelection().map((member) => this.participantKey(member)));
+    return this.selectedMemberIds().filter((id) => allowed.has(id));
+  });
 
   protected readonly selectedCountLabel = computed(() => {
-    const count = this.selectedMemberIds().length;
+    const count = this.selectedMemberIdsInScope().length;
     if (count === 0) return 'Todavía no seleccionaste personas para inscribir.';
     if (count === 1) return '1 persona seleccionada para pasar a menús.';
     return `${count} personas seleccionadas para pasar a menús.`;
   });
 
   protected readonly canContinueToMenus = computed(() =>
-    Boolean(this.canManageParticipants() && this.selectedMemberIds().length > 0),
+    Boolean(this.canManageParticipants() && this.selectedMemberIdsInScope().length > 0),
   );
 
   protected readonly menusButtonLabel = computed(() => {
@@ -246,9 +356,9 @@ export class Detalle {
       return 'Este evento no tiene comidas';
     }
 
-    const count = this.selectedMemberIds().length;
+    const count = this.selectedMemberIdsInScope().length;
     return count === 0
-      ? 'Seleccioná al menos un familiar'
+      ? 'Seleccioná al menos una persona'
       : `Seleccionar menús (${count})`;
   });
 
@@ -391,7 +501,7 @@ export class Detalle {
   }
 
   protected openMenus(): void {
-    const selected = this.selectedMemberIds();
+    const selected = this.selectedMemberIdsInScope();
     const eventId = this.eventId();
     if (!selected.length || !eventId || !this.canManageParticipants()) return;
 
@@ -423,6 +533,10 @@ export class Detalle {
       return;
     }
 
+    if (this.guestTypeInfantilOnly() && this.invitadoForm.controls.tipoPersona.value !== 'infantil') {
+      this.invitadoForm.controls.tipoPersona.setValue('infantil');
+    }
+
     const eventId = this.eventId();
     if (!eventId) return;
 
@@ -433,8 +547,10 @@ export class Detalle {
     const payload: AltaInvitadoPayload = {
       nombre:        value.nombre.trim(),
       apellidos:     value.apellidos.trim(),
-      tipoPersona:   value.tipoPersona,
-      parentesco:    value.parentesco.trim(),
+      tipoPersona:   this.guestTypeInfantilOnly()
+        ? 'infantil'
+        : (this.guestTypeAdultOnly() ? 'adulto' : value.tipoPersona),
+      parentesco:    'Invitado/a',
       observaciones: value.observaciones.trim(),
     };
 
@@ -452,9 +568,12 @@ export class Detalle {
           );
           this.persistSelectedParticipants();
           this.invitadoForm.patchValue({
-            nombre: '', apellidos: '', tipoPersona: 'adulto',
+            nombre: '',
+            apellidos: '',
+            tipoPersona: this.guestTypeInfantilOnly() ? 'infantil' : 'adulto',
             parentesco: 'Invitado/a', observaciones: '',
           });
+          this.syncInvitadoTipoPersonaControl();
           this.invitadoForm.markAsPristine();
           this.invitadoForm.markAsUntouched();
           this.submittingInvitado.set(false);
@@ -513,6 +632,7 @@ export class Detalle {
       .subscribe({
         next: (event) => {
           this.event.set(event);
+          this.syncInvitadoTipoPersonaControl();
 
           if (!this.canUseGuestParticipantsFromEvent(event)) {
             this.invitados.set([]);
@@ -706,9 +826,14 @@ export class Detalle {
       return;
     }
 
+    const selectedKeys = this.selectedMemberIdsInScope();
+    if (selectedKeys.length !== this.selectedMemberIds().length) {
+      this.selectedMemberIds.set(selectedKeys);
+    }
+
     this.selectionSaveRequests$.next({
       eventId,
-      selectedKeys: [...this.selectedMemberIds()],
+      selectedKeys: [...selectedKeys],
       });
   }
 
@@ -929,6 +1054,24 @@ export class Detalle {
 
   private canUseGuestParticipantsFromEvent(event: EventoDetalleApi | null): boolean {
     return Boolean(event?.permiteInvitados && this.hasActiveMenusFromEvent(event));
+  }
+
+  private syncInvitadoTipoPersonaControl(): void {
+    const tipoPersonaControl = this.invitadoForm.controls.tipoPersona;
+
+    if (this.guestTypeInfantilOnly()) {
+      tipoPersonaControl.setValue('infantil');
+      tipoPersonaControl.disable({ emitEvent: false });
+      return;
+    }
+
+    if (this.guestTypeAdultOnly()) {
+      tipoPersonaControl.setValue('adulto');
+      tipoPersonaControl.disable({ emitEvent: false });
+      return;
+    }
+
+    tipoPersonaControl.enable({ emitEvent: false });
   }
 }
 

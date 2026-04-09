@@ -29,52 +29,46 @@
       }
 
       <div class="detail-panels">
+        @if (hasActiveMenus()) {
+          <article class="panel family-list" aria-label="Inscripciones ya guardadas">
+            <h2>A quién he apuntado</h2>
+            <p class="supporting-copy">Inscripciones activas guardadas para este evento.</p>
+            <p class="selection-summary">{{ inscritosSummary() }}</p>
 
-        <article class="panel family-list" aria-label="Inscripciones ya guardadas">
-          <h2>A quién he apuntado</h2>
-          <p class="supporting-copy">Inscripciones activas guardadas para este evento.</p>
-          <p class="selection-summary">{{ inscritosSummary() }}</p>
-
-          @if (loadingInscritos()) {
-            <p>Cargando inscripciones...</p>
-          } @else if (inscritosError()) {
-            <p class="supporting-copy">{{ inscritosError() }}</p>
-          } @else if (!inscritosRows().length) {
-            <p class="supporting-copy">Todavía no hay inscripciones para mostrar.</p>
-          } @else {
-            @for (member of inscritosRows(); track inscritoTrackKey(member)) {
-              <app-member-row
-                [member]="member"
-                [showEnrollmentInfo]="true"
-                aria-label="Fila de invitado o familiar inscrito"
-              />
+            @if (loadingInscritos()) {
+              <p>Cargando inscripciones...</p>
+            } @else if (inscritosError()) {
+              <p class="supporting-copy">{{ inscritosError() }}</p>
+            } @else if (!inscritosRows().length) {
+              <p class="supporting-copy">Todavía no hay inscripciones para mostrar.</p>
+            } @else {
+              @for (member of inscritosRows(); track inscritoTrackKey(member)) {
+                <app-member-row
+                  [member]="member"
+                  [showEnrollmentInfo]="true"
+                  aria-label="Fila de invitado o familiar inscrito"
+                />
+              }
             }
-          }
-        </article>
+          </article>
+        }
 
         @if (!inscripcionCerrada()) {
-          @if (!hasActiveMenus()) {
-            <article class="panel family-list" aria-label="Evento sin comidas">
-              <h2>Evento sin comidas</h2>
-              <p class="supporting-copy">Este evento no tiene menús activos, así que no se puede inscribir personas ni crear invitados.</p>
-            </article>
-          } @else if (!guestManagementEnabled()) {
-            <article class="panel family-list" aria-label="Evento sin invitados">
-              <h2>Invitados no disponibles</h2>
-              <p class="supporting-copy">Este evento no admite invitados, por lo que no se pueden añadir nuevas inscripciones desde esta pantalla.</p>
-            </article>
-          } @else {
+          @if (hasActiveMenus()) {
             <article class="panel family-list" aria-label="Listado de familiares">
               <h2>Inscripciones y familiares</h2>
               <p class="supporting-copy">Toca en "Inscribir" para elegir quiénes pasan a la pantalla de menús.</p>
+              @if (participantsCompatibilityMessage(); as message) {
+                <p class="supporting-copy">{{ message }}</p>
+              }
               <p class="selection-summary">{{ selectedCountLabel() }}</p>
 
               @if (loadingPeople()) {
                 <p>Cargando familiares...</p>
-              } @else if (participants().length === 0) {
-                <p class="supporting-copy">No tienes personas disponibles para este evento.</p>
+              } @else if (participantsForSelection().length === 0) {
+                <p class="supporting-copy">{{ emptySelectionMessage() }}</p>
               } @else {
-                @for (member of participants(); track participantTrackKey(member)) {
+                @for (member of participantsForSelection(); track participantTrackKey(member)) {
                   <app-member-row
                     [member]="member"
                     [actionLabel]="participantActionLabel(member)"
@@ -90,6 +84,13 @@
                 }
               }
             </article>
+
+            @if (!guestManagementEnabled()) {
+              <article class="panel family-list" aria-label="Evento sin invitados">
+                <h2>Invitados no disponibles</h2>
+                <p class="supporting-copy">Este evento no admite usuarios invitados. Los usuarios registrados sí pueden inscribirse.</p>
+              </article>
+            }
 
             @if (guestManagementEnabled()) {
               <article class="panel invitados" aria-label="Gestión de invitados">
@@ -123,6 +124,10 @@
                       <input type="text" formControlName="parentesco" placeholder="Invitado/a" />
                     </label>
                   </div>
+
+                  @if (guestTypeRestrictionMessage(); as guestMessage) {
+                    <p class="supporting-copy">{{ guestMessage }}</p>
+                  }
 
                   <label>
                     Observaciones
