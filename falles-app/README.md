@@ -1,6 +1,6 @@
 # Festapp
 
-Aplicación móvil multiplataforma (PWA) para gestión de comidas, inscripciones y pagos de entidades festivas: fallas, comparsas de moros y cristianos, peñas, hermandades, clubs y asociaciones.
+Aplicación móvil multiplataforma (PWA) para gestión de comidas, inscripciones y pagos de colectivos festivos: fallas, comparsas de moros y cristianos, peñas, hermandades, clubs y asociaciones.
 
 ## Stack tecnológico
 
@@ -56,8 +56,8 @@ falles-app/
 
 | Rol | Descripción |
 |---|---|
-| `ROLE_SUPERADMIN` | Gestión global: crea entidades, sube censos, genera códigos de registro |
-| `ROLE_ADMIN_ENTIDAD` | Gestión de su entidad: eventos, menús, inscripciones, pagos, usuarios |
+| `ROLE_SUPERADMIN` | Gestión global: crea colectivos, sube censos, genera códigos de registro |
+| `ROLE_ADMIN_ENTIDAD` | Gestión de su colectivo: eventos, actividades, inscripciones, pagos, usuarios |
 | `ROLE_USER` | Usuario final: inscripciones, familia, pagos propios |
 
 ## Arranque rápido

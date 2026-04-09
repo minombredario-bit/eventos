@@ -1,18 +1,18 @@
 # Requisitos funcionales y técnicos — Festapp
 
-> Versión 1.3 — Franjas de comida por evento y compatibilidad de menú por tipo de persona
+> Versión 1.3 — Franjas de comida por evento y compatibilidad de actividad por tipo de persona
 
 ---
 
 ## 1. Objetivo del sistema
 
-Aplicación móvil multiplataforma (Android + iPhone vía PWA instalable) para gestionar comidas, almuerzos, meriendas y cenas de fallas, comparsas y entidades festivas similares, incluyendo la semana fallera y eventos del resto del año.
+Aplicación móvil multiplataforma (Android + iPhone vía PWA instalable) para gestionar comidas, almuerzos, meriendas y cenas de fallas, comparsas y colectivos festivos similares, incluyendo la semana fallera y eventos del resto del año.
 
 El sistema debe permitir:
 
-- gestión multi-entidad desde un único superadministrador
+- gestión multi-colectivo desde un único superadministrador
 - inscripción de socios y sus familiares a eventos
-- selección de menús por persona con precios diferenciados (interno/externo)
+- selección de actividades por persona con precios diferenciados (interno/externo)
 - control de inscripciones, aforos y listas de espera
 - control y registro de pagos (manual en fase 1, pasarela en fase 3)
 - listados operativos para cocina y organización
@@ -29,30 +29,30 @@ Rol global con acceso completo al sistema. Solo existe uno o muy pocos usuarios 
 
 Puede:
 
-- crear, editar y desactivar entidades en el sistema
-- subir el Excel del censo de cada entidad (nombre, apellidos, email, DNI, parentesco, tipo)
-- generar y regenerar el código de registro único de cada entidad
-- asignar uno o varios admins a cada entidad
-- ver estadísticas globales por entidad
-- acceder a cualquier entidad en modo lectura para soporte
+- crear, editar y desactivar colectivos en el sistema
+- subir el Excel del censo de cada colectivo (nombre, apellidos, email, DNI, parentesco, tipo)
+- generar y regenerar el código de registro único de cada colectivo
+- asignar uno o varios admins a cada colectivo
+- ver estadísticas globales por colectivo
+- acceder a cualquier colectivo en modo lectura para soporte
 
-No gestiona eventos, menús ni inscripciones de ninguna entidad directamente.
+No gestiona eventos, actividades ni inscripciones de ningún colectivo directamente.
 
-### 2.2 Administrador de entidad (`ROLE_ADMIN_ENTIDAD`)
+### 2.2 Administrador de colectivo (`ROLE_ADMIN_ENTIDAD`)
 
-Rol limitado a una única entidad. Es el responsable operativo del día a día.
+Rol limitado a un único colectivo. Es el responsable operativo del día a día.
 
 Puede:
 
-- crear y editar eventos de su entidad
+- crear y editar eventos de su colectivo
 - abrir y cerrar inscripciones por evento
-- crear menús y definir precios, franja de comida y compatibilidad por tipo de persona
-- ver todas las inscripciones de su entidad
+- crear actividades y definir precios, franja de comida y compatibilidad por tipo de persona
+- ver todas las inscripciones de su colectivo
 - validar o rechazar usuarios y familiares pendientes
 - dar de alta y de baja a usuarios en el censo interno
 - registrar pagos manualmente
 - exportar listados (Excel, PDF)
-- subir o actualizar el censo si el superadmin le delega ese permiso (delegable por entidad)
+- subir o actualizar el censo si el superadmin le delega ese permiso (delegable por colectivo)
 - activar el modo de verificación de acceso para eventos que lo requieran
 
 ### 2.3 Usuario (`ROLE_USER`)
@@ -66,7 +66,7 @@ Puede:
 - cambiar su contraseña desde su perfil
 - gestionar su unidad familiar (alta, edición, baja lógica)
 - inscribirse a eventos y apuntar a sus familiares validados
-- seleccionar menú por persona en cada inscripción
+- seleccionar actividad por persona en cada inscripción
 - consultar sus inscripciones y pagos
 - ver la credencial visual de acceso cuando corresponda
 
@@ -94,7 +94,7 @@ Representa cada organización registrada en el sistema: falla, comparsa de moros
 | codigoRegistro | string | único global, generado por superadmin |
 | temporadaActual | string | ej. "2025" |
 | activa | boolean | |
-| censado | boolean | activa/desactiva gestión censal de la entidad |
+| censado | boolean | activa/desactiva gestión censal del colectivo |
 | createdAt | datetime | |
 | updatedAt | datetime | |
 
@@ -102,11 +102,11 @@ Relaciones:
 
 - 1:N con Usuario
 - 1:N con Evento
-- N:M con Usuario (admins de la entidad)
+- N:M con Usuario (admins del colectivo)
 
 ### 3.2 Cargo
 
-Tabla de cargos internos de una entidad (por ejemplo: presidente, tesorero, vocal).
+Tabla de cargos internos de un colectivo (por ejemplo: presidente, tesorero, vocal).
 
 | Campo | Tipo | Notas |
 |---|---|---|
@@ -183,7 +183,7 @@ Cada asistente posible dentro de la unidad familiar de un usuario.
 | id | uuid | |
 | entidad | FK Entidad | |
 | titulo | string | |
-| slug | string | único por entidad |
+| slug | string | único por colectivo |
 | descripcion | text | nullable |
 | tipoEvento | enum TipoEventoEnum | |
 | fechaEvento | date | |
@@ -258,12 +258,12 @@ Cada asistente posible dentro de la unidad familiar de un usuario.
 | id | uuid | |
 | inscripcion | FK Inscripcion | |
 | persona | FK PersonaFamiliar | |
-| menu | FK MenuEvento | |
+| actividad | FK MenuEvento | canónico; alias legacy: `menu` |
 | nombrePersonaSnapshot | string | histórico |
 | tipoPersonaSnapshot | string | histórico |
 | tipoRelacionEconomicaSnapshot | string | histórico |
 | estadoValidacionSnapshot | string | histórico |
-| nombreMenuSnapshot | string | histórico |
+| nombreActividadSnapshot | string | histórico |
 | franjaComidaSnapshot | string | histórico |
 | esDePagoSnapshot | boolean | histórico |
 | precioUnitario | decimal(8,2) | precio real aplicado, histórico |
@@ -336,9 +336,9 @@ CensadoViaEnum:         EXCEL, MANUAL, INVITACION
 ### 5.1 Registro y acceso
 
 - no existe autorregistro de usuarios
-- el alta de usuarios la realiza exclusivamente un administrador de entidad, manualmente o por importación Excel
+- el alta de usuarios la realiza exclusivamente un administrador de colectivo, manualmente o por importación Excel
 - los usuarios pendientes de validación, rechazados, bloqueados o dados de baja (`activo = false`) no pueden iniciar sesión
-- si la entidad del usuario está inactiva (`entidad.activa = false`) tampoco puede iniciar sesión
+- si el colectivo del usuario está inactivo tampoco puede iniciar sesión
 - cuando `debeCambiarPassword = true`, el usuario debe cambiar su contraseña en el primer login antes de usar el resto de endpoints
 - el código de registro puede regenerarse; el código antiguo queda inválido inmediatamente
 
@@ -358,11 +358,11 @@ CensadoViaEnum:         EXCEL, MANUAL, INVITACION
 
 - el backend decide siempre el precio; nunca se confía en el frontend
 - si `esDePago = false`, el precio aplicado es 0 independientemente del resto
-- si `esDePago = true`, el precio depende del tipo de menú y la condición económica validada de la persona
-- si la persona es INTERNO: se aplica `precioAdultoInterno` o `precioInfantil` según el menú elegido
+- si `esDePago = true`, el precio depende del tipo de actividad y la condición económica validada de la persona
+- si la persona es INTERNO: se aplica `precioAdultoInterno` o `precioInfantil` según la actividad elegida
 - si la persona es EXTERNO o INVITADO: se aplica `precioAdultoExterno` o `precioInfantil`
-- si el menú elegido es de tipo INFANTIL: se aplica siempre `precioInfantil`, sea adulto o infantil quien lo elija
-- si el menú elegido es de tipo ADULTO: se aplica precio adulto aunque quien se inscriba sea infantil
+- si la actividad elegida es de tipo INFANTIL: se aplica siempre `precioInfantil`, sea adulto o infantil quien lo elija
+- si la actividad elegida es de tipo ADULTO: se aplica precio adulto aunque quien se inscriba sea infantil
 - si no existe precio específico, se cae a `precioBase`
 - una persona con `estadoValidacion` distinto de VALIDADO no puede beneficiarse de precios internos
 - si el usuario está dado de baja del censo interno, en nuevas inscripciones se le aplica precio externo
@@ -372,10 +372,10 @@ CensadoViaEnum:         EXCEL, MANUAL, INVITACION
 - no se puede inscribir fuera del rango de fechas de inscripción
 - si el evento está cerrado no admite nuevas inscripciones
 - **un usuario no puede inscribirse dos veces al mismo evento** (validación a nivel de API y base de datos con constraint única en `usuario_id` + `evento_id`)
-- el menú elegido debe pertenecer al evento y estar activo
-- cada menú pertenece a una franja de comida (almuerzo/comida/merienda/cena)
+- la actividad elegida debe pertenecer al evento y estar activa
+- cada actividad pertenece a una franja de comida (almuerzo/comida/merienda/cena)
 - una persona puede tener varias líneas en el mismo evento, pero **solo una por franja**
-- no se puede seleccionar un menú incompatible con el tipo de persona (adulto/infantil)
+- no se puede seleccionar una actividad incompatible con el tipo de persona (adulto/infantil)
 - el importe total se calcula en el backend sumando solo las líneas de pago
 - si el importe total es 0, el estado de pago es `NO_REQUIERE_PAGO` y la inscripción puede confirmarse automáticamente
 - se guardan snapshots en cada línea en el momento de la inscripción
@@ -444,9 +444,10 @@ DELETE /api/persona_familiares/{id}           Baja lógica
 ### Eventos (usuario)
 
 ```
-GET    /api/eventos                           Lista eventos visibles/publicados de la entidad
+GET    /api/eventos                           Lista eventos visibles/publicados del colectivo
 GET    /api/eventos/{id}                      Detalle de evento
-GET    /api/menu_eventos?evento={id}          Menús de un evento
+GET    /api/actividad_eventos?evento={id}     Actividades de un evento
+GET    /api/menu_eventos?evento={id}          Alias legacy compatible
 GET    /api/eventos/{id}/mi-credencial        Credencial visual (si procede)
 ```
 
@@ -459,10 +460,10 @@ GET    /api/inscripciones/{id}                Detalle de inscripción
 POST   /api/inscripciones/{id}/cancelar       Cancelar inscripción
 ```
 
-### Admin de entidad — usuarios
+### Admin de colectivo — usuarios
 
 ```
-GET    /api/admin/usuarios                    Lista usuarios de la entidad
+GET    /api/admin/usuarios                    Lista usuarios del colectivo
 POST   /api/admin/usuarios                    Alta manual de usuario
 POST   /api/admin/usuarios/importar-excel     Alta/actualización de usuarios por Excel
 GET    /api/admin/usuarios-pendientes         Usuarios pendientes de validación
@@ -475,22 +476,24 @@ POST   /api/admin/persona_familiares/{id}/validar
 POST   /api/admin/persona_familiares/{id}/rechazar
 ```
 
-### Admin de entidad — eventos y menús
+### Admin de colectivo — eventos y actividades
 
 ```
-GET    /api/admin/eventos                     Todos los eventos de la entidad
+GET    /api/admin/eventos                     Todos los eventos del colectivo
 POST   /api/eventos                           Crear evento
 PATCH  /api/eventos/{id}                      Editar evento
 POST   /api/eventos/{id}/publicar             Publica evento
 POST   /api/eventos/{id}/cerrar               Cierra inscripciones
-POST   /api/menu_eventos                      Crear menú
-PATCH  /api/menu_eventos/{id}                 Editar menú
+POST   /api/actividad_eventos                 Crear actividad
+PATCH  /api/actividad_eventos/{id}            Editar actividad
+POST   /api/menu_eventos                      Alias legacy compatible
+PATCH  /api/menu_eventos/{id}                 Alias legacy compatible
 ```
 
-### Admin de entidad — inscripciones y pagos
+### Admin de colectivo — inscripciones y pagos
 
 ```
-GET    /api/admin/inscripciones               Lista inscripciones del evento o entidad
+GET    /api/admin/inscripciones               Lista inscripciones del evento o colectivo
 GET    /api/admin/inscripciones/{id}          Detalle con líneas
 POST   /api/inscripciones/{id}/registrar_pago Registrar pago manual
 GET    /api/admin/pagos                        Lista de pagos
@@ -502,23 +505,23 @@ Notas de comportamiento para `registrar_pago`:
 - recalcula `estadoPago` en base a `importeTotal` e `importePagado`
 - deja trazabilidad por línea mediante el flag `pagada`
 
-### Admin de entidad — reportes
+### Admin de colectivo — reportes
 
 ```
-GET    /api/eventos/{id}/reporte-resumen      Resumen por menú
+GET    /api/eventos/{id}/reporte-resumen      Resumen por actividad
 GET    /api/eventos/{id}/reporte-personas     Listado nominal
-GET    /api/eventos/{id}/reporte-menu         Agrupado por menú para cocina
+GET    /api/eventos/{id}/reporte-menu         Agrupado por actividad para cocina
 GET    /api/eventos/{id}/reporte-pagos        Estado de pagos
 ```
 
 ### Superadmin — fallas
 
 ```
-GET    /api/superadmin/entidades                 Lista todas las entidades
-POST   /api/superadmin/entidades                 Crear entidad
-PATCH  /api/superadmin/entidades/{id}            Editar entidad
+GET    /api/superadmin/entidades                 Lista todos los colectivos
+POST   /api/superadmin/entidades                 Crear colectivo
+PATCH  /api/superadmin/entidades/{id}            Editar colectivo
 POST   /api/superadmin/entidades/{id}/codigo-registro/regenerar
-POST   /api/superadmin/entidades/{id}/admins     Asigna admin a entidad
+POST   /api/superadmin/entidades/{id}/admins     Asigna admin a colectivo
 ```
 
 ### Sistema — cola de correo
@@ -540,17 +543,17 @@ POST /api/eventos/42/inscribirme
   "personas": [
     {
       "persona": "/api/persona_familiares/1",
-      "menu": "/api/menu_eventos/10",
+      "actividad": "/api/menu_eventos/10",
       "observaciones": "Sin cebolla"
     },
     {
       "persona": "/api/persona_familiares/1",
-      "menu": "/api/menu_eventos/12",
+      "actividad": "/api/menu_eventos/12",
       "observaciones": "Solo para cena"
     },
     {
       "persona": "/api/persona_familiares/2",
-      "menu": "/api/menu_eventos/11",
+      "actividad": "/api/menu_eventos/11",
       "observaciones": null
     }
   ]
@@ -570,14 +573,14 @@ POST /api/eventos/42/inscribirme
   "lineas": [
     {
       "persona": "Ana García",
-      "menu": "Menú adulto",
+      "actividad": "Actividad adulto",
       "franja": "comida",
       "precioUnitario": 15.00,
       "esDePago": true
     },
     {
       "persona": "Pablo García",
-      "menu": "Menú infantil",
+      "actividad": "Actividad infantil",
       "franja": "comida",
       "precioUnitario": 12.00,
       "esDePago": true
@@ -594,30 +597,30 @@ POST /api/eventos/42/inscribirme
 
 | Pantalla | Descripción |
 |---|---|
-| Splash / acceso | Logo de la entidad, login o registro |
-| Registro paso 1 | Introducir código de entidad |
+| Splash / acceso | Logo del colectivo, login o registro |
+| Registro paso 1 | Introducir código de colectivo |
 | Registro paso 2 | Datos personales, contraseña |
 | Pendiente de validación | Pantalla informativa si no hay coincidencia en censo |
 | Login | Email y contraseña |
 | Inicio | Calendario mensual con eventos marcados |
 | Listado de eventos | Próximos, con inscripción abierta, mis reservas |
-| Detalle de evento | Info, menús, plazo, botón inscribirse |
-| Selección de asistentes | Selector por persona y por franja (almuerzo/comida/merienda/cena), con bloqueo de menús incompatibles y bloqueo por línea pagada |
-| Resumen de inscripción | Asistentes, menús, subtotal, total, estado pago |
+| Detalle de evento | Info, actividades, plazo, botón inscribirse |
+| Selección de asistentes | Selector por persona y por franja (almuerzo/comida/merienda/cena), con bloqueo de actividades incompatibles y bloqueo por línea pagada |
+| Resumen de inscripción | Asistentes, actividades, subtotal, total, estado pago |
 | Mis inscripciones | Lista con estado |
 | Mis pagos | Historial |
 | Mi familia | Gestión de PersonaFamiliar |
 | Perfil | Datos personales, cambiar contraseña |
 | Credencial de acceso | Pase visual con token temporal |
 
-### 8.2 Admin de entidad
+### 8.2 Admin de colectivo
 
 | Pantalla | Descripción |
 |---|---|
-| Dashboard | KPIs rápidos de la entidad |
+| Dashboard | KPIs rápidos del colectivo |
 | Calendario de eventos | Vista mes/semana/día con filtros |
 | Crear / editar evento | Formulario completo |
-| Gestionar menús | CRUD de menús de un evento |
+| Gestionar actividades | CRUD de actividades de un evento |
 | Listado de inscripciones | Filtros por evento, estado, pago |
 | Detalle de inscripción | Líneas, pagos, historial |
 | Listado de pagos | Con exportación |
@@ -630,12 +633,12 @@ POST /api/eventos/42/inscribirme
 
 | Pantalla | Descripción |
 |---|---|
-| Lista de entidades | Estado, estadísticas básicas |
-| Crear / editar entidad | Formulario con logo y configuración |
+| Lista de colectivos | Estado, estadísticas básicas |
+| Crear / editar colectivo | Formulario con logo y configuración |
 | Importar censo | Upload de Excel con previsualización |
 | Historial de importaciones | Fecha, usuario, entradas procesadas |
 | Código de registro | Ver, copiar, regenerar |
-| Asignación de admins | Vincular usuarios como admin de entidad |
+| Asignación de admins | Vincular usuarios como admin de colectivo |
 
 ---
 
@@ -644,24 +647,24 @@ POST /api/eventos/42/inscribirme
 ### Todo gratuito
 
 ```
-Ana → menú infantil gratuito = 0 €
-Pablo → menú infantil gratuito = 0 €
+Ana → actividad infantil gratuita = 0 €
+Pablo → actividad infantil gratuita = 0 €
 → importeTotal = 0 | estadoPago = NO_REQUIERE_PAGO | confirmación automática
 ```
 
 ### Todo de pago
 
 ```
-Juan → menú adulto interno = 15 €
-María → menú adulto interno = 15 €
+Juan → actividad adulto interno = 15 €
+María → actividad adulto interno = 15 €
 → importeTotal = 30 € | estadoPago = PENDIENTE
 ```
 
 ### Mezcla gratuito + pago
 
 ```
-Juan → menú adulto = 15 €
-Ana → menú infantil gratuito = 0 €
+Juan → actividad adulto = 15 €
+Ana → actividad infantil gratuita = 0 €
 → importeTotal = 15 € | estadoPago = PENDIENTE
 ```
 
@@ -673,17 +676,17 @@ precioAdultoExterno = 25 €
 → INTERNO paga 12 € | EXTERNO paga 25 €
 ```
 
-### Adulto elige menú infantil
+### Adulto elige actividad infantil
 
 ```
-persona: adulto | menú: infantil | precioInfantil = 8 €
+persona: adulto | actividad: infantil | precioInfantil = 8 €
 → paga 8 €
 ```
 
-### Infantil elige menú adulto
+### Infantil elige actividad adulto
 
 ```
-persona: infantil | menú: adulto | precioAdultoInterno = 12 €
+persona: infantil | actividad: adulto | precioAdultoInterno = 12 €
 → paga 12 € (interno) o 25 € (externo)
 ```
 
@@ -693,11 +696,11 @@ persona: infantil | menú: adulto | precioAdultoInterno = 12 €
 
 ### Fase 1 — MVP
 
-- autenticación JWT con flujo de validación por código de entidad
-- gestión de entidades (superadmin)
+- autenticación JWT con flujo de validación por código de colectivo
+- gestión de colectivos (superadmin)
 - importación de censo desde Excel
 - gestión de usuarios y familiares con estados y validación administrativa
-- eventos y menús
+- eventos y actividades
 - inscripciones con cálculo de precios en backend
 - listados básicos
 
@@ -726,11 +729,11 @@ persona: infantil | menú: adulto | precioAdultoInterno = 12 €
 - los snapshots de `InscripcionLinea` son inmutables una vez creados
 - el bloqueo de edición/eliminación de líneas se decide por `InscripcionLinea.pagada` (granular por línea)
 - la ventana de credencial se valida en el servidor con hora UTC
-- el código de registro de cada entidad es un string aleatorio seguro de al menos 12 caracteres
+- el código de registro de cada colectivo es un string aleatorio seguro de al menos 12 caracteres
 - el matching del censo es case-insensitive y normaliza tildes
-- los endpoints de admin están protegidos por voter de Symfony que verifica que el recurso pertenezca a la entidad del admin
+- los endpoints de admin están protegidos por voter de Symfony que verifica que el recurso pertenezca al colectivo del admin
 - los endpoints de superadmin requieren `ROLE_SUPERADMIN` explícito
-- el rol de admin de entidad es `ROLE_ADMIN_ENTIDAD`; el voter comprueba además que la entidad coincide
+- el rol de admin de colectivo es `ROLE_ADMIN_ENTIDAD`; el voter comprueba además que el colectivo coincide
 - `terminologiaSocio` y `terminologiaEvento` se devuelven en el endpoint de validación de código y en `/api/me` para que el frontend adapte sus textos
 - la API es stateless; toda la sesión viaja en el JWT
 - diseño mobile-first; la PWA debe funcionar con conexión intermitente
