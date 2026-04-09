@@ -12,12 +12,71 @@ use App\Repository\InvitadoRepository;
 use App\Repository\SeleccionParticipanteEventoRepository;
 use App\Repository\UsuarioRepository;
 use App\Service\InscripcionService;
+use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpFoundation\Request;
 
 class EventoControllerTest extends TestCase
 {
+    public function testMenusLegacyRouteReturnsDeprecationHeaders(): void
+    {
+        $evento = $this->createConfiguredMock(\App\Entity\Evento::class, [
+            'getMenus' => new ArrayCollection([]),
+        ]);
+
+        $eventoRepository = $this->createMock(EventoRepository::class);
+        $eventoRepository->method('find')->with('evento-1')->willReturn($evento);
+
+        $controller = $this->buildController(
+            $this->createMock(Usuario::class),
+            $eventoRepository,
+            $this->createMock(InscripcionRepository::class),
+            $this->createMock(InvitadoRepository::class),
+            $this->createMock(UsuarioRepository::class),
+            $this->createMock(SeleccionParticipanteEventoRepository::class),
+        );
+
+        $request = Request::create('/api/menu_eventos', 'GET', ['evento' => 'evento-1']);
+        $request->attributes->set('_route', 'api_menu_eventos_by_evento');
+
+        $response = $controller->menus($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('true', $response->headers->get('Deprecation'));
+        $this->assertSame('Wed, 31 Dec 2026 23:59:59 GMT', $response->headers->get('Sunset'));
+        $this->assertSame('</api/actividad_eventos>; rel="successor-version"', $response->headers->get('Link'));
+    }
+
+    public function testMenusCanonicalRouteDoesNotReturnDeprecationHeaders(): void
+    {
+        $evento = $this->createConfiguredMock(\App\Entity\Evento::class, [
+            'getMenus' => new ArrayCollection([]),
+        ]);
+
+        $eventoRepository = $this->createMock(EventoRepository::class);
+        $eventoRepository->method('find')->with('evento-1')->willReturn($evento);
+
+        $controller = $this->buildController(
+            $this->createMock(Usuario::class),
+            $eventoRepository,
+            $this->createMock(InscripcionRepository::class),
+            $this->createMock(InvitadoRepository::class),
+            $this->createMock(UsuarioRepository::class),
+            $this->createMock(SeleccionParticipanteEventoRepository::class),
+        );
+
+        $request = Request::create('/api/actividad_eventos', 'GET', ['evento' => 'evento-1']);
+        $request->attributes->set('_route', 'api_actividad_eventos_by_evento');
+
+        $response = $controller->menus($request);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNull($response->headers->get('Deprecation'));
+        $this->assertNull($response->headers->get('Sunset'));
+        $this->assertNull($response->headers->get('Link'));
+    }
+
     public function testGetApuntadosIncludesSelectedInvitadoWhenStillActive(): void
     {
         $entidad = $this->createConfiguredMock(\App\Entity\Entidad::class, [
@@ -67,10 +126,21 @@ class EventoControllerTest extends TestCase
             ->with($evento, ['user-1'])
             ->willReturn([$seleccion]);
 
+        $inscripcion = $this->createConfiguredMock(\App\Entity\Inscripcion::class, [
+            'getId' => 'insc-1',
+            'getLineas' => new ArrayCollection([]),
+        ]);
+
+        $inscripcionRepository = $this->createMock(InscripcionRepository::class);
+        $inscripcionRepository
+            ->method('findOneByInvitadoAndEvento')
+            ->with((string) $invitadoSeleccionado->getId(), 'evento-1')
+            ->willReturn($inscripcion);
+
         $controller = $this->buildController(
             $usuario,
             $eventoRepository,
-            $this->createMock(InscripcionRepository::class),
+            $inscripcionRepository,
             $invitadoRepository,
             $this->createMock(UsuarioRepository::class),
             $seleccionRepository,

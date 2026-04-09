@@ -52,7 +52,7 @@ class EventoController extends AbstractController
 
         $menus = $evento->getMenus()->toArray();
 
-        return $this->json(['hydra:member' => array_map(fn($menu) => [
+        $response = $this->json(['hydra:member' => array_map(fn($menu) => [
             'id' => $menu->getId(),
             'nombre' => $menu->getNombre(),
             'descripcion' => $menu->getDescripcion(),
@@ -66,6 +66,14 @@ class EventoController extends AbstractController
             'precioInfantil' => $menu->getPrecioInfantil(),
             'activo' => $menu->isActivo(),
         ], $menus)]);
+
+        if ((string) $request->attributes->get('_route') === 'api_menu_eventos_by_evento') {
+            $response->headers->set('Deprecation', 'true');
+            $response->headers->set('Sunset', 'Wed, 31 Dec 2026 23:59:59 GMT');
+            $response->headers->set('Link', '</api/actividad_eventos>; rel="successor-version"');
+        }
+
+        return $response;
     }
 
     /**
