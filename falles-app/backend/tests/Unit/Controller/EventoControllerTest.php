@@ -170,6 +170,69 @@ class EventoControllerTest extends TestCase
         $this->assertSame('299 - "Legacy payload key menu/menu_id is deprecated, use actividad/actividad_id"', $response->headers->get('Warning'));
     }
 
+    public function testInscribirmeAcceptsLegacyMenuIdPayload(): void
+    {
+        $entidad = $this->createConfiguredMock(\App\Entity\Entidad::class, ['getId' => 'entidad-1']);
+
+        $evento = $this->createConfiguredMock(\App\Entity\Evento::class, [
+            'getId' => 'evento-1',
+            'getEntidad' => $entidad,
+        ]);
+
+        $usuario = $this->createConfiguredMock(Usuario::class, [
+            'getId' => 'user-1',
+            'getEntidad' => $entidad,
+        ]);
+
+        $inscripcion = $this->createConfiguredMock(Inscripcion::class, [
+            'getId' => 'insc-1',
+            'getCodigo' => 'ENT-2026-CCCCCC',
+            'getEstadoInscripcion' => EstadoInscripcionEnum::PENDIENTE,
+            'getEstadoPago' => EstadoPagoEnum::PENDIENTE,
+            'getImporteTotal' => 0.0,
+            'getImportePagado' => 0.0,
+            'getLineas' => new ArrayCollection([]),
+        ]);
+
+        $inscripcionService = $this->createMock(InscripcionService::class);
+        $inscripcionService
+            ->expects($this->once())
+            ->method('crearInscripcion')
+            ->with(
+                $evento,
+                $usuario,
+                $this->callback(static fn(array $personas): bool => ($personas[0]['menu_id'] ?? null) === 'legacy-id-1'),
+            )
+            ->willReturn($inscripcion);
+
+        $eventoRepository = $this->createMock(EventoRepository::class);
+        $eventoRepository->method('find')->with('evento-1')->willReturn($evento);
+
+        $controller = $this->buildController(
+            $usuario,
+            $eventoRepository,
+            $this->createMock(InscripcionRepository::class),
+            $this->createMock(InvitadoRepository::class),
+            $this->createMock(UsuarioRepository::class),
+            $this->createMock(SeleccionParticipanteEventoRepository::class),
+            $inscripcionService,
+        );
+
+        $request = Request::create('/api/eventos/evento-1/inscribirme', 'POST', [], [], [], [], json_encode([
+            'personas' => [[
+                'usuario' => '/api/usuarios/user-1',
+                'menu_id' => 'legacy-id-1',
+            ]],
+        ], \JSON_THROW_ON_ERROR));
+
+        $response = $controller->inscribirme('evento-1', $request);
+
+        $this->assertSame(201, $response->getStatusCode());
+        $this->assertSame('true', $response->headers->get('Deprecation'));
+        $this->assertSame('Wed, 31 Dec 2026 23:59:59 GMT', $response->headers->get('Sunset'));
+        $this->assertSame('299 - "Legacy payload key menu/menu_id is deprecated, use actividad/actividad_id"', $response->headers->get('Warning'));
+    }
+
     public function testMenusLegacyRouteReturnsDeprecationHeaders(): void
     {
         $evento = $this->createConfiguredMock(\App\Entity\Evento::class, [
