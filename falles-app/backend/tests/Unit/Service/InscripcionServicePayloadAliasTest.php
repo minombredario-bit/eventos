@@ -98,6 +98,26 @@ class InscripcionServicePayloadAliasTest extends TestCase
         ]]);
     }
 
+    public function testCrearInscripcionUsesActividadOverMenuIdWhenBothArePresent(): void
+    {
+        $menuRepo = $this->createMock(MenuEventoRepository::class);
+        $menuRepo->expects($this->once())
+            ->method('find')
+            ->with('actividad-prioritaria')
+            ->willReturn(null);
+
+        $service = $this->buildService($menuRepo);
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('Actividad no encontrada');
+
+        $service->crearInscripcion('evento-1', 'user-1', [[
+            'usuario' => '/api/usuarios/user-1',
+            'actividad' => '/api/menu_eventos/actividad-prioritaria',
+            'menu_id' => 'menu-id-legacy',
+        ]]);
+    }
+
     private function buildService(MenuEventoRepository $menuRepo): InscripcionService
     {
         $evento = $this->createMock(Evento::class);
