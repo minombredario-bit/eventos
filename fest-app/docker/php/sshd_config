@@ -1,0 +1,28 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# sshd_config  –  Servidor SSH para acceso SFTP desde PhpStorm (solo DEV)
+# ──────────────────────────────────────────────────────────────────────────────
+
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+
+# Autenticación
+PermitRootLogin no
+PasswordAuthentication yes
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+
+# Sin TTY interactivo (SFTP puro); activa si necesitas shell
+# AllowTcpForwarding no
+# X11Forwarding no
+
+# Subsistema SFTP interno (más rápido y sin dependencias externas)
+Subsystem sftp internal-sftp
+
+# Limitar acceso solo al usuario sftpuser
+AllowUsers sftpuser
+
+# Hardening mínimo
+MaxAuthTries 4
+LoginGraceTime 30
+

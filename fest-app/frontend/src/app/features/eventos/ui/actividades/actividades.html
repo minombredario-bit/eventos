@@ -1,0 +1,249 @@
+<section class="screen actividades-screen">
+  <app-mobile-header
+    title="Selección de actividades"
+    subtitle=""
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (errorMessage()) {
+      <article class="panel error-card">
+        <h2>No pudimos preparar la inscripción</h2>
+        <p>{{ errorMessage() }}</p>
+      </article>
+    } @else if (loading() || loadingPeople()) {
+      <article class="panel event-summary">
+        <p class="eyebrow">Cargando</p>
+        <h2>Preparando datos del evento</h2>
+        <p>Estamos trayendo actividades y participantes seleccionados.</p>
+      </article>
+    } @else {
+      @if (event()) {
+        <article class="panel event-summary">
+          <p class="eyebrow">Evento y actividades</p>
+          <h2>{{ event()?.titulo }}</h2>
+          <p class="venue">{{ event()?.lugar ?? 'Sin ubicación definida' }}</p>
+          <small>La selección se organiza por franja: almuerzo, comida, merienda y cena.</small>
+          @if (!event()?.inscripcionAbierta) {
+            <p class="closed-note">La inscripción está cerrada para este evento.</p>
+          }
+        </article>
+
+        @if (!isSelectionFlow()) {
+          <article class="panel participants-card" aria-label="Eventos con inscripción">
+            <div class="card-head">
+              <h2>Tus eventos inscritos</h2>
+              <span class="inline-count">{{ myInscriptions().length }}</span>
+            </div>
+            @if (loadingInscriptions()) {
+              <p class="summary">Cargando tus inscripciones...</p>
+            } @else if (!myInscriptions().length) {
+              <p class="summary">No tienes inscripciones activas para gestionar desde esta pantalla.</p>
+            } @else {
+              <div class="participants-list">
+                @for (inscripcion of myInscriptions(); track inscripcion.id) {
+                  <div class="participant-item event-item" [class.event-item--active]="inscripcion.evento.id === eventId()">
+                    <span>
+                      {{ inscripcion.evento.titulo }} · {{ activityCountLabel(inscripcion.lineas.length) }}
+                    </span>
+                    <button type="button" class="restore-participant" (click)="openInscriptionEvent(inscripcion.evento.id)">
+                      {{ inscripcion.evento.id === eventId() ? 'Viendo' : 'Ver' }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </article>
+
+          @if (selectedInscription()) {
+            <article class="panel member-list existing-inscription-card" aria-label="Usuarios inscritos y actividades del evento seleccionado">
+              <div class="card-head">
+                <h2>Usuarios inscritos</h2>
+                <span class="inline-count">{{ existingInscriptionRows().length }}</span>
+              </div>
+              <p class="summary">{{ existingInscriptionSummary() }}</p>
+
+              @if (existingInscriptionTotals(); as totals) {
+                <div class="total-line">
+                  <span>Total líneas informadas</span>
+                  <strong>{{ totals.totalLineas | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                </div>
+                <div class="total-line">
+                  <span>Total pagado</span>
+                  <strong>{{ totals.totalPagado | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                </div>
+              }
+
+              @if (existingInscriptionRows().length) {
+                <div class="participants-list">
+                  @for (participant of existingInscriptionRows(); track participant.key) {
+                    <div class="participant-item inscription-user">
+                      <div class="inscription-user__head">
+                        <span>
+                          {{ participant.memberName }}
+                          @if (participant.memberTypeLabel) {
+                            · {{ participant.memberTypeLabel }}
+                          }
+                        </span>
+                        <small>{{ activityCountLabel(participant.lines.length) }}</small>
+                      </div>
+
+                      <div class="inscription-user__lines">
+                        @for (linea of participant.lines; track linea.id) {
+                          <div class="inscription-line">
+                            <div>
+                              <span>{{ linea.actividadLabel }}</span>
+                              <small>
+                                {{ linea.stateLabel }}
+                                · {{ linea.slot ? slotLabel(linea.slot) : 'Franja sin definir' }}
+                                · {{ linea.price | currency: 'EUR' : 'symbol' : '1.0-0' }}
+                              </small>
+                            </div>
+                            @if (canModifyExistingInscription() && canRemoveExistingLine(linea)) {
+                                <button
+                                  type="button"
+                                  class="remove-participant"
+                                  [disabled]="isProcessingLine(linea.id)"
+                                  (click)="cancelInscriptionLine(linea.id, linea.inscripcionId)"
+                                >
+                                  {{ isProcessingLine(linea.id) ? 'Quitando...' : 'Quitar línea' }}
+                                </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+          } @else {
+            <article class="panel error-card">
+              <h2>Sin inscripción en este evento</h2>
+              <p>Elegí uno de tus eventos inscritos para ver usuarios y actividades.</p>
+            </article>
+          }
+
+          @if (existingFlowError()) {
+            <p class="submit-error" role="alert">{{ existingFlowError() }}</p>
+          }
+        } @else {
+          @if (!membersInScope().length) {
+            <article class="panel error-card">
+              <h2>No hay participantes para mostrar</h2>
+              <p>Volvé al detalle del evento y marcá al menos un familiar para continuar.</p>
+            </article>
+          }
+
+          @if (removedMembers().length) {
+            <article class="panel removed-card" aria-label="Participantes quitados">
+              <div class="card-head">
+                <h2>Usuarios quitados</h2>
+                <span class="inline-count">{{ removedMembers().length }}</span>
+              </div>
+              <p class="summary">Si te equivocaste, podés volver a incluirlos en esta misma pantalla.</p>
+              <div class="participants-list">
+                @for (member of removedMembers(); track trackMember(member)) {
+                  <div class="participant-item">
+                    <span>{{ member.name }}</span>
+                    <button
+                      type="button"
+                      class="restore-participant"
+                      [disabled]="submitting()"
+                      (click)="restoreMemberToActivities(member)"
+                    >
+                      Volver a incluir
+                    </button>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+
+          @if (!availableSlots().length && membersInScope().length) {
+            <article class="panel error-card">
+              <h2>Sin actividades disponibles</h2>
+              <p>Este evento no tiene actividades activas para los participantes seleccionados.</p>
+            </article>
+          }
+
+          @for (slot of availableSlots(); track slot) {
+            <article class="panel member-list" [attr.aria-label]="'Selector de actividad por familiar para ' + slotLabel(slot)">
+              <h2>{{ slotTitle(slot) }}</h2>
+              @for (member of getCompatibleMembersForSlot(slot); track trackMember(member)) {
+                <app-member-row
+                  [member]="member"
+                  [showSelect]="true"
+                  [showEnrollmentInfo]="true"
+                  [selectorLabel]="''"
+                  [selectorAriaLabel]="'Seleccionar actividad para ' + member.name + ' en ' + slotLabel(slot)"
+                  [slot]="slot"
+                  [activityOptions]="getActivitiesForSlotAndMember(slot, member)"
+                  [selectedActividadId]="getSelectedActivity(member, slot)"
+                  [emptyMessage]="'Sin actividad compatible para esta franja'"
+                  [disabled]="submitting() || !event()?.inscripcionAbierta || isSelectorLocked(member, slot)"
+                  (actividadChanged)="updateActividad($event)"
+                />
+              }
+            </article>
+          }
+
+          @if (submitError()) {
+            <p class="submit-error" role="alert">{{ submitError() }}</p>
+          }
+
+          @if (!allActivitiesAreFree()) {
+            <article class="panel total-card" [class.total-card--paid]="allActiveLinesPaid()">
+              <h2>{{ allActiveLinesPaid() ? 'Total pagado' : 'Total estimado' }}</h2>
+              <p class="summary">
+                {{ allActiveLinesPaid()
+                  ? 'Todas las líneas activas de la inscripción están pagadas.'
+                  : 'Revisa las selecciones antes de confirmar la inscripción. Elige al menos una actividad para registrar' }}
+              </p>
+              @for (slot of slotSummary(); track slot.slot) {
+                <div class="total-line">
+                  <span>
+                    {{ slotLabel(slot.slot) }} · {{ slot.selections }} {{ slot.selections === 1 ? 'selección' : 'selecciones' }}
+                  </span>
+                  <strong>{{ slot.total | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                </div>
+              }
+              @if (!allActiveLinesPaid() && totalAlreadyPaid() > 0) {
+                <div class="total-line">
+                  <span>Ya pagado</span>
+                  <strong>{{ totalAlreadyPaid() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                </div>
+                <div class="total-line">
+                  <span>Pendiente</span>
+                  <strong>{{ totalPending() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                </div>
+              }
+              <p class="grand-total">
+                <span>{{ allActiveLinesPaid() ? 'Pagado' : (totalAlreadyPaid() > 0 ? 'Pendiente' : 'Total') }}</span>
+                <strong>{{ (allActiveLinesPaid() || totalAlreadyPaid() <= 0 ? totalPrice() : totalPending()) | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+              </p>
+            </article>
+          } @else {
+            <article class="panel free-confirm-card">
+              <h2>Evento sin coste</h2>
+              <p>Todas las actividades son sin precio. Solo necesitas aceptar para confirmar la inscripción.</p>
+            </article>
+          }
+
+          @if (showPayCta() && !allActivitiesAreFree()) {
+            <div class="cta-wrap">
+              <app-cta-button
+                [label]="confirmButtonLabel()"
+                [disabled]="!readyToConfirm() || submitting()"
+                (pressed)="confirmSelection()"
+              />
+            </div>
+          }
+        }
+      }
+    }
+  </div>
+</section>

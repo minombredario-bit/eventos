@@ -1,0 +1,18 @@
+controllers_api:
+    resource: ../src/Controller/Api/
+    type: attribute
+
+controllers_admin:
+    resource: ../src/Controller/Admin/
+    type: attribute
+
+controllers_superadmin:
+    resource: ../src/Controller/Superadmin/
+    type: attribute
+
+evento_controller:
+    resource: ../src/Controller/EventoController.php
+    type: attribute
+
+security_routes:
+    resource: routes/security.yaml

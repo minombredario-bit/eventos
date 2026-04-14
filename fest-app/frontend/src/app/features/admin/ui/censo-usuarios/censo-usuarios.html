@@ -1,0 +1,109 @@
+<section class="screen admin-censo-screen">
+  <app-mobile-header
+    title="Censo y usuarios"
+    subtitle="Administración"
+    actionType="logout"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    <article class="panel actions-panel">
+      <label class="search-field" aria-label="Buscar usuario">
+        <span>Buscar por nombre o email</span>
+        <input
+          type="search"
+          placeholder="Ej: María o maria@email.com"
+          [value]="searchTerm()"
+          (input)="setSearchTerm(($any($event.target).value ?? '').toString())"
+        />
+      </label>
+
+      <div class="filter-row" role="group" aria-label="Filtros de censo">
+        <button type="button" class="chip-filter" [class.active]="filtro() === 'todos'" (click)="setFiltro('todos')">Todos</button>
+        <button type="button" class="chip-filter" [class.active]="filtro() === 'censado'" (click)="setFiltro('censado')">Censado</button>
+        <button type="button" class="chip-filter" [class.active]="filtro() === 'no_censado'" (click)="setFiltro('no_censado')">No censado</button>
+      </div>
+
+      <div class="actions-row">
+        <label class="action-button secondary" [class.disabled]="importing()">
+          {{ importing() ? 'Importando...' : 'Importar Excel' }}
+          <input type="file" accept=".xlsx,.xls" [disabled]="importing()" (change)="onExcelSelected($event)" />
+        </label>
+
+        <button type="button" class="action-button" (click)="goToCreateUser()">
+          Crear usuario
+        </button>
+      </div>
+
+      @if (successMessage()) {
+        <p class="feedback success" role="status">{{ successMessage() }}</p>
+      }
+
+      @if (errorMessage()) {
+        <p class="feedback error" role="alert">{{ errorMessage() }}</p>
+      }
+
+      @if (importSummary(); as summary) {
+        <div class="import-summary" aria-label="Resultado de importación">
+          <strong>{{ summary.insertadas }} altas</strong>
+          <span>de {{ summary.total }} filas procesadas</span>
+          @if (summary.errores.length) {
+            <small>{{ summary.errores.length }} filas con incidencias</small>
+          }
+        </div>
+      }
+    </article>
+
+    @if (loading()) {
+      <article class="panel">
+        <p class="eyebrow">Cargando</p>
+        <h2>Preparando censo</h2>
+      </article>
+    } @else {
+      <article class="panel list-panel">
+        <div class="head-row">
+          <h2>Usuarios censados</h2>
+          <span class="count-chip">{{ totalItems() }}</span>
+        </div>
+
+        @if (!usuarios().length) {
+          <p class="empty-text">No hay usuarios para mostrar con el filtro actual.</p>
+        } @else {
+          <div class="users-table-wrap">
+            <table class="users-table" aria-label="Tabla de usuarios">
+              <thead>
+              <tr>
+                <th>Nombre completo</th>
+                <th>Teléfono</th>
+                <th>Antigüedad</th>
+              </tr>
+              </thead>
+              <tbody>
+              @for (usuario of usuarios(); track usuario.id) {
+                <tr [routerLink]="['/admin/usuarios', usuario.id]" class="table-row-link">
+                  <td>
+                    <strong>{{ fullName(usuario) }}</strong>
+                    <div class="row-meta">
+                      <small>{{ estadoLabel(usuario.estadoValidacion) }}</small>
+                      <small>{{ tipoLabel(usuario.tipoUsuarioEconomico) }}</small>
+                    </div>
+                  </td>
+                  <td>{{ usuario.telefono || '-' }}</td>
+                  <td>{{ antiguedadLabel(usuario) }}</td>
+                </tr>
+              }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination-row">
+            <button type="button" class="action-button secondary" [disabled]="!hasPreviousPage()" (click)="loadPreviousPage()">Anterior</button>
+            <span>Página {{ currentPage() }}</span>
+            <button type="button" class="action-button secondary" [disabled]="!hasNextPage()" (click)="loadNextPage()">Siguiente</button>
+          </div>
+        }
+      </article>
+    }
+  </div>
+</section>
+

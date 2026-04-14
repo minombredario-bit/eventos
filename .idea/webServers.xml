@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="5830195a-a208-4de1-bbf4-b2f3ba689c1b" name="festapp-sftp" url="http://localhost:8080">
+        <fileTransfer rootFolder="/var/www/html" accessType="SFTP" host="localhost" port="2223" sshConfigId="0a1aa114-d284-4e31-8858-61f55539b1ef" sshConfig="festapp-sftp">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

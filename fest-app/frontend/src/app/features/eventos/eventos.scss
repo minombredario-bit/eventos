@@ -1,0 +1,5 @@
+.eventos-shell {
+  min-height: 100dvh;
+  background: var(--page-bg);
+  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+}

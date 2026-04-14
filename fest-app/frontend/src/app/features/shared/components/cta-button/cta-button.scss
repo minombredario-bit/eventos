@@ -1,0 +1,53 @@
+button {
+  min-height: 50px;
+  border-radius: var(--radius-md);
+  border: none;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: var(--font-body);
+  letter-spacing: 0.02em;
+  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+button.full-width { width: 100%; }
+
+button.primary {
+  background: linear-gradient(140deg, var(--brand-primary) 0%, var(--brand-primary-strong) 100%);
+  color: #ffffff;
+  box-shadow:
+    0 8px 22px color-mix(in srgb, var(--brand-primary-strong) 50%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.2);
+  text-shadow: 0 1px 3px rgba(0,0,0,.22);
+
+  &:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--brand-primary-strong) 60%, transparent);
+  }
+}
+
+button.ghost {
+  background: var(--surface);
+  color: var(--brand-ink);
+  border: 1.5px solid var(--border-strong);
+  box-shadow: var(--shadow-soft);
+}
+
+button.confirm {
+  background: linear-gradient(140deg, var(--btn-confirm-from) 0%, var(--btn-confirm-to) 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(30,126,52,.32);
+
+  &:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(30,126,52,.42);
+  }
+}
+
+button:not(:disabled):active { transform: translateY(1px); }
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}

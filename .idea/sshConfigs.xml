@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" connectionConfig="{&quot;serverAliveInterval&quot;:300}" host="localhost" id="0a1aa114-d284-4e31-8858-61f55539b1ef" port="2223" customName="festapp-sftp" nameFormat="CUSTOM" username="sftpuser" useOpenSSHConfig="true">
+        <option name="customName" value="festapp-sftp" />
+      </sshConfig>
+    </configs>
+  </component>
+</project>

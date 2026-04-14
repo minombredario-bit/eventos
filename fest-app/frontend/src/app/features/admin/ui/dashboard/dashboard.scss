@@ -1,0 +1,47 @@
+.admin-dashboard-screen {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 220px;
+    background: radial-gradient(120% 90% at 50% 0%, rgba(232, 82, 10, 0.14), rgba(253, 243, 231, 0));
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 1.2rem 1rem calc(var(--bottom-nav-height) + 1.25rem);
+}
+
+.panel {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-soft);
+  padding: 1.05rem;
+  box-shadow: var(--surface-shadow);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--brand-crimson);
+}
+
+h2 {
+  margin: 0.45rem 0 0;
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0.45rem 0 0;
+  color: var(--text-secondary);
+}
+

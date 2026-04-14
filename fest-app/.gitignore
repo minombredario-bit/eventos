@@ -1,0 +1,30 @@
+# Entornos y secretos - NUNCA al repo
+.env.prod
+.env.local
+.env.*.local
+secrets/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+dist/
+
+# PHP
+backend/vendor/
+backend/var/
+backend/.phpunit.cache/
+
+# Certificados SSL (gestiónalos fuera del repo)
+docker/nginx/ssl/
+docker/ftp/ssl/

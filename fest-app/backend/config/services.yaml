@@ -1,0 +1,62 @@
+parameters:
+    app.cors.allowed_origins:
+        - 'http://localhost:4200'
+        - 'http://localhost:4250'
+    app.mailer_from: '%env(MAILER_FROM)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+    Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface: '@lexik_jwt_authentication.jwt_manager'
+
+    # Register repositories explicitly as Doctrine repository services.
+    # This avoids runtime resolution issues when Doctrine tries to load
+    # repositoryClass declared on entities via the container repository factory.
+    App\Repository\:
+        resource: '../src/Repository/'
+        tags: ['doctrine.repository_service']
+
+    App\Service\EmailQueueService:
+        arguments:
+            $mailerFrom: '%app.mailer_from%'
+
+    App\EventSubscriber\ApiCorsSubscriber:
+        arguments:
+            $allowedOrigins: '%app.cors.allowed_origins%'
+
+    App\State\InvitadoDeleteProcessor:
+        arguments:
+            $entityManager: '@doctrine.orm.entity_manager'
+            $invitadoRepository: '@App\Repository\InvitadoRepository'
+            $seleccionParticipanteEventoRepository: '@App\Repository\SeleccionParticipanteEventoRepository'
+
+    App\Security\Voter\InscripcionVoter:
+        arguments:
+            $relacionUsuarioRepository: '@App\Repository\RelacionUsuarioRepository'
+        tags: ['security.voter']
+
+
+    App\EventListener\JwtCreatedListener:
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_created, method: onJWTCreated }
+
+    App\EventListener\JWTAuthenticationSuccessListener:
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_authentication_success, method: onAuthenticationSuccess }
+
+    App\ApiPlatform\Doctrine\Extension\InscripcionOwnerExtension:
+        tags:
+            - { name: api_platform.doctrine.orm.query_extension.collection }

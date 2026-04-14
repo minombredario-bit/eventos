@@ -1,0 +1,14 @@
+# backend/.dockerignore
+# Excluye ficheros innecesarios del contexto de build
+
+vendor/
+var/
+.git/
+.gitignore
+.env
+.env.*
+*.md
+tests/
+.phpunit.cache/
+node_modules/
+docker/

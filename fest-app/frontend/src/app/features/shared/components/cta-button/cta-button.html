@@ -1,0 +1,13 @@
+<button
+  [type]="type()"
+  [disabled]="disabled() || loading()"
+  [ngClass]="[variant(), fullWidth() ? 'full-width' : '']"
+  [attr.aria-label]="ariaLabel() || label()"
+  (click)="onPressed()"
+>
+  @if (loading()) {
+    {{ loadingLabel() }}
+  } @else {
+    {{ label() }}
+  }
+</button>

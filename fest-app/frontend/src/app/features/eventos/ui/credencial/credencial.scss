@@ -1,0 +1,168 @@
+.content {
+  padding: 1.2rem 1rem calc(var(--bottom-nav-height) + 1.2rem);
+}
+
+.ticket {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 1.2rem;
+  box-shadow: var(--shadow-elevated), 0 2px 0 rgba(255,255,255,.85) inset;
+  border: 1px solid var(--border-strong);
+
+  .ticket-cut {
+    position: absolute;
+    top: 49%;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    background: var(--page-bg);
+    border: 1px solid var(--border-soft);
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+  .ticket-cut-left  { left: -0.58rem; }
+  .ticket-cut-right { right: -0.58rem; }
+
+  .ticket-header {
+    margin-bottom: 0.92rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.8rem;
+    align-items: flex-start;
+    strong { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.38; font-weight: 700; }
+  }
+}
+
+.error-card p { margin: 0.5rem 0 0; color: #7f1d1d; }
+
+.event-name {
+  margin: 0;
+  color: var(--brand-ink);
+  font-weight: 800;
+  font-size: 1.2rem;
+  line-height: 1.24;
+  font-family: var(--font-display);
+}
+
+.entry-pill {
+  border-radius: 999px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.24rem 0.7rem;
+  font-size: 0.68rem;
+  background: #c6f6d5;
+  color: #14532d;
+  font-weight: 800;
+  border: 1px solid #38a169;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-body);
+}
+
+.identity { display: grid; gap: 0.15rem; }
+.holder, .zone { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+.payment-summary { margin: 0.15rem 0 0; color: var(--brand-accent); font-size: 0.84rem; font-weight: 700; }
+
+.divider {
+  margin: 0.95rem -1.1rem 0.85rem;
+  border-top: 1.5px dashed var(--border-strong);
+}
+
+.lines {
+  margin: 0;
+
+  .lines-label {
+    margin: 0 0 0.46rem;
+    font-size: 0.7rem;
+    color: var(--brand-accent);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-family: var(--font-body);
+  }
+
+  .line-item {
+    padding: 0.54rem 0.65rem;
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    border: 1px solid var(--border-soft);
+    margin-bottom: 0.42rem;
+
+    .line-main {
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      line-height: 1.38;
+    }
+
+    &:last-child { margin-bottom: 0; }
+  }
+}
+
+.line-remove-btn {
+  margin-top: 0.4rem;
+  min-height: 44px;
+  border: 1px solid #fca5a5;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0 0.8rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  &:disabled { opacity: .65; cursor: not-allowed; }
+}
+
+.line-status { display: inline-block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.82rem; }
+.action-error { margin: 0.6rem 0 0; color: #b91c1c; font-size: 0.86rem; font-weight: 700; }
+
+.qr-block {
+  margin-top: 1.1rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+}
+
+.qr-caption {
+  margin: 0 0 0.6rem;
+  text-align: center;
+  color: var(--brand-accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: var(--font-body);
+}
+
+.qr {
+  width: min(100%, 240px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(21, 1fr);
+  grid-template-rows: repeat(21, 1fr);
+  border: 10px solid var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border-soft);
+  background: var(--surface);
+
+  span { background: var(--surface); }
+  span.dark { background: var(--text-primary); }
+}
+
+.token { margin: 0.75rem 0 0; font-size: 0.8rem; color: var(--text-muted); text-align: center; word-break: break-all; }
+.ticket-footnote { margin: 0.9rem 0 0; text-align: center; color: var(--text-muted); font-size: 0.76rem; }
+
+@media (min-width: 768px) {
+  .content { max-width: 720px; margin: 0 auto; }
+  .ticket { padding: 1.4rem; }
+}

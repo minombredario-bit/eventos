@@ -1,0 +1,6 @@
+{
+    "require": {
+        "api-platform/core": "4.2",
+        "ext-mbstring": "*"
+    }
+}

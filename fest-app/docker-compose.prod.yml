@@ -1,0 +1,151 @@
+services:
+
+  # ──────────────────────────────────────────────
+  # PHP-FPM  (Symfony backend – imagen de producción)
+  # ──────────────────────────────────────────────
+  php:
+    build:
+      context: ./backend
+      dockerfile: ../docker/php/Dockerfile.prod
+    image: festapp-php:${APP_VERSION:-latest}
+    container_name: festapp-php
+    restart: always
+    volumes:
+      - app_data:/var/www/html
+    env_file:
+      - .env.prod                     # NUNCA subas este fichero al repo
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    labels:
+      ofelia.enabled: "true"
+      # Cola de correos: cada minuto, máx. 50 mensajes por ejecución
+      ofelia.job-exec.mail-queue.schedule: "@every 1m"
+      ofelia.job-exec.mail-queue.command: "php /var/www/html/bin/console app:mail-queue:process --limit=50 --no-interaction"
+      ofelia.job-exec.mail-queue.on-error: "mail"
+      # Estados de eventos: cada 10 minutos
+      ofelia.job-exec.event-status.schedule: "@every 10m"
+      ofelia.job-exec.event-status.command: "php /var/www/html/bin/console app:eventos:actualizar-estados --no-interaction"
+      ofelia.job-exec.event-status.on-error: "mail"
+
+  # ──────────────────────────────────────────────
+  # OFELIA  – scheduler de tareas asíncronas
+  # El script entrypoint genera ofelia.ini desde las env vars en tiempo de arranque
+  # ──────────────────────────────────────────────
+  ofelia:
+    image: mcuadros/ofelia:latest
+    container_name: festapp-ofelia
+    restart: always
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    depends_on:
+      - php
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/ofelia/entrypoint.sh:/entrypoint.sh:ro
+    env_file:
+      - .env.prod                     # SUPERADMIN_EMAIL, OFELIA_SMTP_* se leen aquí
+    environment:
+      # Sobreescrituras seguras por si .env.prod no existe todavía
+      OFELIA_SMTP_HOST: "${OFELIA_SMTP_HOST:-localhost}"
+      OFELIA_SMTP_PORT: "${OFELIA_SMTP_PORT:-587}"
+      OFELIA_MAIL_FROM: "${OFELIA_MAIL_FROM:-ofelia@festapp.local}"
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # ──────────────────────────────────────────────
+  # NGINX  (contenedor aislado de la app)
+  # ──────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: festapp-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - app_data:/var/www/html:ro
+      - ./docker/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro       # certificados TLS
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - php
+    networks:
+      - backend
+      - frontend
+
+  # ──────────────────────────────────────────────
+  # FTP  – deploys de código al volumen app_data
+  # ──────────────────────────────────────────────
+  ftp:
+    image: stilliard/pure-ftpd:latest
+    container_name: festapp-ftp
+    restart: always
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009"
+    env_file:
+      - .env.prod                     # FTP_USER_NAME, FTP_USER_PASS, PUBLICHOST aquí
+    environment:
+      FTP_USER_HOME: /var/www/html
+      ADDED_FLAGS: "--tls=2"          # TLS obligatorio en prod
+    volumes:
+      - app_data:/var/www/html
+      - ./docker/ftp/ssl:/etc/ssl/private:ro   # cert para FTP-TLS
+    networks:
+      - backend
+
+  # ──────────────────────────────────────────────
+  # MySQL
+  # ──────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: festapp-db
+    restart: always
+    # Puerto NO expuesto en prod; solo accesible desde la red interna
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_pass
+      MYSQL_DATABASE: festapp_db
+      MYSQL_USER: festapp_user
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_pass
+    volumes:
+      - festapp-mysql:/var/lib/mysql
+    secrets:
+      - mysql_root_pass
+      - mysql_pass
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$(cat /run/secrets/mysql_root_pass)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+volumes:
+  app_data:
+  festapp-mysql:
+  nginx_logs:
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
+secrets:
+  mysql_root_pass:
+    file: ./secrets/mysql_root_pass.txt
+  mysql_pass:
+    file: ./secrets/mysql_pass.txt

@@ -1,0 +1,50 @@
+<section class="screen pago-screen">
+  <app-mobile-header
+    title="Pago"
+    subtitle=""
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (loading()) {
+      <article class="panel loading-card">
+        <h2>Cargando pago...</h2>
+      </article>
+    } @else if (errorMessage()) {
+      <article class="panel error-card">
+        <h2>No disponible</h2>
+        <p>{{ errorMessage() }}</p>
+      </article>
+    } @else if (inscription()) {
+      <article class="panel payment-card">
+        <h2>{{ inscription()?.evento?.titulo }}</h2>
+        <p>Importe total: <strong>{{ totalAmount() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong></p>
+        <p>Ya pagado: <strong>{{ totalPaidAmount() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong></p>
+        <p>Pendiente: <strong>{{ totalPendingAmount() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong></p>
+        <p>Estado de pago: <strong>{{ inscription()?.estadoPago }}</strong></p>
+
+        <label for="metodoPago">Forma de pago</label>
+        <select id="metodoPago" [value]="selectedMetodoPago()" (change)="onMetodoPagoChange($any($event.target).value)">
+          @for (metodo of metodosPago; track metodo.value) {
+            <option [value]="metodo.value">{{ metodo.label }}</option>
+          }
+        </select>
+
+        @if (needsPayment()) {
+          <p class="hint">Podés pagar ahora el pendiente o volver cuando quieras desde tus inscripciones.</p>
+        } @else {
+          <p class="hint">Este evento no requiere pago adicional.</p>
+        }
+
+        <div class="actions">
+          <app-cta-button [label]="payNowLabel()" [disabled]="payNowDisabled()" (pressed)="pagarAhora()" />
+          <button type="button" class="secondary" [disabled]="saving()" (click)="pagarMasTarde()">Pagar más tarde</button>
+        </div>
+      </article>
+    }
+  </div>
+</section>
+

@@ -1,0 +1,176 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Nunito:wght@400;600;700;800;900&family=Cinzel:wght@700;900&family=Lato:wght@400;700;900&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEMA: FALLA  (naranja / rojo brasa / pergamino)
+   Entidades de tipo falla valenciana
+   ═══════════════════════════════════════════════════════════════════════ */
+:root,
+:root[data-theme="Falla"] {
+  --theme-id: "Falla";
+
+  /* Marca */
+  --brand-primary:        #e8520a;
+  --brand-primary-strong: #c73d00;
+  --brand-primary-light:  #ff6b1a;
+  --brand-ink:            #5c1a00;
+  --brand-accent:         #8b1a00;    /* crimson oscuro */
+
+  /* Gradiente del header — brasas / fuego */
+  --header-gradient: linear-gradient(
+    160deg,
+    #6b1200 0%,
+    #8c2000 18%,
+    #b03508 42%,
+    #cb4a10 68%,
+    #de6020 88%,
+    #e87228 100%
+  );
+  --header-shimmer:
+    radial-gradient(ellipse 60% 80% at 20% 120%, rgba(255,150,30,.18) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 70% at 80% 110%, rgba(200,60,0,.22) 0%, transparent 60%);
+
+  /* Fondos — pergamino cálido */
+  --page-bg:       #fdf3e7;
+  --surface:       #fffcf6;
+  --surface-soft:  #fff8ef;
+  --surface-muted: #feefd8;
+
+  /* Bordes */
+  --border-soft:   #f0c897;
+  --border-strong: #e8a05a;
+
+  /* Texto */
+  --text-primary:   #1a0a00;
+  --text-secondary: #5a3520;
+  --text-muted:     #8a6040;
+
+  /* Bottom nav active */
+  --nav-active: #8b1a00;
+
+  /* CTA botón confirmado verde */
+  --btn-confirm-from: #28a745;
+  --btn-confirm-to:   #1e7e34;
+
+  /* Tipografía */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Nunito', 'Segoe UI', sans-serif;
+
+  /* Sombras */
+  --shadow-soft:     0 6px 18px rgba(90,30,0,.10);
+  --surface-shadow:  0 8px 22px rgba(90,30,0,.12);
+  --shadow-elevated: 0 18px 36px rgba(92,26,0,.20);
+
+  /* Misc */
+  --focus-ring:          0 0 0 3px rgba(232,82,10,.32);
+  --radius-md:           0.9rem;
+  --radius-lg:           1.2rem;
+  --radius-xl:           1.5rem;
+  --bottom-nav-height:   68px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TEMA: COMPARSA  (azul marino / dorado / rojo / verde andalusí)
+   Entidades de tipo moros y cristianos
+   ═══════════════════════════════════════════════════════════════════════ */
+:root[data-theme="Comparsa"] {
+  --theme-id: "Comparsa";
+
+  /* Marca */
+  --brand-primary:        #1a5fb4;   /* azul cristiano / moro */
+  --brand-primary-strong: #10408a;
+  --brand-primary-light:  #3b82f6;
+  --brand-ink:            #0d2a5c;
+  --brand-accent:         #b8860b;   /* dorado nazarí */
+
+  /* Gradiente del header — estandartes / cielo festivo */
+  --header-gradient: linear-gradient(
+    160deg,
+    #0d1f4a 0%,
+    #162d6e 18%,
+    #1a4596 42%,
+    #1a5fb4 68%,
+    #2171c7 85%,
+    #b8860b 100%
+  );
+  --header-shimmer:
+    radial-gradient(ellipse 55% 70% at 15% 110%, rgba(184,134,11,.22) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 65% at 85% 105%, rgba(26,64,150,.28) 0%, transparent 60%);
+
+  /* Fondos — papel marfil con toque árabe */
+  --page-bg:       #f5f0e8;
+  --surface:       #fdfaf4;
+  --surface-soft:  #f8f3ea;
+  --surface-muted: #ede5d4;
+
+  /* Bordes */
+  --border-soft:   #d4bb8a;
+  --border-strong: #b8990f;
+
+  /* Texto */
+  --text-primary:   #0d1a33;
+  --text-secondary: #2a3d6a;
+  --text-muted:     #6a7a9a;
+
+  /* Bottom nav active */
+  --nav-active: #0d2a5c;
+
+  /* CTA botón confirmado */
+  --btn-confirm-from: #1a8a4a;
+  --btn-confirm-to:   #146038;
+
+  /* Tipografía — más solemne, epigráfica */
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --font-body:    'Lato', 'Segoe UI', sans-serif;
+
+  /* Sombras */
+  --shadow-soft:     0 6px 18px rgba(13,26,51,.12);
+  --surface-shadow:  0 8px 22px rgba(13,26,51,.14);
+  --shadow-elevated: 0 18px 36px rgba(13,26,51,.22);
+
+  /* Misc */
+  --focus-ring:          0 0 0 3px rgba(26,95,180,.34);
+  --radius-md:           0.75rem;   /* algo más cuadrado / geométrico */
+  --radius-lg:           1.0rem;
+  --radius-xl:           1.25rem;
+  --bottom-nav-height:   68px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BASE STYLES (comparten ambos temas, usan variables)
+   ═══════════════════════════════════════════════════════════════════════ */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--page-bg);
+  color: var(--text-primary);
+}
+
+body {
+  min-height: 100dvh;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--brand-primary) 10%, transparent) 0%, transparent 70%);
+  background-attachment: fixed;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+}
+
+button, input, select, textarea { font: inherit; }
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.screen { min-height: 100%; }
+
+/* Transición suave al cambiar de tema */
+:root { transition: background-color 0.3s ease; }

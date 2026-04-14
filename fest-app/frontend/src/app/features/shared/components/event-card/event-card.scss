@@ -1,0 +1,95 @@
+.event-card {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 0.85rem;
+  border-radius: var(--radius-lg);
+  padding: 0.95rem;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow .2s ease, transform .18s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--surface-shadow);
+  }
+}
+
+.date-badge {
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--brand-primary) 10%, var(--surface));
+  color: var(--brand-ink);
+  text-align: center;
+  padding: 0.4rem 0.25rem;
+  border: 1px solid var(--border-soft);
+
+  strong {
+    display: block;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    font-family: var(--font-display);
+    font-weight: 800;
+  }
+
+  small {
+    text-transform: uppercase;
+    font-weight: 800;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    color: var(--brand-accent);
+  }
+}
+
+.title-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.state {
+  font-size: 0.7rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 800;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+
+.state.abierto   { color: #064e35; background: #c6f6d5; border: 1px solid #38a169; }
+.state.ultimas_plazas { color: #7b3a10; background: #fef3c7; border: 1px solid #f59e0b; }
+.state.cerrado   { color: #4a5568; background: #e2e8f0; border: 1px solid #cbd5e1; }
+.state.inscrito  {
+  color: #ffffff;
+  background: linear-gradient(135deg, #38a169, #2f855a);
+  border: none;
+  box-shadow: 0 2px 8px rgba(56,161,105,.28);
+}
+
+.meta,
+.description {
+  margin: 0.35rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.details-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 0.35rem;
+  color: var(--brand-ink);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.88rem;
+
+  &:hover { color: var(--brand-primary); }
+}

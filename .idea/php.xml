@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="MessDetectorOptionsConfiguration">
+    <option name="transferred" value="true" />
+  </component>
+  <component name="PHPCSFixerOptionsConfiguration">
+    <option name="transferred" value="true" />
+  </component>
+  <component name="PHPCodeSnifferOptionsConfiguration">
+    <option name="highlightLevel" value="WARNING" />
+    <option name="transferred" value="true" />
+  </component>
+  <component name="PhpCodeSniffer">
+    <phpcs_settings>
+      <phpcs_by_interpreter asDefaultInterpreter="true" interpreter_id="011c181b-40a8-4581-8c7f-265b120dbb94" timeout="30000" />
+    </phpcs_settings>
+  </component>
+  <component name="PhpIncludePathManager">
+    <include_path>
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/nikic/php-parser" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/masterminds/html5" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/lexik/jwt-authentication-bundle" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/lcobucci/jwt" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/markbaker/complex" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/markbaker/matrix" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/phar-io/manifest" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/phar-io/version" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/composer" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/deprecations" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/event-manager" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/lexer" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/dbal" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/orm" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/maennchen/zipstream-php" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/data-fixtures" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/api-platform/core" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/instantiator" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/persistence" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/dompdf/dompdf" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/sql-formatter" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/collections" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/doctrine-bundle" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/myclabs/deep-copy" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/doctrine-fixtures-bundle" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/doctrine-migrations-bundle" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/inflector" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/brick/math" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/doctrine/migrations" />
+    </include_path>
+  </component>
+  <component name="PhpProjectSharedConfiguration" php_language_level="8.2">
+    <option name="suggestChangeDefaultLanguageLevel" value="false" />
+  </component>
+  <component name="PhpStan">
+    <PhpStan_settings>
+      <phpstan_by_interpreter asDefaultInterpreter="true" interpreter_id="011c181b-40a8-4581-8c7f-265b120dbb94" timeout="60000" />
+    </PhpStan_settings>
+  </component>
+  <component name="PhpStanOptionsConfiguration">
+    <option name="transferred" value="true" />
+  </component>
+  <component name="PhpUnit">
+    <phpunit_settings>
+      <PhpUnitSettings custom_loader_path="$PROJECT_DIR$/fest-app/backend/vendor/autoload.php" />
+    </phpunit_settings>
+  </component>
+  <component name="Psalm">
+    <Psalm_settings>
+      <psalm_fixer_by_interpreter asDefaultInterpreter="true" interpreter_id="011c181b-40a8-4581-8c7f-265b120dbb94" timeout="60000" />
+    </Psalm_settings>
+  </component>
+  <component name="PsalmOptionsConfiguration">
+    <option name="transferred" value="true" />
+  </component>
+</project>

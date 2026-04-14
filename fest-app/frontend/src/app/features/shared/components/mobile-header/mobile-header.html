@@ -1,0 +1,80 @@
+<header class="mobile-header" role="banner">
+  <div class="header-main">
+    <div class="header-side header-side--start">
+      @if (showBack()) {
+        <button
+          type="button"
+          class="icon-button icon-button--back"
+          aria-label="Volver"
+          (click)="onBack()"
+        >
+          <svg class="back-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path
+              d="M15 6L9 12l6 6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      } @else {
+        <span class="icon-placeholder" aria-hidden="true"></span>
+      }
+    </div>
+
+    <h1>{{ title() }}</h1>
+
+    <div class="header-side header-side--end">
+      @if (hasAction()) {
+        @if (isUserMenuEnabled()) {
+          <div class="user-menu" (click)="$event.stopPropagation()">
+            <button
+              type="button"
+              class="icon-button icon-button--logout"
+              aria-label="Menú de usuario"
+              title="Menú"
+              (click)="toggleUserMenu()"
+            >
+              ☰
+            </button>
+            @if (isUserMenuOpen()) {
+              <div class="user-menu__dropdown" role="menu" aria-label="Opciones de usuario">
+                @if (canOpenAdmin()) {
+                  <a class="user-menu__item" role="menuitem" [routerLink]="[viewSwitchRoute()]" (click)="closeUserMenu()">
+                    {{ viewSwitchLabel() }}
+                  </a>
+                }
+                <a class="user-menu__item" role="menuitem" [routerLink]="['/eventos/perfil']" (click)="closeUserMenu()">
+                  Perfil
+                </a>
+                @if (isLogoutAction()) {
+                  <button type="button" class="user-menu__item" role="menuitem" (click)="onUserMenuSelect()">
+                    Salir
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <button
+            type="button"
+            class="text-button"
+            [attr.aria-label]="actionAriaLabel()"
+            [attr.title]="actionAriaLabel()"
+            (click)="onAction()"
+          >
+            {{ actionLabel() }}
+          </button>
+        }
+      } @else {
+        <span class="icon-placeholder" aria-hidden="true"></span>
+      }
+    </div>
+  </div>
+
+  @if (subtitle()) {
+    <p>{{ subtitle() }}</p>
+  }
+</header>

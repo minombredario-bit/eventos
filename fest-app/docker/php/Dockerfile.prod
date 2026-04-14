@@ -1,0 +1,76 @@
+# ────────────────────────────────────────────────
+# Dockerfile.prod  –  PHP-FPM para producción
+# Build multi-stage: el código se sube por FTP
+# ────────────────────────────────────────────────
+
+# ── Etapa 1: instalar dependencias Composer ──────
+FROM composer:latest AS composer_deps
+
+WORKDIR /app
+COPY backend/composer.json backend/composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --optimize-autoloader \
+    --no-scripts
+
+# ── Etapa 2: imagen final ────────────────────────
+FROM php:8.2-fpm-alpine
+
+# Dependencias mínimas en Alpine
+RUN apk add --no-cache \
+    icu-libs \
+    libzip \
+    libpng \
+    oniguruma \
+    libxml2 \
+    freetype \
+    libjpeg-turbo \
+    && apk add --no-cache --virtual .build-deps \
+    icu-dev \
+    libzip-dev \
+    libpng-dev \
+    oniguruma-dev \
+    libxml2-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo_mysql \
+        mbstring \
+        zip \
+        intl \
+        opcache \
+        gd \
+    && apk del .build-deps \
+    && rm -rf /var/cache/apk/*
+
+# Configuración PHP optimizada para prod
+COPY docker/php/conf.d/opcache.prod.ini    /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platform.ini
+COPY docker/php/conf.d/www.conf            /usr/local/etc/php/php-fpm.d/zz-app.conf
+COPY docker/php/php.prod.ini               /usr/local/etc/php/php.ini
+
+WORKDIR /var/www/html
+
+# Copiamos vendor desde la etapa composer_deps
+COPY --from=composer_deps /app/vendor ./vendor
+
+# El código de la aplicación llegará por FTP al volumen app_data
+# Este entrypoint espera que el volumen ya tenga los ficheros de Symfony
+COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh \
+    && addgroup -g 1000 app \
+    && adduser -u 1000 -G app -s /bin/sh -D app \
+    && chown -R app:app /var/www/html
+
+USER app
+
+EXPOSE 9000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD php-fpm -t || exit 1
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php-fpm"]

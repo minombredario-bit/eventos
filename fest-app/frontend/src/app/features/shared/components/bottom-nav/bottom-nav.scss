@@ -1,0 +1,38 @@
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  min-height: var(--bottom-nav-height);
+  background: var(--surface);
+  border-top: 1px solid var(--border-soft);
+  box-shadow:
+    0 -6px 20px rgba(0,0,0,.08),
+    0 -1px 0 color-mix(in srgb, var(--border-soft) 60%, transparent);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+
+  a {
+    min-height: var(--bottom-nav-height);
+    text-decoration: none;
+    color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    gap: 0.16rem;
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 0.22rem 0 0.3rem;
+    transition: color .18s ease, transform .18s ease;
+
+    &:hover {
+      color: var(--brand-primary);
+    }
+  }
+
+  a.is-active {
+    color: var(--nav-active);
+    font-weight: 800;
+    transform: translateY(-2px);
+  }
+}
