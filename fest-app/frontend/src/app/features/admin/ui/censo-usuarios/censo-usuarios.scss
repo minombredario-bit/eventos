@@ -86,7 +86,8 @@
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   padding: 0 0.9rem;
-  background: var(--brand-orange);
+  /* Use global brand variables so button follows the current theme */
+  background: linear-gradient(135deg, var(--brand-primary-strong, #b45309) 0%, var(--brand-primary, #e8520a) 100%);
   color: #fff;
   font-weight: 800;
   cursor: pointer;

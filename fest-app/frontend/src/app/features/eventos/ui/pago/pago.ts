@@ -6,12 +6,8 @@ import { finalize, map } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
-import {
-  EventosApi,
-  InscripcionApi,
-  METODOS_PAGO_OPTIONS,
-  MetodoPagoApp,
-} from '../../data/eventos.api';
+import { EventosApi } from '../../data/eventos.api';
+import { Inscripcion, METODOS_PAGO_OPTIONS, MetodoPago } from '../../domain/eventos.models';
 
 @Component({
   selector: 'app-pago',
@@ -31,8 +27,8 @@ export class Pago {
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly inscription = signal<InscripcionApi | null>(null);
-  protected readonly selectedMetodoPago = signal<MetodoPagoApp>('bizum');
+  protected readonly inscription = signal<Inscripcion | null>(null);
+  protected readonly selectedMetodoPago = signal<MetodoPago>('bizum');
   protected readonly hasNewInscriptions = signal(false);
 
   protected readonly metodosPago = METODOS_PAGO_OPTIONS;
@@ -78,7 +74,7 @@ export class Pago {
   }
 
   protected onMetodoPagoChange(value: string): void {
-    const normalized = value as MetodoPagoApp;
+    const normalized = value as MetodoPago;
     if (this.metodosPago.some((m) => m.value === normalized)) {
       this.selectedMetodoPago.set(normalized);
     }
@@ -99,7 +95,7 @@ export class Pago {
 
     const preferred = this.authService.userSignal()?.['formaPagoPreferida'];
     if (typeof preferred === 'string' && this.metodosPago.some((m) => m.value === preferred)) {
-      this.selectedMetodoPago.set(preferred as MetodoPagoApp);
+      this.selectedMetodoPago.set(preferred as MetodoPago);
     }
 
     const inscriptionIdFromState = history.state?.inscripcionId as string | undefined;
@@ -145,7 +141,7 @@ export class Pago {
       });
   }
 
-  private finishLoad(inscription: InscripcionApi): void {
+  private finishLoad(inscription: Inscripcion): void {
     this.inscription.set(inscription);
     this.loading.set(false);
   }

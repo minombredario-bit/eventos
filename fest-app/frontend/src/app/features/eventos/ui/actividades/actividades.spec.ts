@@ -4,7 +4,7 @@ import {
   shouldLoadLegacyInscripcionesFallback,
   shouldUseLegacyActividadesFallback,
 } from './actividades';
-import { ParticipanteSeleccionApi } from '../../data/eventos.api';
+import { ParticipanteSeleccion } from '../../domain/eventos.models';
 
 describe('activityNoun', () => {
   it('usa singular cuando el total es 1', () => {
@@ -49,7 +49,7 @@ describe('shouldLoadLegacyInscripcionesFallback', () => {
 
   it('activa fallback cuando los participantes no traen inscripcionRelacion', () => {
     expect(shouldLoadLegacyInscripcionesFallback([
-      { id: 'u-1', origen: 'familiar' } as ParticipanteSeleccionApi,
+      { id: 'u-1', origen: 'familiar' } as ParticipanteSeleccion,
     ])).toBeTrue();
   });
 
@@ -64,7 +64,7 @@ describe('shouldLoadLegacyInscripcionesFallback', () => {
           estadoPago: 'pendiente',
           lineas: [],
         },
-      } as ParticipanteSeleccionApi,
+      } as ParticipanteSeleccion,
     ])).toBeFalse();
   });
 });

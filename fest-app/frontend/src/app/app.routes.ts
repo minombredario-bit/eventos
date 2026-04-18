@@ -4,22 +4,29 @@ import { adminGuard, authGuard } from './core/auth/auth-guard';
 export const routes: Routes = [
   {
     path: 'auth/login',
-    loadComponent: () => import('./auth/login/login').then((m) => m.Login),
+    loadComponent: () =>
+      import('./auth/login/login').then((m) => m.Login),
   },
   {
     path: 'auth/cambiar-password',
     canActivate: [authGuard],
-    loadComponent: () => import('./auth/password-change/password-change').then((m) => m.PasswordChange),
+    loadComponent: () =>
+      import('./auth/password-change/password-change').then((m) => m.PasswordChange),
   },
   {
     path: 'login',
     pathMatch: 'full',
     redirectTo: 'auth/login',
   },
+
+  /* =====================================
+     EVENTOS
+  ===================================== */
   {
     path: 'eventos',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/eventos/eventos').then((m) => m.Eventos),
+    loadComponent: () =>
+      import('./features/eventos/eventos').then((m) => m.Eventos),
     children: [
       {
         path: '',
@@ -68,10 +75,15 @@ export const routes: Routes = [
       },
     ],
   },
+
+  /* =====================================
+     ADMIN
+  ===================================== */
   {
     path: 'admin',
     canActivate: [authGuard, adminGuard],
-    loadComponent: () => import('./features/admin/admin-shell').then((m) => m.AdminShell),
+    loadComponent: () =>
+      import('./features/admin/admin-shell').then((m) => m.AdminShell),
     children: [
       {
         path: '',
@@ -88,18 +100,23 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/ui/censo-usuarios/censo-usuarios').then((m) => m.AdminCensoUsuarios),
       },
+
+      /* MISMO COMPONENTE PARA CREAR */
       {
         path: 'usuarios/crear',
         loadComponent: () =>
-          import('./features/admin/ui/usuario-crear/usuario-crear').then((m) => m.AdminUsuarioCrear),
+          import('./features/admin/ui/usuario/usuario-form').then((m) => m.AdminUsuarioForm),
       },
+
+      /* MISMO COMPONENTE PARA EDITAR */
       {
         path: 'usuarios/:id',
         loadComponent: () =>
-          import('./features/admin/ui/usuario-perfil/usuario-perfil').then((m) => m.AdminUsuarioPerfil),
+          import('./features/admin/ui/usuario/usuario-form').then((m) => m.AdminUsuarioForm),
       },
     ],
   },
+
   {
     path: '',
     pathMatch: 'full',

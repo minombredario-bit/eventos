@@ -10,87 +10,42 @@ import { CurrencyPipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { distinctUntilChanged, filter, map, tap } from 'rxjs';
+
 import { AuthService } from '../../../../core/auth/auth';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../../shared/components/member-row/member-row';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
-import { ActivityOption, FamilyMember, MealSlot, ParticipantOrigin } from '../../domain/eventos.models';
+
 import { EventosMapper } from '../../data/eventos.mapper';
-import { EventoDetalleApi, EventosApi, InscripcionApi, ParticipanteSeleccionApi } from '../../data/eventos.api';
+import { EventosApi } from '../../data/eventos.api';
 
-interface ActivityChangePayload {
-  memberId: string;
-  memberOrigin: ParticipantOrigin;
-  actividadId: string | null;
-  slot: string | null;
-}
+import {
+  EventoDetalle,
+  Inscripcion,
+  ParticipanteSeleccion,
+  ActivityOption,
+  FamilyMember,
+  MealSlot,
+  ParticipantOrigin,
+} from '../../domain/eventos.models';
 
-interface SelectionSummaryRow {
-  memberId: string;
-  memberOrigin: ParticipantOrigin;
-  actividadId: string;
-  memberName: string;
-  slot: MealSlot;
-  actividadLabel: string;
-  price: number;
-}
+import {
+  ActivityChangePayload,
+  ExistingInscriptionLineView,
+  ExistingInscriptionRowView,
+  ExistingInscriptionTotalsView,
+  ParticipantReference,
+  ParticipantRelationLine,
+  ParticipantRelationSummary,
+  SelectionSummaryRow,
+  SlotSelectionSummary,
+} from '../../domain/actividades.models';
 
-interface SlotSelectionSummary {
-  slot: MealSlot;
-  total: number;
-  selections: number;
-}
-
-interface ParticipantRelationLine {
-  lineId: string;
-  inscripcionId: string;
-  actividadId: string;
-  actividadLabel: string;
-  slot: MealSlot;
-  estadoLinea: string;
-  pagada: boolean;
-  price: number;
-}
-
-interface ParticipantRelationSummary {
-  id: string;
-  codigo: string;
-  estadoPago: string;
-  totalLineas: number;
-  totalPagado: number;
-}
-
-interface ParticipantReference {
-  id: string;
-  origin: ParticipantOrigin;
-  name?: string;
-  personType: FamilyMember['personType'];
-  enrollment?: FamilyMember['enrollment'];
-  relationSummary?: ParticipantRelationSummary;
-  relationLines?: ParticipantRelationLine[];
-}
-
-interface ExistingInscriptionLineView {
-  id: string;
-  inscripcionId: string;
-  actividadLabel: string;
-  slot: MealSlot | null;
-  price: number;
-  stateLabel: string;
-  pagada: boolean;
-}
-
-interface ExistingInscriptionRowView {
-  key: string;
-  memberName: string;
-  memberTypeLabel: string | null;
-  lines: ExistingInscriptionLineView[];
-}
-
-interface ExistingInscriptionTotalsView {
-  totalLineas: number;
-  totalPagado: number;
-}
+import {
+  buildActivityCountLabel,
+  shouldLoadLegacyInscripcionesFallback,
+  shouldUseLegacyActividadesFallback,
+} from '../../domain/actividades.utils';
 
 @Component({
   selector: 'app-actividades',
@@ -126,7 +81,7 @@ export class Actividades {
   protected readonly existingFlowError = signal<string | null>(null);
   protected readonly processingLineId = signal<string | null>(null);
 
-  protected readonly event          = signal<EventoDetalleApi | null>(null);
+  protected readonly event          = signal<EventoDetalle | null>(null);
   protected readonly preselectedParticipants = signal<ParticipantReference[]>([]);
   protected readonly options        = signal<ActivityOption[]>([]);
   protected readonly removedMemberIds = signal<string[]>([]);
@@ -135,7 +90,7 @@ export class Actividades {
   private readonly hydratedPreselectionKey = signal<string | null>(null);
 
   protected readonly slots: MealSlot[] = ['almuerzo', 'comida', 'merienda', 'cena'];
-  protected readonly myInscriptions = signal<InscripcionApi[]>([]);
+  protected readonly myInscriptions = signal<Inscripcion[]>([]);
 
   // ── Derivados ─────────────────────────────────────────────────────────
   protected readonly members = computed<FamilyMember[]>(() => {
@@ -386,7 +341,7 @@ export class Actividades {
 
   protected updateActividad(payload: ActivityChangePayload): void {
     if (!payload.slot) return;
-    const slot = payload.slot as MealSlot;
+    const slot = payload.slot;
     const previousActividadId = this.getSelectedActivityByParticipant(payload.memberId, payload.memberOrigin, slot);
     const nextActividadId = payload.actividadId;
     if (previousActividadId === nextActividadId) return;
@@ -908,7 +863,7 @@ export class Actividades {
     }
   }
 
-  private shouldFallbackToActividadesEndpoint(evento: EventoDetalleApi, eventId: string): boolean {
+  private shouldFallbackToActividadesEndpoint(evento: EventoDetalle, eventId: string): boolean {
     if (shouldUseLegacyActividadesFallback(evento)) {
       return true;
     }
@@ -917,7 +872,7 @@ export class Actividades {
     return false;
   }
 
-  private toActivityOptions(actividades: EventoDetalleApi['actividades'], eventId: string): ActivityOption[] {
+  private toActivityOptions(actividades: EventoDetalle['actividades'], eventId: string): ActivityOption[] {
     return (actividades ?? [])
       .filter((actividad) => this.actividadBelongsToEvent(actividad, eventId))
       .filter((actividad) => actividad.activo !== false)
@@ -933,7 +888,7 @@ export class Actividades {
     return slotActivities.length > 0 && slotActivities.every((actividad) => actividad.compatibility === 'infantil');
   }
 
-  private toParticipantReferences(participantes: ParticipanteSeleccionApi[]): ParticipantReference[] {
+  private toParticipantReferences(participantes: ParticipanteSeleccion[]): ParticipantReference[] {
     if (!participantes.length) return [];
 
     const seen = new Set<string>();
@@ -1012,7 +967,7 @@ export class Actividades {
     };
   }
 
-  private toEnrollmentFromRelacion(participant: ParticipanteSeleccionApi): FamilyMember['enrollment'] | undefined {
+  private toEnrollmentFromRelacion(participant: ParticipanteSeleccion): FamilyMember['enrollment'] | undefined {
     const inscripcion = participant.inscripcionRelacion;
     if (!inscripcion) return undefined;
 
@@ -1032,7 +987,7 @@ export class Actividades {
     };
   }
 
-  private resolveParticipantPaymentStatusFromLines(participant: ParticipanteSeleccionApi): string {
+  private resolveParticipantPaymentStatusFromLines(participant: ParticipanteSeleccion): string {
     const relation = participant.inscripcionRelacion;
     if (!relation || !Array.isArray(relation.lineas) || relation.lineas.length === 0) {
       return 'pendiente';
@@ -1113,7 +1068,7 @@ export class Actividades {
     return rows;
   }
 
-  private actividadBelongsToEvent(actividad: NonNullable<EventoDetalleApi['actividades']>[number], eventId: string): boolean {
+  private actividadBelongsToEvent(actividad: NonNullable<EventoDetalle['actividades']>[number], eventId: string): boolean {
     const evento = actividad.evento;
 
     if (!evento) return true;
@@ -1305,26 +1260,6 @@ export class Actividades {
   ): string {
     return `${this.participantKey(memberId, memberOrigin)}|${slot}|${actividadId}`;
   }
-}
-
-export function shouldUseLegacyActividadesFallback(
-  evento: { actividades?: unknown; menus?: unknown },
-): boolean {
-  return !Array.isArray(evento.actividades) && !Array.isArray(evento.menus);
-}
-
-export function shouldLoadLegacyInscripcionesFallback(
-  participantes: ParticipanteSeleccionApi[],
-): boolean {
-  return participantes.length === 0 || participantes.every((item) => !item.inscripcionRelacion);
-}
-
-export function activityNoun(count: number): string {
-  return count === 1 ? 'actividad' : 'actividades';
-}
-
-export function buildActivityCountLabel(count: number): string {
-  return `${count} ${activityNoun(count)}`;
 }
 
 

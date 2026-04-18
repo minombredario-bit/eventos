@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { EventosApi, AltaInvitadoPayload } from './eventos.api';
+import { EventosApi } from './eventos.api';
+import { AltaInvitadoPayload } from '../domain/eventos.models';
 import { EventosMapper } from './eventos.mapper';
 import { AuthService } from '../../../core/auth/auth';
 

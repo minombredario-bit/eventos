@@ -5,7 +5,8 @@ import { distinctUntilChanged, filter, map, switchMap } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { formatLocalDate } from '../../../../core/utils/date.utils';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
-import { EventoApuntadoApi, EventosApi } from '../../data/eventos.api';
+import { EventosApi } from '../../data/eventos.api';
+import { EventoApuntado } from '../../domain/eventos.models';
 
 @Component({
   selector: 'app-apuntados',
@@ -34,7 +35,7 @@ export class Apuntados {
   protected readonly searchTerm = signal('');
   protected readonly eventTitle = signal('Evento');
   protected readonly eventDate = signal<string | null>(null);
-  protected readonly apuntados = signal<EventoApuntadoApi[]>([]);
+  protected readonly apuntados = signal<EventoApuntado[]>([]);
   protected readonly totalApuntados = signal(0);
   protected readonly currentPage = signal(1);
   protected readonly totalPages = signal(0);
@@ -152,7 +153,7 @@ export class Apuntados {
 
   private applyResponse(response: {
     evento: { titulo: string; fechaEvento: string };
-    apuntados: EventoApuntadoApi[];
+    apuntados: EventoApuntado[];
     totalItems: number;
     currentPage: number;
     itemsPerPage: number;

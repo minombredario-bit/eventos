@@ -1,14 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
-import {
-  AltaInvitadoPayload,
-  EventoResumenApi,
-  EventosApi,
-  InvitadoApi,
-  ParticipanteSeleccionApi,
-} from '../data/eventos.api';
+import { EventosApi } from '../data/eventos.api';
 import { EventosMapper } from '../data/eventos.mapper';
-import { EventSummary, FamilyMember } from '../domain/eventos.models';
+import { AltaInvitadoPayload, EventSummary, EventoResumen, FamilyMember, Invitado, ParticipanteSeleccion } from '../domain/eventos.models';
 import { formatDateKey, hasValidTime, normalizeDateKey } from '../../../core/utils/date.utils';
 import { AuthService } from '../../../core/auth/auth';
 
@@ -19,7 +13,7 @@ export class EventosStore {
   private readonly authService = inject(AuthService);
   private readonly loadedMonths = new Set<string>();
   private readonly inFlightMonths = new Set<string>();
-  private readonly rawEvents = signal<EventoResumenApi[]>([]);
+  private readonly rawEvents = signal<EventoResumen[]>([]);
 
   // ── Estado ────────────────────────────────────────────────────────────
   readonly events         = signal<EventSummary[]>([]);
@@ -149,15 +143,15 @@ export class EventosStore {
 
   // ── Acciones: Invitados ───────────────────────────────────────────────
 
-  getInvitadosByEvento(eventoId: string): Observable<InvitadoApi[]> {
+  getInvitadosByEvento(eventoId: string): Observable<Invitado[]> {
     return this.api.getInvitadosByEvento(eventoId);
   }
 
-  getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccionApi[]> {
+  getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccion[]> {
     return this.api.getSeleccionParticipantes(eventoId);
   }
 
-  altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<InvitadoApi> {
+  altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<Invitado> {
     return this.api.altaInvitadoEnEvento(eventoId, payload);
   }
 
@@ -167,7 +161,7 @@ export class EventosStore {
 
   // ── Privados ──────────────────────────────────────────────────────────
 
-  private isPast(evento: EventoResumenApi, now: Date): boolean {
+  private isPast(evento: EventoResumen, now: Date): boolean {
     if (hasValidTime(evento.horaInicio)) {
       return this.toDateTime(evento).getTime() < now.getTime();
     }
@@ -197,7 +191,7 @@ export class EventosStore {
 
     return this.api.getEventosByDateRange(target.startDate, target.endDate).pipe(
       map((eventos) => ({ key: target.key, eventos, success: true as const })),
-      catchError(() => of({ key: target.key, eventos: [] as EventoResumenApi[], success: false as const })),
+      catchError(() => of({ key: target.key, eventos: [] as EventoResumen[], success: false as const })),
       tap((result) => {
         if (!result.success) {
           this.errorEventos.set('No pudimos cargar algunos meses del calendario. Reintentá en unos segundos.');
@@ -221,7 +215,7 @@ export class EventosStore {
     );
   }
 
-  private isWithinNextMonth(evento: EventoResumenApi, now: Date): boolean {
+  private isWithinNextMonth(evento: EventoResumen, now: Date): boolean {
     const max = new Date(now);
     max.setMonth(max.getMonth() + 1);
     if (hasValidTime(evento.horaInicio)) {
@@ -249,7 +243,7 @@ export class EventosStore {
     return new Date(baseDate.getFullYear(), baseDate.getMonth() + diff, 1);
   }
 
-  private compareByDateTime(a: EventoResumenApi, b: EventoResumenApi): number {
+  private compareByDateTime(a: EventoResumen, b: EventoResumen): number {
     const dateA = normalizeDateKey(a.fechaEvento);
     const dateB = normalizeDateKey(b.fechaEvento);
     if (dateA !== dateB) return dateA.localeCompare(dateB);
@@ -261,7 +255,7 @@ export class EventosStore {
     return a.titulo.localeCompare(b.titulo);
   }
 
-  private toDateTime(evento: EventoResumenApi): Date {
+  private toDateTime(evento: EventoResumen): Date {
     const [y, m, d] = normalizeDateKey(evento.fechaEvento).split('-').map(Number);
     if (!hasValidTime(evento.horaInicio)) return new Date(y, m - 1, d);
     const [h, min] = (evento.horaInicio ?? '').split(':').map(Number);

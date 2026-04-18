@@ -1,21 +1,21 @@
 import { Injectable } from '@angular/core';
 import {
-  EventoResumenApi,
-  ActividadEventoApi,
-  InvitadoApi,
-  PersonaFamiliarApi,
-  RelacionUsuarioApi,
-} from './eventos.api';
-import { ActivityOption, EventSummary, FamilyMember, ParticipantOrigin, PaymentBadgeStatus } from '../domain/eventos.models';
-
-interface InvitadoDeleteMapped {
-  id: string;
-  eventId: string;
-}
+  ActividadEvento,
+  ActivityOption,
+  EventSummary,
+  EventoResumen,
+  FamilyMember,
+  Invitado,
+  ParticipantOrigin,
+  PaymentBadgeStatus,
+  PersonaFamiliar,
+  RelacionUsuario,
+  InvitadoDelete,
+} from '../domain/eventos.models';
 
 @Injectable({ providedIn: 'root' })
 export class EventosMapper {
-  toEventSummary(evento: EventoResumenApi): EventSummary {
+  toEventSummary(evento: EventoResumen): EventSummary {
     return {
       id: evento.id,
       title: evento.titulo,
@@ -29,7 +29,7 @@ export class EventosMapper {
     };
   }
 
-  toFamilyMember(persona: PersonaFamiliarApi | InvitadoApi): FamilyMember {
+  toFamilyMember(persona: PersonaFamiliar | Invitado): FamilyMember {
     const origin = this.resolveOrigin(persona);
     const nombre = this.resolveName(persona);
     const enrollment = persona.inscripcion;
@@ -58,7 +58,7 @@ export class EventosMapper {
     };
   }
 
-  toFamilyMemberFromRelacion(relacion: RelacionUsuarioApi, currentUserId: string): FamilyMember | null {
+  toFamilyMemberFromRelacion(relacion: RelacionUsuario, currentUserId: string): FamilyMember | null {
     const relacionado = relacion.usuarioOrigen.id === currentUserId
       ? relacion.usuarioDestino
       : relacion.usuarioOrigen;
@@ -83,7 +83,7 @@ export class EventosMapper {
     };
   }
 
-  mapInvitadosList(payload: unknown, fallbackEventId: string): InvitadoApi[] {
+  mapInvitadosList(payload: unknown, fallbackEventId: string): Invitado[] {
     if (!Array.isArray(payload)) {
       return [];
     }
@@ -91,7 +91,7 @@ export class EventosMapper {
     return payload.map((item) => this.mapInvitado(item, fallbackEventId)).filter((item) => item.id.length > 0);
   }
 
-  mapInvitadoCreate(payload: unknown, fallbackEventId: string, fallbackName?: string, fallbackLastName?: string): InvitadoApi {
+  mapInvitadoCreate(payload: unknown, fallbackEventId: string, fallbackName?: string, fallbackLastName?: string): Invitado {
     const mapped = this.mapInvitado(payload, fallbackEventId);
     if (mapped.nombre.length === 0) {
       mapped.nombre = fallbackName?.trim() || 'Invitado';
@@ -104,7 +104,7 @@ export class EventosMapper {
     return mapped;
   }
 
-  mapInvitadoDelete(payload: unknown, fallbackEventId: string, fallbackInvitadoId: string): InvitadoDeleteMapped {
+  mapInvitadoDelete(payload: unknown, fallbackEventId: string, fallbackInvitadoId: string): InvitadoDelete {
     const source = this.asRecord(payload);
     const eventFromPayload = this.readString(source['eventoId'])
       || this.readString(source['evento_id'])
@@ -117,7 +117,7 @@ export class EventosMapper {
     };
   }
 
-  toActivityOption(actividad: ActividadEventoApi): ActivityOption {
+  toActivityOption(actividad: ActividadEvento): ActivityOption {
     return {
       id: actividad.id,
       label: actividad.nombre,
@@ -145,7 +145,7 @@ export class EventosMapper {
     return 'pendiente';
   }
 
-  private toUiStatus(evento: EventoResumenApi): EventSummary['status'] {
+  private toUiStatus(evento: EventoResumen): EventSummary['status'] {
     const inscripcionAbierta = evento.inscripcionAbierta;
 
     if (inscripcionAbierta === true) {
@@ -163,7 +163,7 @@ export class EventosMapper {
     return 'cerrado';
   }
 
-  private resolveName(persona: PersonaFamiliarApi | InvitadoApi): string {
+  private resolveName(persona: PersonaFamiliar | Invitado): string {
     if (persona.nombreCompleto && persona.nombreCompleto.trim().length > 0) {
       return persona.nombreCompleto.trim();
     }
@@ -173,7 +173,7 @@ export class EventosMapper {
     return fullName || (origin === 'invitado' ? 'Invitado' : 'Participante');
   }
 
-  private resolveOrigin(persona: PersonaFamiliarApi | InvitadoApi): ParticipantOrigin {
+  private resolveOrigin(persona: PersonaFamiliar | Invitado): ParticipantOrigin {
     if ('origen' in persona && persona.origen === 'invitado') {
       return 'invitado';
     }
@@ -185,7 +185,7 @@ export class EventosMapper {
     return 'familiar';
   }
 
-  private mapInvitado(payload: unknown, fallbackEventId: string): InvitadoApi {
+  private mapInvitado(payload: unknown, fallbackEventId: string): Invitado {
     const source = this.asRecord(payload);
     const enrollment = this.mapEnrollment(source, fallbackEventId);
 
@@ -209,7 +209,7 @@ export class EventosMapper {
     };
   }
 
-  private mapEnrollment(source: Record<string, unknown>, fallbackEventId: string): InvitadoApi['inscripcion'] {
+  private mapEnrollment(source: Record<string, unknown>, fallbackEventId: string): Invitado['inscripcion'] {
     const inscripcionRaw = source['inscripcion'];
     const inscripcion = this.asRecord(inscripcionRaw);
     const evento = this.asRecord(inscripcion['evento']);
@@ -292,12 +292,12 @@ export class EventosMapper {
     return 'pendiente';
   }
 
-  private readOrigin(source: Record<string, unknown>): InvitadoApi['origen'] {
+  private readOrigin(source: Record<string, unknown>): Invitado['origen'] {
     const origin = this.readString(source['origen']) || this.readString(source['origin']);
     return origin === 'familiar' ? 'familiar' : 'invitado';
   }
 
-  private readTipoPersona(value: unknown): InvitadoApi['tipoPersona'] {
+  private readTipoPersona(value: unknown): Invitado['tipoPersona'] {
     return value === 'infantil' ? 'infantil' : 'adulto';
   }
 

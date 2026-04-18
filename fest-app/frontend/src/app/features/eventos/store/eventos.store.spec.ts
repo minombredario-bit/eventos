@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth';
-import { EventosApi, EventoResumenApi } from '../data/eventos.api';
+import { EventosApi } from '../data/eventos.api';
+import { EventoResumen } from '../domain/eventos.models';
 import { EventosMapper } from '../data/eventos.mapper';
 import { EventosStore } from './eventos.store';
 

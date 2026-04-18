@@ -17,13 +17,7 @@ import { MobileHeader } from '../../../shared/components/mobile-header/mobile-he
 import { EventSummary } from '../../domain/eventos.models';
 import { EventosStore } from '../../store/eventos.store';
 import { formatDateKey } from '../../../../core/utils/date.utils';
-
-interface CalendarCell {
-  date: Date;
-  key: string;
-  isCurrentMonth: boolean;
-  hasEvents: boolean;
-}
+import {CalendarCell} from '../../domain/calendar.models';
 
 const WEEK_DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -133,10 +127,10 @@ export class Inicio implements OnInit {
 
     const direction: -1 | 1 = diff < 0 ? -1 : 1;
 
-    // this.store
-    //   .loadAdjacentMonth(next, direction)
-    //   .pipe(takeUntilDestroyed(this.destroyRef))
-    //   .subscribe();
+    this.store
+      .loadAdjacentMonth(next, direction)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
   }
 
   protected pickDate(cell: CalendarCell): void {

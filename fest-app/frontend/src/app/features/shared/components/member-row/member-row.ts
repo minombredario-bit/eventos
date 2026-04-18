@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { FamilyMember, ActividadOption, ParticipantOrigin, PaymentBadgeStatus } from '../../../eventos/domain/eventos.models';
-
-interface ActivityChangePayload {
-  memberId: string;
-  memberOrigin: ParticipantOrigin;
-  actividadId: string | null;
-  slot: string | null;
-}
+import {
+  ActivityOption,
+  FamilyMember,
+  MealSlot,
+  PaymentBadgeStatus,
+} from '../../../eventos/domain/eventos.models';
+import { ActivityChangePayload } from '../../../eventos/domain/actividades.models';
 
 @Component({
   selector: 'app-member-row',
@@ -25,9 +24,9 @@ export class MemberRow {
   readonly showSelect = input(false);
   readonly selectorLabel = input('Actividad');
   readonly selectorAriaLabel = input('');
-  readonly slot = input<string | null>(null);
-  readonly activityOptions = input<ActividadOption[]>([]);
-  readonly actividadOptions = input<ActividadOption[]>([]);
+  readonly slot = input<MealSlot | null>(null);
+  readonly activityOptions = input<ActivityOption[]>([]);
+  readonly actividadOptions = input<ActivityOption[]>([]);
   readonly selectedActividadId = input<string | null>(null);
   readonly emptyMessage = input('No hay actividades disponibles para esta persona');
   readonly showEnrollmentInfo = input(false);
@@ -45,6 +44,7 @@ export class MemberRow {
 
   protected onActividadChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
+
     const payload: ActivityChangePayload = {
       memberId: this.member().id,
       memberOrigin: this.member().origin,
@@ -60,7 +60,7 @@ export class MemberRow {
     this.secondaryActionPressed.emit(this.member().id);
   }
 
-  protected selectorOptions(): ActividadOption[] {
+  protected selectorOptions(): ActivityOption[] {
     const activities = this.activityOptions();
     if (activities.length > 0) {
       return activities;
@@ -76,6 +76,7 @@ export class MemberRow {
       no_requiere: 'No requiere',
       pendiente: 'Pendiente',
     };
+
     return labels[status] ?? 'Pendiente';
   }
 }

@@ -1,44 +1,17 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
-  AdminActualizarUsuarioPayload,
-  AdminCrearUsuarioPayload,
-  AdminImportResult,
-  AdminUsuario,
-  AdminUsuariosFiltro,
-  AdminUsuariosPage,
+  ApiCollection,
+  Cargo,
+  EnumOption,
+  ImportResult,
+  Usuario,
+  UsuarioCreatePayload,
+  UsuarioPatch,
+  UsuariosFiltro,
+  UsuariosPage,
 } from '../domain/admin.models';
-
-interface ApiCollection<T> {
-  member?: T[];
-  'hydra:member'?: T[];
-  'hydra:totalItems'?: number;
-  'hydra:view'?: {
-    '@id'?: string;
-    'hydra:first'?: string;
-    'hydra:last'?: string;
-    'hydra:next'?: string;
-    'hydra:previous'?: string;
-  };
-}
-
-interface AdminUsuarioRaw {
-  id?: string | number;
-  nombreCompleto?: string;
-  nombre?: string;
-  apellidos?: string;
-  email?: string;
-  telefono?: string | null;
-  antiguedad?: number | string | null;
-  estadoValidacion?: string;
-  tipoUsuarioEconomico?: string;
-  censadoVia?: string | null;
-  activo?: boolean;
-  fechaAltaCenso?: string | null;
-  fechaBajaCenso?: string | null;
-  fechaSolicitudAlta?: string | null;
-}
 
 @Injectable({ providedIn: 'root' })
 export class AdminApi {
@@ -47,123 +20,123 @@ export class AdminApi {
 
   getUsuarios(options: {
     search?: string;
-    filtro?: AdminUsuariosFiltro;
+    filtro?: UsuariosFiltro;
     page?: number;
     itemsPerPage?: number;
-  } = {}): Observable<AdminUsuariosPage> {
-    let queryParams = new HttpParams();
+  } = {}): Observable<UsuariosPage> {
+    let params = new HttpParams();
 
     const search = (options.search ?? '').trim();
-    const filtro: AdminUsuariosFiltro = options.filtro ?? 'censado';
+    const filtro = options.filtro ?? 'censado';
     const page = options.page ?? 1;
     const itemsPerPage = options.itemsPerPage ?? 10;
 
-    queryParams = queryParams
-      .set('page', String(page))
-      .set('itemsPerPage', String(itemsPerPage))
+    params = params
+      .set('page', page)
+      .set('itemsPerPage', itemsPerPage)
       .set('order[nombreCompleto]', 'asc');
 
     if (filtro === 'censado') {
-      queryParams = queryParams
-        .set('exists[fechaAltaCenso]', 'true')
-        .set('exists[fechaBajaCenso]', 'false');
+      params = params
+        .set('exists[fechaAltaCenso]', true)
+        .set('exists[fechaBajaCenso]', false);
     }
 
     if (filtro === 'no_censado') {
-      queryParams = queryParams.set('exists[fechaBajaCenso]', 'true');
+      params = params.set('exists[fechaBajaCenso]', true);
     }
 
-    if (search.length > 0) {
-      if (search.includes('@')) {
-        queryParams = queryParams.set('email', search);
-      } else {
-        queryParams = queryParams.set('nombreCompleto', search);
-      }
+    if (search) {
+      params = params.set(
+        search.includes('@') ? 'email' : 'nombreCompleto',
+        search
+      );
     }
 
     return this.http
-      .get<ApiCollection<AdminUsuarioRaw>>(`${this.apiBaseUrl}/api/usuarios`, { params: queryParams })
+      .get<ApiCollection<Usuario>>(`${this.apiBaseUrl}/api/usuarios`, { params })
       .pipe(
-        map((r) => {
-          const rows = (r.member ?? r['hydra:member'] ?? []).map((row) => this.toAdminUsuario(row));
-          const currentPage = this.extractPageFromHydraUrl(r['hydra:view']?.['@id']) ?? page;
+        map((response) => {
+          const items = response.member ?? response['hydra:member'] ?? [];
 
           return {
-            items: rows,
-            totalItems: Number(r['hydra:totalItems'] ?? rows.length),
-            page: currentPage,
+            items,
+            totalItems: Number(response['hydra:totalItems'] ?? items.length),
+            page,
             itemsPerPage,
-            hasNext: Boolean(r['hydra:view']?.['hydra:next']),
-            hasPrevious: Boolean(r['hydra:view']?.['hydra:previous']),
-          } satisfies AdminUsuariosPage;
-        }),
+            hasNext: Boolean(response['hydra:view']?.['hydra:next']),
+            hasPrevious: Boolean(response['hydra:view']?.['hydra:previous']),
+          };
+        })
       );
   }
 
-  getUsuario(id: string): Observable<AdminUsuario> {
+  buscarUsuariosRelacionados(search: string): Observable<Usuario[]> {
+    return this.getUsuarios({
+      search,
+      filtro: 'todos',
+      page: 1,
+      itemsPerPage: 20,
+    }).pipe(map((response) => response.items));
+  }
+
+  getUsuario(id: string): Observable<Usuario> {
+    return this.http.get<Usuario>(
+      `${this.apiBaseUrl}/api/usuarios/${encodeURIComponent(id)}`
+    );
+  }
+
+  // Admin-specific user GET that requests the admin serialization group
+  getUsuarioAdmin(id: string): Observable<Usuario> {
+    return this.http.get<Usuario>(
+      `${this.apiBaseUrl}/api/admin/usuarios/${encodeURIComponent(id)}`
+    );
+  }
+
+  crearUsuario(payload: UsuarioCreatePayload): Observable<Usuario> {
+    return this.http.post<Usuario>(
+      `${this.apiBaseUrl}/api/admin/usuarios`,
+      payload
+    );
+  }
+
+  updateUsuario(id: string, payload: UsuarioPatch): Observable<Usuario> {
+    // API Platform expects PATCH requests to use the "application/merge-patch+json" media type
+    // (otherwise Symfony/API Platform will return 415). Send the correct Content-Type header.
+    const headers = new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' });
+
+    return this.http.patch<Usuario>(
+      `${this.apiBaseUrl}/api/admin/usuarios/${encodeURIComponent(id)}`,
+      payload,
+      { headers }
+    );
+  }
+
+  getCargos(): Observable<Cargo[]> {
     return this.http
-      .get<AdminUsuarioRaw>(`${this.apiBaseUrl}/api/usuarios/${encodeURIComponent(id)}`)
-      .pipe(map((row) => this.toAdminUsuario(row)));
+      .get<ApiCollection<Cargo>>(`${this.apiBaseUrl}/api/cargos`)
+      .pipe(
+        map((response) => response.member ?? response['hydra:member'] ?? [])
+      );
   }
 
-  crearUsuario(payload: AdminCrearUsuarioPayload): Observable<{ id: string; email: string }> {
-    return this.http.post<{ id: string; email: string }>(`${this.apiBaseUrl}/api/admin/usuarios`, payload);
-  }
-
-  updateUsuario(id: string, payload: AdminActualizarUsuarioPayload): Observable<AdminUsuario> {
+  getEnumOptions<T extends string = string>(
+    enumName: string
+  ): Observable<EnumOption<T>[]> {
     return this.http
-      .patch<AdminUsuarioRaw>(`${this.apiBaseUrl}/api/usuarios/${encodeURIComponent(id)}`, payload)
-      .pipe(map((row) => this.toAdminUsuario(row)));
+      .get<{ enum: string; items: EnumOption<T>[] }>(
+        `${this.apiBaseUrl}/api/generic/enums/${encodeURIComponent(enumName)}`
+      )
+      .pipe(map((response) => response.items));
   }
 
-  importarExcel(file: File): Observable<AdminImportResult> {
+  importarExcel(file: File): Observable<ImportResult> {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.http
-      .post<Partial<AdminImportResult>>(`${this.apiBaseUrl}/api/admin/usuarios/importar-excel`, formData)
-      .pipe(map((result) => ({
-        total: Number(result.total ?? 0),
-        insertadas: Number(result.insertadas ?? 0),
-        errores: Array.isArray(result.errores) ? result.errores : [],
-      })));
-  }
-
-  private toAdminUsuario(row: AdminUsuarioRaw): AdminUsuario {
-    const nombre = String(row.nombre ?? '').trim();
-    const apellidos = String(row.apellidos ?? '').trim();
-    const nombreCompleto = String(row.nombreCompleto ?? '').trim() || `${nombre} ${apellidos}`.trim();
-
-    return {
-      id: String(row.id ?? '').trim(),
-      nombre,
-      apellidos,
-      nombreCompleto,
-      email: String(row.email ?? '').trim(),
-      telefono: row.telefono ?? null,
-      antiguedad: row.antiguedad !== null && row.antiguedad !== undefined ? Number(row.antiguedad) : null,
-      estadoValidacion: String(row.estadoValidacion ?? 'pendiente_validacion'),
-      tipoUsuarioEconomico: String(row.tipoUsuarioEconomico ?? 'interno'),
-      censadoVia: row.censadoVia ?? null,
-      activo: Boolean(row.activo),
-      fechaAltaCenso: row.fechaAltaCenso ?? null,
-      fechaBajaCenso: row.fechaBajaCenso ?? null,
-      fechaSolicitudAlta: row.fechaSolicitudAlta ?? null,
-    };
-  }
-
-  private extractPageFromHydraUrl(hydraId?: string): number | null {
-    if (!hydraId) {
-      return null;
-    }
-
-    const parsed = hydraId.match(/[?&]page=(\d+)/i);
-    if (!parsed?.[1]) {
-      return null;
-    }
-
-    const page = Number(parsed[1]);
-    return Number.isFinite(page) && page > 0 ? page : null;
+    return this.http.post<ImportResult>(
+      `${this.apiBaseUrl}/api/admin/usuarios/importar-excel`,
+      formData
+    );
   }
 }
-

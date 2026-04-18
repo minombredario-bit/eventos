@@ -15,17 +15,18 @@ import { AuthService } from '../../../../core/auth/auth';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../../shared/components/member-row/member-row';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
-import { EventSummary, FamilyMember } from '../../domain/eventos.models';
+import { AltaInvitadoPayload, EventSummary, EventoDetalle, FamilyMember, Inscripcion, ParticipanteSeleccion } from '../../domain/eventos.models';
 import { EventosMapper } from '../../data/eventos.mapper';
-import {
-  AltaInvitadoPayload,
-  EventoDetalleApi,
-  EventosApi,
-  InscripcionApi,
-  ParticipanteSeleccionApi,
-} from '../../data/eventos.api';
+import { EventosApi } from '../../data/eventos.api';
 import { EventosStore } from '../../store/eventos.store';
 import { formatLocalDate, formatTime } from '../../../../core/utils/date.utils';
+import {
+  normalizeParticipantId,
+  sameSelectionRequest,
+  toSelectedMemberKeys,
+  uniqueParticipantsByKey
+} from '../../domain/detalle.utils';
+import {SelectionSaveRequest} from '../../domain/detalle.models';
 
 @Component({
   selector: 'app-detalle',
@@ -65,11 +66,11 @@ export class Detalle {
   protected readonly invitadosError        = signal<string | null>(null);
   protected readonly inscritosError       = signal<string | null>(null);
 
-  protected readonly event        = signal<EventoDetalleApi | null>(null);
+  protected readonly event        = signal<EventoDetalle | null>(null);
   protected readonly members      = signal<FamilyMember[]>([]);
   protected readonly invitados     = signal<FamilyMember[]>([]);
-  protected readonly inscritos    = signal<ParticipanteSeleccionApi[]>([]);
-  protected readonly inscripcionExistente = signal<InscripcionApi | null>(null);
+  protected readonly inscritos    = signal<ParticipanteSeleccion[]>([]);
+  protected readonly inscripcionExistente = signal<Inscripcion | null>(null);
   protected readonly selectedMemberIds = signal<string[]>([]);
   protected readonly savingSelection = signal(false);
   protected readonly participantActionsLocked = computed(() =>
@@ -434,7 +435,7 @@ export class Detalle {
               }),
               catchError((error: unknown) => {
                 this.errorMessage.set(this.resolveSelectionErrorMessage(error));
-                return of([] as ParticipanteSeleccionApi[]);
+                return of([] as ParticipanteSeleccion[]);
               }),
               finalize(() => {
                 this.savingSelection.set(false);
@@ -784,7 +785,7 @@ export class Detalle {
       });
   }
 
-  private mapInscripcionExistenteRows(inscripcion: InscripcionApi | null): FamilyMember[] {
+  private mapInscripcionExistenteRows(inscripcion: Inscripcion | null): FamilyMember[] {
     if (!inscripcion) {
       return [];
     }
@@ -844,12 +845,12 @@ export class Detalle {
     return `${member.origin === 'invitado' ? 'invitado' : 'familiar'}:${normalizedId}`;
   }
 
-  private inscritoKey(inscrito: ParticipanteSeleccionApi): string {
+  private inscritoKey(inscrito: ParticipanteSeleccion): string {
     return `${inscrito.origen}:${inscrito.id}`;
   }
 
-  private toParticipantesSeleccion(selectedKeys: string[]): ParticipanteSeleccionApi[] {
-    const participantes: ParticipanteSeleccionApi[] = [];
+  private toParticipantesSeleccion(selectedKeys: string[]): ParticipanteSeleccion[] {
+    const participantes: ParticipanteSeleccion[] = [];
     const seen = new Set<string>();
 
     for (const key of selectedKeys) {
@@ -930,7 +931,7 @@ export class Detalle {
   }
 
   private lineBelongsToParticipant(
-    inscrito: ParticipanteSeleccionApi,
+    inscrito: ParticipanteSeleccion,
     usuarioId?: string,
     invitadoId?: string,
   ): boolean {
@@ -966,8 +967,8 @@ export class Detalle {
   }
 
   private resolveInscritoPaymentStatus(
-    inscrito: ParticipanteSeleccionApi,
-    activeLinesFromCaller?: Array<NonNullable<ParticipanteSeleccionApi['inscripcionRelacion']>['lineas'][number]>,
+    inscrito: ParticipanteSeleccion,
+    activeLinesFromCaller?: Array<NonNullable<ParticipanteSeleccion['inscripcionRelacion']>['lineas'][number]>,
   ): string {
     const relation = inscrito.inscripcionRelacion;
     if (!relation || !Array.isArray(relation.lineas)) {
@@ -1035,8 +1036,8 @@ export class Detalle {
   }
 
   private getActiveParticipantLines(
-    inscrito: ParticipanteSeleccionApi,
-  ): Array<NonNullable<ParticipanteSeleccionApi['inscripcionRelacion']>['lineas'][number]> {
+    inscrito: ParticipanteSeleccion,
+  ): Array<NonNullable<ParticipanteSeleccion['inscripcionRelacion']>['lineas'][number]> {
     const relation = inscrito.inscripcionRelacion;
     if (!relation || !Array.isArray(relation.lineas)) {
       return [];
@@ -1096,7 +1097,7 @@ export class Detalle {
     return cleaned.length > 0 ? cleaned : null;
   }
 
-  private hasActiveActividadesFromEvent(event: EventoDetalleApi | null): boolean {
+  private hasActiveActividadesFromEvent(event: EventoDetalle | null): boolean {
     if (!event || !Array.isArray(event.actividades)) {
       return false;
     }
@@ -1104,7 +1105,7 @@ export class Detalle {
     return event.actividades.some((actividad) => actividad.activo !== false);
   }
 
-  private canUseGuestParticipantsFromEvent(event: EventoDetalleApi | null): boolean {
+  private canUseGuestParticipantsFromEvent(event: EventoDetalle | null): boolean {
     return Boolean(event?.permiteInvitados && this.hasActiveActividadesFromEvent(event));
   }
 
@@ -1151,118 +1152,4 @@ export class Detalle {
 
     return fechaEvento < hoy;
   });
-}
-
-interface SelectionSaveRequest {
-  eventId: string;
-  selectedKeys: string[];
-}
-
-export function toSelectedMemberKeys(participantes: ParticipanteSeleccionApi[]): string[] {
-  if (!participantes.length) return [];
-
-  const selected: string[] = [];
-  const seen = new Set<string>();
-
-  for (const participante of participantes) {
-    const id = normalizeParticipantId(participante.id);
-    if (!id) continue;
-
-    if (hasOnlyCancelledParticipantLines(participante)) {
-      continue;
-    }
-
-    const origin = participante.origen === 'invitado' ? 'invitado' : 'familiar';
-    const key = `${origin}:${id}`;
-
-    if (seen.has(key)) continue;
-    seen.add(key);
-    selected.push(key);
-  }
-
-  return selected;
-}
-
-function hasOnlyCancelledParticipantLines(participante: ParticipanteSeleccionApi): boolean {
-  const relation = participante.inscripcionRelacion;
-  if (!relation || !Array.isArray(relation.lineas) || relation.lineas.length === 0) {
-    return false;
-  }
-
-  const participantId = normalizeParticipantId(participante.id);
-
-  const hasActiveOwnLine = relation.lineas.some((linea) => {
-    if (linea.estadoLinea === 'cancelada') {
-      return false;
-    }
-
-    if (!linea.usuarioId && !linea.invitadoId) {
-      return true;
-    }
-
-    if (participante.origen === 'invitado') {
-      return normalizeParticipantId(linea.invitadoId) === participantId;
-    }
-
-    return normalizeParticipantId(linea.usuarioId) === participantId;
-  });
-
-  return !hasActiveOwnLine;
-}
-
-function normalizeParticipantId(rawId: string | null | undefined): string {
-  if (!rawId) {
-    return '';
-  }
-
-  const cleaned = rawId.trim();
-  if (!cleaned) {
-    return '';
-  }
-
-  if (!cleaned.includes('/')) {
-    return cleaned;
-  }
-
-  return cleaned.split('/').filter(Boolean).at(-1) ?? '';
-}
-
-function sameSelectionRequest(previous: SelectionSaveRequest, current: SelectionSaveRequest): boolean {
-  if (previous.eventId !== current.eventId) {
-    return false;
-  }
-
-  if (previous.selectedKeys.length !== current.selectedKeys.length) {
-    return false;
-  }
-
-  return previous.selectedKeys.every((key, index) => key === current.selectedKeys[index]);
-}
-
-export function uniqueParticipantsByKey(participants: FamilyMember[]): FamilyMember[] {
-  if (participants.length <= 1) {
-    return participants;
-  }
-
-  const unique = new Map<string, FamilyMember>();
-
-  for (const participant of participants) {
-    const id = normalizeParticipantId(participant.id);
-    if (!id) {
-      continue;
-    }
-
-    const origin = participant.origin === 'invitado' ? 'invitado' : 'familiar';
-    const key = `${origin}:${id}`;
-
-    if (!unique.has(key)) {
-      unique.set(key, {
-        ...participant,
-        id,
-        origin,
-      });
-    }
-  }
-
-  return Array.from(unique.values());
 }

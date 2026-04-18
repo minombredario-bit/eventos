@@ -3,7 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { Detalle } from './detalle';
 import { AuthService } from '../../../../core/auth/auth';
-import { EventosApi, ParticipanteSeleccionApi } from '../../data/eventos.api';
+import { EventosApi } from '../../data/eventos.api';
+import { ParticipanteSeleccion } from '../../domain/eventos.models';
 import { EventosMapper } from '../../data/eventos.mapper';
 import { EventosStore } from '../../store/eventos.store';
 import { FamilyMember } from '../../domain/eventos.models';
@@ -39,7 +40,7 @@ describe('Detalle locking rules', () => {
   it('bloquea acciones cuando la línea del participante ya está pagada', () => {
     const fixture = createDetalleFixture();
     const component = fixture.componentInstance as unknown as {
-      inscritos: { set: (value: ParticipanteSeleccionApi[]) => void };
+      inscritos: { set: (value: ParticipanteSeleccion[]) => void };
       participantActionLabel: (member: FamilyMember) => string;
       isParticipantActionDisabled: (member: FamilyMember) => boolean;
     };
@@ -66,7 +67,7 @@ describe('Detalle locking rules', () => {
             },
           ],
         },
-      } as ParticipanteSeleccionApi,
+      } as ParticipanteSeleccion,
     ]);
 
     const member: FamilyMember = {
@@ -85,7 +86,7 @@ describe('Detalle locking rules', () => {
   it('calcula estado de pago por líneas y muestra parcial con mezcla pagada/no pagada', () => {
     const fixture = createDetalleFixture();
     const component = fixture.componentInstance as unknown as {
-      inscritos: { set: (value: ParticipanteSeleccionApi[]) => void };
+      inscritos: { set: (value: ParticipanteSeleccion[]) => void };
       inscritosRows: () => Array<FamilyMember & { enrollment?: { paymentStatusRaw?: string } }>;
     };
 
@@ -122,7 +123,7 @@ describe('Detalle locking rules', () => {
             },
           ],
         },
-      } as ParticipanteSeleccionApi,
+      } as ParticipanteSeleccion,
     ]);
 
     const row = component.inscritosRows()[0];

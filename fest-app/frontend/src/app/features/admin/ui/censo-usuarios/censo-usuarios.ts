@@ -5,7 +5,7 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { AdminApi } from '../../data/admin.api';
-import { AdminImportResult, AdminUsuario, AdminUsuariosFiltro, AdminUsuariosPage } from '../../domain/admin.models';
+import { ImportResult, Usuario, UsuariosFiltro, UsuariosPage } from '../../domain/admin.models';
 
 @Component({
   selector: 'app-admin-censo-usuarios',
@@ -27,10 +27,10 @@ export class AdminCensoUsuarios {
   protected readonly importing = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
-  protected readonly importSummary = signal<AdminImportResult | null>(null);
+  protected readonly importSummary = signal<ImportResult | null>(null);
   protected readonly searchTerm = signal('');
-  protected readonly filtro = signal<AdminUsuariosFiltro>('censado');
-  protected readonly usuariosPage = signal<AdminUsuariosPage>({
+  protected readonly filtro = signal<UsuariosFiltro>('censado');
+  protected readonly usuariosPage = signal<UsuariosPage>({
     items: [],
     totalItems: 0,
     page: 1,
@@ -39,7 +39,7 @@ export class AdminCensoUsuarios {
     hasPrevious: false,
   });
 
-  protected readonly usuarios = computed<AdminUsuario[]>(() => this.usuariosPage().items);
+  protected readonly usuarios = computed<Usuario[]>(() => this.usuariosPage().items);
   protected readonly totalItems = computed<number>(() => this.usuariosPage().totalItems);
   protected readonly currentPage = computed<number>(() => this.usuariosPage().page);
   protected readonly hasNextPage = computed<boolean>(() => this.usuariosPage().hasNext);
@@ -59,7 +59,7 @@ export class AdminCensoUsuarios {
     this.loadUsuarios(1);
   }
 
-  protected setFiltro(filtro: AdminUsuariosFiltro): void {
+  protected setFiltro(filtro: UsuariosFiltro): void {
     if (this.filtro() === filtro) {
       return;
     }
@@ -121,32 +121,11 @@ export class AdminCensoUsuarios {
       });
   }
 
-  protected fullName(usuario: AdminUsuario): string {
-    return usuario.nombreCompleto;
+  protected fullName(usuario: Usuario): string {
+    return usuario.nombreCompleto ?? `${usuario.nombre} ${usuario.apellidos}`;
   }
 
-  protected estadoLabel(value: string): string {
-    const labels: Record<string, string> = {
-      pendiente_validacion: 'Pendiente',
-      validado: 'Validado',
-      rechazado: 'Rechazado',
-      bloqueado: 'Bloqueado',
-    };
-
-    return labels[value] ?? value;
-  }
-
-  protected tipoLabel(value: string): string {
-    const labels: Record<string, string> = {
-      interno: 'Interno',
-      externo: 'Externo',
-      invitado: 'Invitado',
-    };
-
-    return labels[value] ?? value;
-  }
-
-  protected antiguedadLabel(usuario: AdminUsuario): string {
+  protected antiguedadLabel(usuario: Usuario): string {
     return usuario.antiguedad === null ? '-' : String(usuario.antiguedad);
   }
 

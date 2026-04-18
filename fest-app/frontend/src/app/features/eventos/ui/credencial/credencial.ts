@@ -12,7 +12,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { combineLatest, distinctUntilChanged, filter, map } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
-import { EventosApi, InscripcionApi } from '../../data/eventos.api';
+import { EventosApi } from '../../data/eventos.api';
+import { Inscripcion } from '../../domain/eventos.models';
 
 const CREDENTIAL_OPEN_WINDOW_MINUTES = 60;
 
@@ -34,7 +35,7 @@ export class Credencial {
   protected readonly eventId          = signal('');
   protected readonly loading          = signal(true);
   protected readonly errorMessage     = signal<string | null>(null);
-  protected readonly inscription      = signal<InscripcionApi | null>(null);
+  protected readonly inscription      = signal<Inscripcion | null>(null);
 
   constructor() {
     combineLatest([
@@ -86,7 +87,7 @@ export class Credencial {
     void this.router.navigateByUrl('/auth/login');
   }
 
-  protected lineActividadLabel(line: InscripcionApi['lineas'][number]): string {
+  protected lineActividadLabel(line: Inscripcion['lineas'][number]): string {
     return line.estadoLinea === 'cancelada' ? 'Sin actividad' : line.nombreActividadSnapshot;
   }
 

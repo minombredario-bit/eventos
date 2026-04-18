@@ -2,7 +2,7 @@ import { convertToParamMap, ActivatedRoute, Router } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
-import { ParticipanteSeleccionApi } from '../../data/eventos.api';
+import { ParticipanteSeleccion } from '../../domain/eventos.models';
 import { Detalle, toSelectedMemberKeys, uniqueParticipantsByKey } from './detalle';
 import { FamilyMember } from '../../domain/eventos.models';
 import { AuthService } from '../../../../core/auth/auth';
@@ -16,7 +16,7 @@ describe('toSelectedMemberKeys', () => {
       { id: '10', origen: 'familiar' },
       { id: '22', origen: 'invitado' },
       { id: '10', origen: 'familiar' },
-    ] as ParticipanteSeleccionApi[];
+    ] as ParticipanteSeleccion[];
 
     expect(toSelectedMemberKeys(participantes)).toEqual(['familiar:10', 'invitado:22']);
   });
@@ -24,9 +24,9 @@ describe('toSelectedMemberKeys', () => {
   it('descarta ids vacíos y normaliza origen desconocido a familiar', () => {
     const participantes = [
       { id: '   ', origen: 'familiar' },
-      { id: 'abc', origen: 'otro_origen' as ParticipanteSeleccionApi['origen'] },
+      { id: 'abc', origen: 'otro_origen' as ParticipanteSeleccion['origen'] },
       { id: 'n1', origen: 'invitado' },
-    ] as ParticipanteSeleccionApi[];
+    ] as ParticipanteSeleccion[];
 
     expect(toSelectedMemberKeys(participantes)).toEqual(['familiar:abc', 'invitado:n1']);
   });
@@ -35,7 +35,7 @@ describe('toSelectedMemberKeys', () => {
     const participantes = [
       { id: '/api/usuarios/uuid-123', origen: 'familiar' },
       { id: '/api/invitados/nf-9', origen: 'invitado' },
-    ] as ParticipanteSeleccionApi[];
+    ] as ParticipanteSeleccion[];
 
     expect(toSelectedMemberKeys(participantes)).toEqual(['familiar:uuid-123', 'invitado:nf-9']);
   });
@@ -85,7 +85,7 @@ describe('Detalle autosave y navegación', () => {
   it('add/remove dispara guardado automático de selección', () => {
     const guardarSeleccionParticipantes = jasmine
       .createSpy('guardarSeleccionParticipantes')
-      .and.callFake((_: string, participantes: ParticipanteSeleccionApi[]) => of(participantes));
+      .and.callFake((_: string, participantes: ParticipanteSeleccion[]) => of(participantes));
 
     const fixture = createDetalleFixture({ guardarSeleccionParticipantes });
     const component = fixture.componentInstance as unknown as {
@@ -136,7 +136,7 @@ describe('Detalle autosave y navegación', () => {
   it('tras alta de invitado lo selecciona para inscripción y no queda en gestión de invitados', () => {
     const guardarSeleccionParticipantes = jasmine
       .createSpy('guardarSeleccionParticipantes')
-      .and.callFake((_: string, participantes: ParticipanteSeleccionApi[]) => of(participantes));
+      .and.callFake((_: string, participantes: ParticipanteSeleccion[]) => of(participantes));
     const altaInvitadoEnEvento = jasmine
       .createSpy('altaInvitadoEnEvento')
       .and.returnValue(of({
@@ -186,7 +186,7 @@ describe('Detalle autosave y navegación', () => {
   it('si backend responde 422 no inserta invitado fantasma y muestra el error de validación', () => {
     const guardarSeleccionParticipantes = jasmine
       .createSpy('guardarSeleccionParticipantes')
-      .and.callFake((_: string, participantes: ParticipanteSeleccionApi[]) => of(participantes));
+      .and.callFake((_: string, participantes: ParticipanteSeleccion[]) => of(participantes));
     const altaInvitadoEnEvento = jasmine
       .createSpy('altaInvitadoEnEvento')
       .and.returnValue(throwError(() => new HttpErrorResponse({
@@ -263,11 +263,11 @@ describe('Detalle autosave y navegación', () => {
   it('usa label Invitado en inscritos invitados', () => {
     const fixture = createDetalleFixture();
     const component = fixture.componentInstance as unknown as {
-      inscritos: { set: (value: ParticipanteSeleccionApi[]) => void };
+      inscritos: { set: (value: ParticipanteSeleccion[]) => void };
       inscritosRows: () => FamilyMember[];
     };
 
-    component.inscritos.set([{ id: 'nf-1', origen: 'invitado' } as ParticipanteSeleccionApi]);
+    component.inscritos.set([{ id: 'nf-1', origen: 'invitado' } as ParticipanteSeleccion]);
 
     const rows = component.inscritosRows();
     expect(rows[0]?.role).toBe('Invitado');
@@ -302,10 +302,10 @@ describe('Detalle autosave y navegación', () => {
   it('no muestra acciones en el card "A quién he apuntado" para invitados', () => {
     const fixture = createDetalleFixture();
     const component = fixture.componentInstance as unknown as {
-      inscritos: { set: (value: ParticipanteSeleccionApi[]) => void };
+      inscritos: { set: (value: ParticipanteSeleccion[]) => void };
     };
 
-    component.inscritos.set([{ id: 'nf-1', origen: 'invitado' } as ParticipanteSeleccionApi]);
+    component.inscritos.set([{ id: 'nf-1', origen: 'invitado' } as ParticipanteSeleccion]);
     fixture.detectChanges();
 
     const inscritosCard = fixture.nativeElement.querySelector('article.panel.family-list');
@@ -315,7 +315,7 @@ describe('Detalle autosave y navegación', () => {
   it('borra invitado desde la lista principal y actualiza selección persistida', () => {
     const guardarSeleccionParticipantes = jasmine
       .createSpy('guardarSeleccionParticipantes')
-      .and.callFake((_: string, participantes: ParticipanteSeleccionApi[]) => of(participantes));
+      .and.callFake((_: string, participantes: ParticipanteSeleccion[]) => of(participantes));
     const bajaInvitadoEnEvento = jasmine
       .createSpy('bajaInvitadoEnEvento')
       .and.returnValue(of(void 0));

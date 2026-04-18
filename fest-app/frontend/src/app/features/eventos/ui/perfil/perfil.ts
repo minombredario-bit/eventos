@@ -6,7 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { AuthService } from '../../../../core/auth/auth';
-import { METODOS_PAGO_OPTIONS, MetodoPagoApp } from '../../data/eventos.api';
+import { METODOS_PAGO_OPTIONS, MetodoPago } from '../../domain/eventos.models';
 
 @Component({
   selector: 'app-perfil',
@@ -33,7 +33,7 @@ export class Perfil {
   protected readonly profileForm = this.fb.nonNullable.group({
     telefono: [''],
     fechaNacimiento: [''],
-    formaPagoPreferida: ['' as '' | MetodoPagoApp],
+    formaPagoPreferida: ['' as '' | MetodoPago],
   });
 
   protected readonly passwordForm = this.fb.nonNullable.group({
@@ -162,7 +162,7 @@ export class Perfil {
     return raw.includes('T') ? raw.split('T')[0] : raw;
   }
 
-  private normalizeMetodoPago(value: unknown): '' | MetodoPagoApp {
+  private normalizeMetodoPago(value: unknown): '' | MetodoPago {
     if (typeof value !== 'string') return '';
     const found = this.metodosPago.find((item) => item.value === value);
     return found ? found.value : '';

@@ -1,30 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { AuthUser, LoginResponse } from '../models/auth.models';
+import {AuthUser, JwtPayload, LoginResponse, PersistedAuthState} from '../models/auth.models';
 
 type SessionResponse = Pick<LoginResponse, 'token'> & { user?: AuthUser };
-
-interface PersistedAuthState {
-  token: string;
-  user: AuthUser;
-}
-
-interface JwtPayload {
-  exp?: number;
-  sub?: string;
-  id?: string | number;
-  email?: string;
-  username?: string;
-  nombre?: string;
-  name?: string;
-  apellidos?: string;
-  telefono?: string | null;
-  formaPagoPreferida?: string | null;
-  antiguedad?: number | null;
-  antiguedadReal?: number | null;
-  debeCambiarPassword?: boolean;
-  fechaNacimiento?: string | null;
-  roles?: string[];
-}
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {

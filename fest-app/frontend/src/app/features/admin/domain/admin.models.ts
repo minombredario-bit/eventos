@@ -1,51 +1,125 @@
-export type EstadoValidacionAdmin = 'pendiente_validacion' | 'validado' | 'rechazado' | 'bloqueado' | string;
-export type TipoUsuarioEconomicoAdmin = 'interno' | 'externo' | 'invitado' | string;
+export type EstadoValidacion =
+  | 'pendiente_validacion'
+  | 'validado'
+  | 'rechazado'
+  | 'bloqueado';
 
-export interface AdminUsuario {
+export type MetodoPagoPreferida =
+  | 'efectivo'
+  | 'tarjeta'
+  | 'transferencia'
+  | 'bizum'
+  | 'tpv'
+  | 'online'
+  | 'manual';
+
+export type UserRole = 'ROLE_ADMIN_ENTIDAD' | 'ROLE_USER';
+
+export interface EnumOption<T extends string = string> {
+  name: string;
+  value: T;
+  label: string;
+}
+
+export type TipoRelacion =
+  | 'conyuge'
+  | 'padre'
+  | 'madre'
+  | 'pareja'
+  | 'hijo'
+  | 'hija'
+  | 'sobrino'
+  | 'sobrina'
+  | 'abuelo'
+  | 'abuela';
+
+export type TipoPersona = 'infantil' | 'cadete' | 'adulto';
+
+export type UsuariosFiltro = 'todos' | 'censado' | 'no_censado';
+
+export interface Cargo {
   id: string;
   nombre: string;
-  apellidos: string;
-  nombreCompleto: string;
-  email: string;
-  telefono: string | null;
-  antiguedad: number | null;
-  estadoValidacion: EstadoValidacionAdmin;
-  tipoUsuarioEconomico: TipoUsuarioEconomicoAdmin;
-  censadoVia: string | null;
-  activo: boolean;
-  fechaAltaCenso: string | null;
-  fechaBajaCenso: string | null;
-  fechaSolicitudAlta: string | null;
 }
 
-export interface AdminCrearUsuarioPayload {
-  nombre: string;
-  apellidos: string;
-  email: string;
-  password: string;
-  telefono?: string | null;
-  tipoUsuarioEconomico?: 'interno' | 'externo' | 'invitado';
+export interface RelacionUsuario {
+  id?: string;
+  usuario_id: string;
+  usuario_nombre?: string;
+  tipoRelacion: TipoRelacion;
 }
 
-export interface AdminActualizarUsuarioPayload {
+export interface RelacionUsuarioWritePayload {
+  usuario: string;
+  tipoRelacion: TipoRelacion;
+}
+
+interface UsuarioBase {
   nombre?: string;
   apellidos?: string;
+  email?: string | null;
   telefono?: string | null;
-  antiguedad?: number | null;
-  tipoUsuarioEconomico?: 'interno' | 'externo' | 'invitado';
+
   activo?: boolean;
+  motivoBajaCenso?: string | null;
+
+  antiguedad?: number | null;
+  antiguedadReal?: number | null;
+
+  fechaNacimiento?: string | null;
+  fechaAltaCenso?: string | null;
+  fechaBajaCenso?: string | null;
+
+  formaPagoPreferida?: MetodoPagoPreferida | null;
+  debeCambiarPassword?: boolean;
+
+  tipoPersona?: TipoPersona | null;
+  censadoVia?: string | null;
+  estadoValidacion?: EstadoValidacion | null;
+
+  roles?: UserRole[];
 }
 
-export interface AdminImportResult {
-  total: number;
-  insertadas: number;
-  errores: Array<{ fila?: number; motivo?: string }>;
+export interface Usuario extends UsuarioBase {
+  id?: string;
+  nombreCompleto?: string;
+  cargos?: Cargo[];
+  relacionUsuarios?: RelacionUsuario[];
 }
 
-export type AdminUsuariosFiltro = 'todos' | 'censado' | 'no_censado';
+export interface UsuarioWrite extends UsuarioBase {
+  cargos?: string[];
+  relacionUsuarios?: RelacionUsuarioWritePayload[];
+}
 
-export interface AdminUsuariosPage {
-  items: AdminUsuario[];
+export interface UsuarioCreatePayload {
+  nombre: string;
+  apellidos: string;
+  email?: string | null;
+  activo: boolean;
+  fechaNacimiento: string | null;
+  formaPagoPreferida: MetodoPagoPreferida;
+  debeCambiarPassword: boolean;
+  roles: UserRole[];
+
+  telefono?: string | null;
+  motivoBajaCenso?: string | null;
+  antiguedad?: number | null;
+  antiguedadReal?: number | null;
+  cargos?: string[];
+  relacionUsuarios?: RelacionUsuarioWritePayload[];
+}
+
+export type UsuarioPatch = Partial<UsuarioWrite>;
+
+export interface UsuarioRelacionadoSeleccionado {
+  id: string;
+  nombreCompleto: string;
+  tipoRelacion: TipoRelacion | null;
+}
+
+export interface UsuariosPage {
+  items: Usuario[];
   totalItems: number;
   page: number;
   itemsPerPage: number;
@@ -53,3 +127,21 @@ export interface AdminUsuariosPage {
   hasPrevious: boolean;
 }
 
+export interface ImportResult {
+  total: number;
+  creados?: number;
+  actualizados?: number;
+  insertadas?: number;
+  errores: string[];
+}
+
+export interface ApiCollection<T> {
+  member?: T[];
+  'hydra:member'?: T[];
+  'hydra:totalItems'?: number;
+  'hydra:view'?: {
+    '@id'?: string;
+    'hydra:next'?: string;
+    'hydra:previous'?: string;
+  };
+}

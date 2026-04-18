@@ -3,296 +3,30 @@ import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular
 import { catchError, map, Observable, of, switchMap, throwError } from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
 import { AuthService } from '../../../core/auth/auth';
+import {
+  ActividadEvento,
+  AltaInvitadoPayload,
+  EventoApuntadosResponse,
+  EventoDetalle,
+  EventoResumen,
+  Inscripcion,
+  InscripcionResumen,
+  Invitado,
+  MetodoPago,
+  ParticipanteSeleccion,
+  RelacionUsuario,
+} from '../domain/eventos.models';
 
-interface ApiCollection<T> {
-  member?: T[];
-  'hydra:member'?: T[];
-}
-
-interface EventoApuntadosCollectionItem {
-  inscripcionId: string;
-  nombreCompleto: string;
-  opciones?: string[];
-}
-
-interface EventoApuntadosCollectionResponse {
-  evento?: {
-    id?: string | number;
-    titulo?: string;
-    descripcion?: string | null;
-    fechaEvento?: string;
-  };
-  member?: EventoApuntadosCollectionItem[];
-  'hydra:member'?: EventoApuntadosCollectionItem[];
-  'hydra:totalItems'?: number;
-  'hydra:currentPage'?: number;
-  'hydra:itemsPerPage'?: number;
-}
-
-export interface PersonaFamiliarApi {
-  id: string;
-  nombre: string;
-  apellidos: string;
-  nombreCompleto: string;
-  parentesco: string;
-  tipoPersona: 'adulto' | 'infantil';
-  observaciones?: string | null;
-  inscripcion?: {
-    evento: {
-      id: string;
-      titulo: string;
-      fechaEvento: string;
-      horaInicio?: string | null;
-    };
-    estadoPago: string;
-  } | null;
-}
-
-export interface InvitadoApi {
-  id: string;
-  nombre: string;
-  apellidos?: string;
-  nombreCompleto?: string;
-  parentesco?: string;
-  tipoPersona: 'adulto' | 'infantil';
-  observaciones?: string | null;
-  origen?: 'invitado' | 'familiar';
-  esInvitado?: boolean;
-  inscripcion?: {
-    evento: {
-      id: string;
-      titulo: string;
-      fechaEvento: string;
-      horaInicio?: string | null;
-    };
-    estadoPago: string;
-  } | null;
-}
-
-export interface AltaInvitadoPayload {
-  nombre: string;
-  apellidos: string;
-  tipoPersona: 'adulto' | 'infantil';
-  parentesco?: string;
-  observaciones?: string;
-}
-
-export interface ActividadEventoApi {
-  id: string;
-  evento?: string | { id?: string };
-  nombre: string;
-  descripcion?: string | null;
-  franjaComida: 'almuerzo' | 'comida' | 'merienda' | 'cena';
-  compatibilidadPersona: 'adulto' | 'infantil' | 'ambos';
-  esDePago: boolean;
-  precioBase: number;
-  activo?: boolean;
-}
-
-export interface EventoDetalleApi {
-  id: string;
-  titulo: string;
-  descripcion?: string | null;
-  fechaEvento: string;
-  horaInicio?: string | null;
-  lugar?: string | null;
-  estado?: string;
-  inscripcionAbierta?: boolean;
-  permiteInvitados?: boolean;
-  actividades?: ActividadEventoApi[];
-  fechaLimiteInscripcion?: string | null;
-  fechaInicioInscripcion?: string;
-}
-
-export interface EventoResumenApi {
-  id: string;
-  titulo: string;
-  descripcion?: string | null;
-  fechaEvento: string;
-  horaInicio?: string | null;
-  lugar?: string | null;
-  estado: string;
-  inscripcionAbierta?: boolean;
-  permiteInvitados?: boolean;
-  fechaLimiteInscripcion?: string | null;
-  fechaFinInscripcion?: string | null;
-}
-
-export interface InscripcionApi {
-  id: string;
-  codigo: string;
-  evento: {
-    id: string;
-    titulo: string;
-    descripcion?: string | null;
-    fechaEvento: string;
-    horaInicio?: string | null;
-    lugar?: string | null;
-    inscripcionAbierta?: boolean;
-    fechaLimiteInscripcion?: string | null;
-    fechaFinInscripcion?: string | null;
-  };
-  estadoInscripcion: string;
-  estadoPago: string;
-  importeTotal: number;
-  importePagado: number;
-  lineas: {
-    id: string;
-    actividadId?: string;
-    usuarioId?: string;
-    invitadoId?: string;
-    nombrePersonaSnapshot: string;
-    tipoPersonaSnapshot?: string;
-    nombreActividadSnapshot: string;
-    franjaComidaSnapshot?: string;
-    precioUnitario: number;
-    estadoLinea: string;
-    pagada?: boolean;
-  }[];
-}
-
-export interface InscripcionResumenApi {
-  id: string;
-  codigo: string;
-  evento: { id: string };
-}
-
-export interface EventoApuntadoApi {
-  inscripcionId: string;
-  nombreCompleto: string;
-  opciones: string[];
-}
-
-export interface EventoApuntadosResponseApi {
-  evento: {
-    id: string;
-    titulo: string;
-    descripcion?: string | null;
-    fechaEvento: string;
-  };
-  apuntados: EventoApuntadoApi[];
-  totalItems: number;
-  currentPage: number;
-  itemsPerPage: number;
-}
-
-export type MetodoPagoApp = 'efectivo' | 'transferencia' | 'bizum' | 'tpv' | 'online' | 'manual';
-
-export interface MetodoPagoOption {
-  value: MetodoPagoApp;
-  label: string;
-}
-
-export const METODOS_PAGO_OPTIONS: MetodoPagoOption[] = [
-  { value: 'efectivo', label: 'Efectivo' },
-  { value: 'transferencia', label: 'Transferencia' },
-  { value: 'bizum', label: 'Bizum' },
-  { value: 'tpv', label: 'TPV' },
-  { value: 'online', label: 'Pago online' },
-  { value: 'manual', label: 'Manual' },
-];
-
-interface InscripcionResumenCollectionItem {
-  id?: string | number;
-  '@id'?: string;
-  codigo?: string;
-  evento?: { id?: string | number; '@id'?: string } | string | null;
-}
-
-interface InscripcionLineaCollectionItem {
-  id?: string | number;
-  '@id'?: string;
-  actividad?: { id?: string | number; '@id'?: string } | string | null;
-  usuario?: { id?: string | number; '@id'?: string } | string | null;
-  invitado?: { id?: string | number; '@id'?: string } | string | null;
-  nombrePersonaSnapshot?: string;
-  tipoPersonaSnapshot?: string;
-  nombreActividadSnapshot?: string;
-  franjaComidaSnapshot?: string;
-  precioUnitario?: number | string | null;
-  estadoLinea?: string;
-  pagada?: boolean;
-}
-
-interface InscripcionCollectionItem {
-  id?: string | number;
-  '@id'?: string;
-  codigo?: string;
-  evento?: {
-    id?: string | number;
-    '@id'?: string;
-    titulo?: string;
-    descripcion?: string | null;
-    fechaEvento?: string;
-    horaInicio?: string | null;
-    lugar?: string | null;
-    inscripcionAbierta?: boolean;
-    fechaLimiteInscripcion?: string | null;
-    fechaFinInscripcion?: string | null;
-  } | string | null;
-  estadoInscripcion?: string;
-  estadoPago?: string;
-  importeTotal?: number | string | null;
-  importePagado?: number | string | null;
-  lineas?: InscripcionLineaCollectionItem[];
-}
-
-export interface CrearInscripcionResponse {
-  id: string;
-}
-
-export interface RelacionUsuarioApi {
-  id: string;
-  usuarioOrigen: { id?: string; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string };
-  usuarioDestino: { id?: string; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string };
-  tipoRelacion: string;
-  createdAt: string;
-}
-
-interface RelacionUsuarioCollectionItem {
-  id?: string | number;
-  '@id'?: string;
-  usuarioOrigen?: { id?: string | number; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string } | string;
-  usuarioDestino?: { id?: string | number; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string } | string;
-  tipoRelacion?: string;
-  createdAt?: string;
-}
-
-export interface ParticipanteSeleccionApi {
-  id: string;
-  origen: 'familiar' | 'invitado';
-  tipoPersona?: 'adulto' | 'infantil';
-  nombre?: string;
-  apellidos?: string;
-  inscripcionRelacion?: {
-    id: string;
-    codigo: string;
-    estadoPago: string;
-    totalLineas?: number;
-    totalPagado?: number;
-    lineas: Array<{
-      id: string;
-      actividadId?: string;
-      usuarioId?: string;
-      invitadoId?: string;
-      nombreActividadSnapshot: string;
-      franjaComidaSnapshot?: string;
-      estadoLinea: string;
-      precioUnitario: number;
-      pagada?: boolean;
-    }>;
-  };
-}
-
-interface SeleccionParticipantesResponseApi {
-  eventoId: string;
-  participantes: ParticipanteSeleccionApi[];
-  updatedAt: string | null;
-}
-
-interface InvitadoStorageEntry extends InvitadoApi {
-  eventId: string;
-}
+import {
+  ApiCollection,
+  CrearInscripcionResponse,
+  EventoApuntadosCollectionResponse,
+  InscripcionCollectionItem,
+  InscripcionResumenCollectionItem,
+  InvitadoStorageEntry,
+  RelacionUsuarioCollectionItem,
+  SeleccionParticipantesResponseApi,
+} from '../domain/eventos.api.models';
 
 @Injectable({ providedIn: 'root' })
 export class EventosApi {
@@ -304,11 +38,7 @@ export class EventosApi {
 
   // ── Eventos ───────────────────────────────────────────────────────────
 
-  getEventos(): Observable<EventoResumenApi[]> {
-    return this.getEventosByDateRange();
-  }
-
-  getEventosByDateRange(startDate?: string, endDate?: string): Observable<EventoResumenApi[]> {
+  getEventosByDateRange(startDate?: string, endDate?: string): Observable<EventoResumen[]> {
     let params = new HttpParams();
     if (startDate) {
       params = params.set('fechaEvento[after]', startDate);
@@ -322,20 +52,20 @@ export class EventosApi {
       .set('order[horaInicio]', 'asc');
 
     return this.http
-      .get<ApiCollection<EventoResumenApi>>(`${this.apiBaseUrl}/api/eventos`, { params })
+      .get<ApiCollection<EventoResumen>>(`${this.apiBaseUrl}/api/eventos`, { params })
       .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
   }
 
-  getEvento(id: string): Observable<EventoDetalleApi> {
+  getEvento(id: string): Observable<EventoDetalle> {
     return this.http
-      .get<EventoDetalleApi & { actividades?: ActividadEventoApi[] }>(this.eventoBasePath(id))
+      .get<EventoDetalle & { actividades?: ActividadEvento[] }>(this.eventoBasePath(id))
       .pipe(map((evento) => this.normalizeEventoDetalle(evento)));
   }
 
   // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya actividades embebidas.
-  getActividadesByEvento(eventoId: string): Observable<ActividadEventoApi[]> {
+  getActividadesByEvento(eventoId: string): Observable<ActividadEvento[]> {
     return this.http
-      .get<ApiCollection<ActividadEventoApi>>(`${this.apiBaseUrl}/api/actividades?evento=${encodeURIComponent(eventoId)}`)
+      .get<ApiCollection<ActividadEvento>>(`${this.apiBaseUrl}/api/actividades?evento=${encodeURIComponent(eventoId)}`)
       .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
   }
 
@@ -351,7 +81,7 @@ export class EventosApi {
     );
   }
 
-  getInscripcionesMias(): Observable<InscripcionResumenApi[]> {
+  getInscripcionesMias(): Observable<InscripcionResumen[]> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       return of([]);
@@ -365,11 +95,11 @@ export class EventosApi {
         map((r) => r.member ?? r['hydra:member'] ?? []),
         map((items) => items
           .map((item) => this.toInscripcionResumen(item))
-          .filter((item): item is InscripcionResumenApi => item !== null)),
+          .filter((item): item is InscripcionResumen => item !== null)),
       );
   }
 
-  getInscripcionesMiasCollection(): Observable<InscripcionApi[]> {
+  getInscripcionesMiasCollection(): Observable<Inscripcion[]> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       return of([]);
@@ -383,11 +113,11 @@ export class EventosApi {
         map((r) => r.member ?? r['hydra:member'] ?? []),
         map((items) => items
           .map((item) => this.toInscripcionCollection(item))
-          .filter((item): item is InscripcionApi => item !== null)),
+          .filter((item): item is Inscripcion => item !== null)),
       );
   }
 
-  getInscripcion(id: string): Observable<InscripcionApi> {
+  getInscripcion(id: string): Observable<Inscripcion> {
     return this.http
       .get<InscripcionCollectionItem>(`${this.apiBaseUrl}/api/inscripcions/${id}`)
       .pipe(
@@ -405,7 +135,7 @@ export class EventosApi {
   getApuntadosByEvento(
     eventoId: string,
     options?: { search?: string; paginate?: boolean; page?: number },
-  ): Observable<EventoApuntadosResponseApi> {
+  ): Observable<EventoApuntadosResponse> {
     let params = new HttpParams();
     const query = options?.search?.trim();
     const paginate = options?.paginate ?? true;
@@ -464,15 +194,15 @@ export class EventosApi {
     );
   }
 
-  actualizarFormaPagoPreferida(formaPagoPreferida: MetodoPagoApp | null): Observable<unknown> {
+  actualizarFormaPagoPreferida(formaPagoPreferida: MetodoPago | null): Observable<unknown> {
     return this.http.patch(`${this.apiBaseUrl}/api/me`, { formaPagoPreferida });
   }
 
   // ── Invitados ─────────────────────────────────────────────────────────
 
-  getInvitadosByEvento(eventoId: string): Observable<InvitadoApi[]> {
+  getInvitadosByEvento(eventoId: string): Observable<Invitado[]> {
     return this.http
-      .get<ApiCollection<InvitadoApi>>(`${this.eventoBasePath(eventoId)}/invitados`)
+      .get<ApiCollection<Invitado>>(`${this.eventoBasePath(eventoId)}/invitados`)
       .pipe(
         map((r) => this.mapper.mapInvitadosList(r.member ?? r['hydra:member'] ?? [], eventoId)),
         catchError(() =>
@@ -481,14 +211,14 @@ export class EventosApi {
       );
   }
 
-  altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<InvitadoApi> {
+  altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<Invitado> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       return of(this.createInvitadoInFallback(eventoId, payload));
     }
 
     return this.http
-      .post<InvitadoApi>(`${this.apiBaseUrl}/api/invitados`, {
+      .post<Invitado>(`${this.apiBaseUrl}/api/invitados`, {
         ...payload,
         creadoPor: `/api/usuarios/${currentUserId.trim()}`,
         evento: `/api/eventos/${this.normalizeEventoId(eventoId)}`,
@@ -518,20 +248,20 @@ export class EventosApi {
       );
   }
 
-  getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccionApi[]> {
+  getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccion[]> {
     return this.http
       .get<SeleccionParticipantesResponseApi>(`${this.eventoBasePath(eventoId)}/seleccion_participantes`)
       .pipe(
         map((r) => (Array.isArray(r.participantes) ? r.participantes : [])
           .map((item) => this.normalizeParticipanteSeleccion(item))
-          .filter((item): item is ParticipanteSeleccionApi => item !== null)),
+          .filter((item): item is ParticipanteSeleccion => item !== null)),
       );
   }
 
   guardarSeleccionParticipantes(
     eventoId: string,
-    participantes: ParticipanteSeleccionApi[],
-  ): Observable<ParticipanteSeleccionApi[]> {
+    participantes: ParticipanteSeleccion[],
+  ): Observable<ParticipanteSeleccion[]> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       return of(participantes);
@@ -540,7 +270,7 @@ export class EventosApi {
     const normalizedEventoId = this.normalizeEventoId(eventoId);
     const payloadParticipantes = participantes
       .map((item) => this.normalizeParticipanteSeleccion(item))
-      .filter((item): item is ParticipanteSeleccionApi => item !== null);
+      .filter((item): item is ParticipanteSeleccion => item !== null);
     const requestParticipantes = payloadParticipantes
       .map((item) => ({
         ...item,
@@ -560,7 +290,7 @@ export class EventosApi {
 
   // ── Relaciones ────────────────────────────────────────────────────────
 
-  getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuarioApi[]> {
+  getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {
     return this.http
       .get<ApiCollection<RelacionUsuarioCollectionItem>>(
         `${this.apiBaseUrl}/api/usuarios/${usuarioId}/relaciones`,
@@ -569,7 +299,7 @@ export class EventosApi {
         map((r) => r.member ?? r['hydra:member'] ?? []),
         map((items) => items
           .map((item) => this.toRelacionUsuario(item))
-          .filter((item): item is RelacionUsuarioApi => item !== null)),
+          .filter((item): item is RelacionUsuario => item !== null)),
       );
   }
 
@@ -580,8 +310,8 @@ export class EventosApi {
   }
 
   private normalizeEventoDetalle(
-    evento: EventoDetalleApi & { actividades?: ActividadEventoApi[] },
-  ): EventoDetalleApi {
+    evento: EventoDetalle & { actividades?: ActividadEvento[] },
+  ): EventoDetalle {
     const actividades = Array.isArray(evento.actividades) ? evento.actividades : undefined;
 
     return {
@@ -601,13 +331,13 @@ export class EventosApi {
       : cleaned;
   }
 
-  private readInvitadosFromFallback(eventoId: string): InvitadoApi[] {
+  private readInvitadosFromFallback(eventoId: string): Invitado[] {
     return this.getInvitadosStorageEntries()
       .filter((e) => e.eventId === eventoId)
       .map(({ eventId: _eventId, ...item }) => item);
   }
 
-  private createInvitadoInFallback(eventoId: string, payload: AltaInvitadoPayload): InvitadoApi {
+  private createInvitadoInFallback(eventoId: string, payload: AltaInvitadoPayload): Invitado {
     const created: InvitadoStorageEntry = {
       id: `nf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
       eventId: eventoId,
@@ -652,7 +382,7 @@ export class EventosApi {
     window.localStorage.setItem(this.invitadosStorageKey, JSON.stringify(entries));
   }
 
-  private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumenApi | null {
+  private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumen | null {
     const inscripcionId = this.extractResourceId(
       item.id ?? item['@id'] ?? '',
       '/api/inscripcions/',
@@ -672,7 +402,7 @@ export class EventosApi {
     };
   }
 
-  private toInscripcionCollection(item: InscripcionCollectionItem): InscripcionApi | null {
+  private toInscripcionCollection(item: InscripcionCollectionItem): Inscripcion | null {
     const inscripcionId = this.extractResourceId(
       item.id ?? item['@id'] ?? '',
       '/api/inscripcions/',
@@ -793,7 +523,7 @@ export class EventosApi {
     return 0;
   }
 
-  private toRelacionUsuario(item: RelacionUsuarioCollectionItem): RelacionUsuarioApi | null {
+  private toRelacionUsuario(item: RelacionUsuarioCollectionItem): RelacionUsuario | null {
     const id = this.extractResourceId(item.id ?? item['@id'] ?? '');
     const usuarioOrigen = this.normalizeRelacionUsuarioNode(item.usuarioOrigen);
     const usuarioDestino = this.normalizeRelacionUsuarioNode(item.usuarioDestino);
@@ -813,7 +543,7 @@ export class EventosApi {
 
   private normalizeRelacionUsuarioNode(
     node: RelacionUsuarioCollectionItem['usuarioOrigen'],
-  ): RelacionUsuarioApi['usuarioOrigen'] {
+  ): RelacionUsuario['usuarioOrigen'] {
     const source: {
       id?: string | number;
       '@id'?: string;
@@ -847,7 +577,7 @@ export class EventosApi {
     };
   }
 
-  private normalizeParticipanteSeleccion(item: ParticipanteSeleccionApi): ParticipanteSeleccionApi | null {
+  private normalizeParticipanteSeleccion(item: ParticipanteSeleccion): ParticipanteSeleccion | null {
     const originRaw = (item as { origen?: string }).origen;
     const origin = originRaw === 'invitado' ? 'invitado' : 'familiar';
     const normalizedId = this.extractResourceId(item.id).trim();
@@ -898,7 +628,7 @@ export class EventosApi {
     };
   }
 
-  private buildParticipanteSeleccionId(item: Pick<ParticipanteSeleccionApi, 'id' | 'origen'>): string {
+  private buildParticipanteSeleccionId(item: Pick<ParticipanteSeleccion, 'id' | 'origen'>): string {
     const normalizedId = this.extractResourceId(item.id).trim();
 
     if (!normalizedId) {

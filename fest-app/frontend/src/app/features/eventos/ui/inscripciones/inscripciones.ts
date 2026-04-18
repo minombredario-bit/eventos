@@ -6,7 +6,8 @@ import { map } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { formatLocalDate, formatTime, hasValidTime, normalizeDateKey } from '../../../../core/utils/date.utils';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
-import { EventosApi, InscripcionApi } from '../../data/eventos.api';
+import { EventosApi } from '../../data/eventos.api';
+import { Inscripcion } from '../../domain/eventos.models';
 
 @Component({
   selector: 'app-inscripciones',
@@ -24,7 +25,7 @@ export class Inscripciones {
 
   protected readonly loading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly inscripciones = signal<InscripcionApi[]>([]);
+  protected readonly inscripciones = signal<Inscripcion[]>([]);
 
   constructor() {
     this.loadInscripciones();
@@ -35,11 +36,11 @@ export class Inscripciones {
     void this.router.navigateByUrl('/auth/login');
   }
 
-  protected eventRouteId(inscripcion: InscripcionApi): string {
+  protected eventRouteId(inscripcion: Inscripcion): string {
     return this.normalizeEventoId(inscripcion.evento.id ?? '');
   }
 
-  protected eventTitle(inscripcion: InscripcionApi): string {
+  protected eventTitle(inscripcion: Inscripcion): string {
     const title = inscripcion.evento.titulo?.trim();
     if (title?.length) {
       return title;
@@ -48,7 +49,7 @@ export class Inscripciones {
     return 'Evento';
   }
 
-  protected eventDate(inscripcion: InscripcionApi): string {
+  protected eventDate(inscripcion: Inscripcion): string {
     const date = inscripcion.evento.fechaEvento?.trim();
     if (date?.length) {
       return formatLocalDate(date);
@@ -57,7 +58,7 @@ export class Inscripciones {
     return 'Fecha por confirmar';
   }
 
-  protected eventTime(inscripcion: InscripcionApi): string {
+  protected eventTime(inscripcion: Inscripcion): string {
     const time = inscripcion.evento.horaInicio?.trim();
     if (time?.length) {
       return formatTime(time);
@@ -66,7 +67,7 @@ export class Inscripciones {
     return 'Sin hora';
   }
 
-  protected eventLocation(inscripcion: InscripcionApi): string {
+  protected eventLocation(inscripcion: Inscripcion): string {
     const location = inscripcion.evento.lugar?.trim();
     if (location?.length) {
       return location;
@@ -75,7 +76,7 @@ export class Inscripciones {
     return 'Lugar por confirmar';
   }
 
-  protected eventDescription(inscripcion: InscripcionApi): string {
+  protected eventDescription(inscripcion: Inscripcion): string {
     const description = inscripcion.evento.descripcion?.trim();
     if (description?.length) {
       return description;
@@ -84,15 +85,15 @@ export class Inscripciones {
     return 'Descripción no disponible.';
   }
 
-  protected isEventoCerrado(inscripcion: InscripcionApi): boolean {
+  protected isEventoCerrado(inscripcion: Inscripcion): boolean {
     return inscripcion.evento.inscripcionAbierta === false;
   }
 
-  protected estadoInscripcionEventoLabel(inscripcion: InscripcionApi): string {
+  protected estadoInscripcionEventoLabel(inscripcion: Inscripcion): string {
     return this.isEventoCerrado(inscripcion) ? 'Cerrada (caducada)' : 'Abierta';
   }
 
-  protected cierreEventoHint(inscripcion: InscripcionApi): string {
+  protected cierreEventoHint(inscripcion: Inscripcion): string {
     if (!this.isEventoCerrado(inscripcion)) {
       return 'Podés gestionar tu inscripción.';
     }
@@ -105,7 +106,7 @@ export class Inscripciones {
     return `Plazo vencido: ${formatLocalDate(fechaLimite)}.`;
   }
 
-  protected lineasLabel(inscripcion: InscripcionApi): string {
+  protected lineasLabel(inscripcion: Inscripcion): string {
     const count = inscripcion.lineas.length;
     return count === 1 ? '1 línea' : `${count} líneas`;
   }
@@ -157,7 +158,7 @@ export class Inscripciones {
       });
   }
 
-  private compareInscripciones(a: InscripcionApi, b: InscripcionApi): number {
+  private compareInscripciones(a: Inscripcion, b: Inscripcion): number {
     const dateA = this.resolveSortDateTime(a);
     const dateB = this.resolveSortDateTime(b);
     if (dateA !== dateB) {
@@ -166,7 +167,7 @@ export class Inscripciones {
     return a.id.localeCompare(b.id);
   }
 
-  private resolveSortDateTime(inscripcion: InscripcionApi): string {
+  private resolveSortDateTime(inscripcion: Inscripcion): string {
     const rawDate = (inscripcion.evento.fechaEvento ?? '').trim();
     const normalizedDate = rawDate.length ? normalizeDateKey(rawDate) : '9999-12-31';
 
@@ -176,7 +177,7 @@ export class Inscripciones {
     return `${normalizedDate}T${normalizedTime}:00`;
   }
 
-  private normalizeInscripcion(inscripcion: InscripcionApi): InscripcionApi {
+  private normalizeInscripcion(inscripcion: Inscripcion): Inscripcion {
     const normalizedEventoId = this.normalizeEventoId(inscripcion.evento.id || '');
     return {
       ...inscripcion,

@@ -1,5 +1,5 @@
 import { EventosMapper } from './eventos.mapper';
-import { InvitadoApi } from './eventos.api';
+import { Invitado } from '../domain/eventos.models';
 
 describe('EventosMapper', () => {
   it('fuerza el label Invitado para origen invitado', () => {
@@ -12,7 +12,7 @@ describe('EventosMapper', () => {
       parentesco: 'Participante',
       tipoPersona: 'adulto',
       origen: 'invitado',
-    } as InvitadoApi;
+    } as Invitado;
 
     const member = mapper.toFamilyMember(invitado);
 
