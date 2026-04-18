@@ -1,0 +1,250 @@
+<section class="screen admin-usuario-screen">
+  <app-mobile-header
+    [title]="pageTitle()"
+    subtitle="{{ isEditMode() ? 'Edición manual' : 'Alta manual' }}"
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (loading()) {
+      <article class="panel">
+        <p class="eyebrow">Cargando</p>
+        <h2>Recuperando usuario</h2>
+      </article>
+    } @else {
+      <article class="panel">
+        @if (isEditMode() && usuario(); as currentUser) {
+          <div class="grid">
+            <div>
+              <span>Estado</span>
+              <strong>{{ currentUser.estadoValidacion }}</strong>
+            </div>
+
+            <div>
+              <span>Censado vía</span>
+              <strong>{{ currentUser.censadoVia || 'No indicado' }}</strong>
+            </div>
+          </div>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form">
+          <div class="field">
+            <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
+            <label for="nombre">Nombre</label>
+          </div>
+
+          <div class="field">
+            <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
+            <label for="apellidos">Apellidos</label>
+          </div>
+
+          <div class="field field--full">
+            <input id="email" type="email" formControlName="email" placeholder=" " />
+            <label for="email">Email</label>
+          </div>
+
+          <div class="field">
+            <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
+            <label for="telefono">Teléfono</label>
+          </div>
+
+          <div class="field">
+            <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
+            <label for="fechaNacimiento">Fecha nacimiento</label>
+          </div>
+
+          <div class="field">
+            <input
+              id="antiguedadReal"
+              type="number"
+              formControlName="antiguedadReal"
+              placeholder=" "
+              min="0"
+              step="1"
+            />
+            <label for="antiguedadReal">Antigüedad real</label>
+          </div>
+
+          <div class="field">
+            <input
+              id="antiguedad"
+              type="number"
+              formControlName="antiguedad"
+              placeholder=" "
+              min="0"
+              step="1"
+            />
+            <label for="antiguedad">Antigüedad</label>
+          </div>
+
+          <div class="field">
+            <select id="formaPagoPreferida" formControlName="formaPagoPreferida">
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="bizum">Bizum</option>
+            </select>
+            <label for="formaPagoPreferida">Forma pago preferida</label>
+          </div>
+
+          <div class="field">
+            <div class="field field--full">
+              <select formControlName="role" id="role">
+                <option value="ROLE_USER">Usuario</option>
+                <option value="ROLE_ADMIN_ENTIDAD">Admin</option>
+              </select>
+              <label for="role">Rol</label>
+            </div>
+          </div>
+
+          <label class="checkbox-row">
+            <input type="checkbox" formControlName="activo" />
+            <span>Usuario activo</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" formControlName="debeCambiarPassword" />
+            <span>Debe cambiar contraseña al acceder</span>
+          </label>
+
+          @if (form.controls.activo.value === false) {
+            <div class="field field--full">
+              <input
+                id="motivoBajaCenso"
+                type="text"
+                formControlName="motivoBajaCenso"
+                placeholder=" "
+              />
+              <label for="motivoBajaCenso">Motivo baja censo</label>
+            </div>
+          }
+
+          <section class="cargo-panel">
+            <div class="cargo-header">
+              <div>
+                <h3>Cargos</h3>
+                <p class="cargo-help">Selecciona uno o varios cargos para este usuario.</p>
+              </div>
+              <span>{{ cargosSeleccionados().length }} seleccionados</span>
+            </div>
+
+            <div class="cargo-pills" role="group" aria-label="Selección de cargos">
+              @for (cargo of cargos(); track cargo.id) {
+                <button
+                  type="button"
+                  class="cargo-pill"
+                  [class.cargo-pill--selected]="isCargoSelected(cargo.id)"
+                  (click)="toggleCargo(cargo.id)"
+                  [attr.aria-pressed]="isCargoSelected(cargo.id)"
+                >
+                  <span class="cargo-pill__check">
+                    @if (isCargoSelected(cargo.id)) {
+                      ✓
+                    }
+                  </span>
+                  <span class="cargo-pill__label">{{ cargo.nombre }}</span>
+                </button>
+              }
+            </div>
+          </section>
+
+          <section class="cargo-panel relacion-panel">
+            <div class="cargo-header relacion-header">
+              <div class="relacion-header__left">
+                <h3>Relación usuario</h3>
+                <p class="cargo-help">Busca por nombre completo y añade usuarios relacionados.</p>
+              </div>
+              <div class="relacion-search-wrap">
+                <span class="relacion-search-icon" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/>
+                    <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </span>
+                <input
+                  id="relacionUsuarioSearch"
+                  #relacionUsuarioSearchInput
+                  type="text"
+                  formControlName="relacionUsuarioSearch"
+                  placeholder="Buscar usuario…"
+                  class="relacion-search-input"
+                  (input)="onRelacionUsuarioSearch(relacionUsuarioSearchInput.value)"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+
+            @if (usuariosRelacionadosDisponibles().length > 0) {
+              <div class="relacion-suggestions" role="listbox" aria-label="Resultados búsqueda usuario">
+                @for (item of usuariosRelacionadosDisponibles(); track item.id) {
+                  <button
+                    type="button"
+                    class="relacion-suggestion-item"
+                    (click)="addUsuarioRelacionado(item)"
+                    role="option"
+                  >
+                    <span class="relacion-suggestion-avatar">{{ item.nombreCompleto | slice:0:1 }}</span>
+                    <span class="relacion-suggestion-name">{{ item.nombreCompleto }}</span>
+                    <span class="relacion-suggestion-add" aria-hidden="true">+</span>
+                  </button>
+                }
+              </div>
+            }
+
+            @if (usuariosRelacionadosSeleccionados().length > 0) {
+              <div class="relacion-chips" role="group" aria-label="Usuarios relacionados seleccionados">
+                @for (item of usuariosRelacionadosSeleccionados(); track item.id) {
+                  <div class="relacion-chip cargo-pill">
+                    <span class="relacion-chip__avatar">{{ item.nombreCompleto | slice:0:1 }}</span>
+                    <div class="relacion-chip__body">
+                      <span class="relacion-chip__name">{{ item.nombreCompleto }}</span>
+                      <select
+                        class="relacion-chip__select"
+                        #tipoRelacionSelect
+                        (change)="setTipoRelacionUsuario(item.id, tipoRelacionSelect.value)"
+                        [attr.aria-label]="'Tipo de relación con ' + item.nombreCompleto"
+                      >
+                        <option [selected]="!item.tipoRelacion" value="">Relación…</option>
+                        @for (tipo of tiposRelacion(); track tipo.value) {
+                          <option
+                            [value]="tipo.value"
+                            [selected]="item.tipoRelacion === tipo.value"
+                          >
+                            {{ tipo.label }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      class="relacion-chip__remove"
+                      (click)="removeUsuarioRelacionado(item.id)"
+                      [attr.aria-label]="'Quitar ' + item.nombreCompleto"
+                    >✕</button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="relacion-empty">Ningún usuario relacionado aún.</p>
+            }
+          </section>
+
+          <button type="submit" class="action-button" [disabled]="saving()">
+            {{ submitLabel() }}
+          </button>
+        </form>
+
+        @if (successMessage()) {
+          <p class="feedback success" role="status">{{ successMessage() }}</p>
+        }
+
+        @if (errorMessage()) {
+          <p class="feedback error" role="alert">{{ errorMessage() }}</p>
+        }
+      </article>
+    }
+  </div>
+</section>
