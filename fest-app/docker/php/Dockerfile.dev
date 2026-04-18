@@ -1,10 +1,10 @@
 # ────────────────────────────────────────────────
-# Dockerfile.dev  –  PHP-FPM para desarrollo
-# Código copiado en build; acceso SFTP por puerto 2222 para actualizaciones
+# Dockerfile.dev  –  PHP-FPM + SFTP para desarrollo
+# Context de build: raíz del proyecto (.)
 # ────────────────────────────────────────────────
 FROM php:8.2-fpm
 
-# ── Sistema ──────────────────────────────────────────────────────────────────
+# ── Dependencias del sistema ──────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
@@ -19,13 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     $PHPIZE_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
-# ── SFTP/SSH ──────────────────────────────────────────────────────────────────
-RUN mkdir -p /var/run/sshd \
-    && useradd -m -s /bin/bash sftpuser \
-    && usermod -aG www-data sftpuser \
-    && ssh-keygen -A
-
-# ── Extensiones PHP ───────────────────────────────────────────────────────────
+# ── Extensiones PHP ───────────────────────────────
 RUN docker-php-ext-install \
     pdo_mysql \
     mbstring \
@@ -34,52 +28,47 @@ RUN docker-php-ext-install \
     opcache \
     gd
 
-# Xdebug (solo dev)
+# ── Xdebug (solo dev) ─────────────────────────────
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug
 
-# ── Herramientas ──────────────────────────────────────────────────────────────
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# FIX: wget no está instalado → usar curl
-RUN curl -fsSL https://github.com/symfony-cli/symfony-cli/releases/download/v5.4.13/symfony-cli_5.4.13_amd64.deb \
-    -o /tmp/symfony-cli.deb \
-    && dpkg -i /tmp/symfony-cli.deb \
-    && rm /tmp/symfony-cli.deb
-
-# ── Configuración PHP / SSHD ──────────────────────────────────────────────────
+# ── Configuración PHP ─────────────────────────────
 COPY docker/php/conf.d/xdebug.ini           /usr/local/etc/php/conf.d/99-xdebug.ini
-COPY docker/php/conf.d/api-platform.dev.ini  /usr/local/etc/php/conf.d/api-platform.ini
+COPY docker/php/conf.d/api-platform.dev.ini /usr/local/etc/php/conf.d/api-platform.ini
 COPY docker/php/conf.d/www.conf             /usr/local/etc/php/php-fpm.d/zz-app.conf
 COPY docker/php/php.ini                     /usr/local/etc/php/php.ini
-COPY docker/php/sshd_config                /etc/ssh/sshd_config
 
+# ── SSH: configuración del servidor ──────────────
+RUN mkdir -p /var/run/sshd \
+    # Crear usuario sftpuser para acceso desde PhpStorm
+    && useradd -m -s /bin/bash sftpuser \
+    && usermod -aG www-data sftpuser \
+    # Configurar SSH: permitir password auth, deshabilitar root login
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config \
+    && echo "AllowUsers sftpuser" >> /etc/ssh/sshd_config
+
+# ── Composer ─────────────────────────────────────
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# ── Código de la aplicación ───────────────────────
+# Se copia en la imagen para sembrar el volumen app_data
+# en la primera arrancada. En dev puedes sobreescribir
+# ficheros individuales via SFTP desde PhpStorm.
 WORKDIR /var/www/html
+COPY backend/ .
 
-# ── Código de la app ──────────────────────────────────────────────────────────
-# FIX: el contexto de build es fest-app/ → todos los COPY llevan el prefijo backend/
-# FIX: eliminados COPY translations y var/resources (no existen en el proyecto)
-COPY backend/composer.json backend/composer.lock backend/symfony.lock ./
-RUN set -eux; \
-    composer install --ignore-platform-req=php --prefer-dist --no-scripts --no-progress; \
-    composer clear-cache
+# Instalar dependencias PHP
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer install --no-interaction --optimize-autoloader
 
-COPY backend/.env ./
-COPY backend/bin        bin/
-COPY backend/config     config/
-COPY backend/migrations migrations/
-COPY backend/public     public/
-COPY backend/src        src/
-COPY backend/templates  templates/
-
-ARG VERSION="2.0"
-RUN echo $VERSION > ./src/version.txt
-
-# FIX: permisos de grupo para que sftpuser (www-data) pueda escribir via SFTP
+# Permisos
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R g+w /var/www/html
+    && chmod -R 755 /var/www/html \
+    && mkdir -p var/cache var/log \
+    && chown -R www-data:www-data var/
 
-# ── Entrypoint ────────────────────────────────────────────────────────────────
+# ── Entrypoint ────────────────────────────────────
 COPY docker/php/entrypoint.dev.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

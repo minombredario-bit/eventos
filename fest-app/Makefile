@@ -47,16 +47,16 @@ prod-shell: ## Shell en el contenedor PHP (prod)
 # ── Symfony ──────────────────────────────────────
 
 migrate: ## Ejecuta migraciones Doctrine (dev)
-	$(COMPOSE_DEV) exec php php bin/console doctrine:migrations:migrate --no-interaction
+	$(COMPOSE_DEV) exec --user www-data php php bin/console doctrine:migrations:migrate --no-interaction
 
 migrate-prod: ## Ejecuta migraciones Doctrine (prod)
-	$(COMPOSE_PROD) exec php php bin/console doctrine:migrations:migrate --no-interaction
+	$(COMPOSE_PROD) exec --user www-data php php bin/console doctrine:migrations:migrate --no-interaction
 
 cache-clear: ## Limpia la caché de Symfony (dev)
-	$(COMPOSE_DEV) exec php php bin/console cache:clear
+	$(COMPOSE_DEV) exec --user www-data php php bin/console cache:clear
 
 jwt-keys: ## Genera las claves JWT (dev)
-	$(COMPOSE_DEV) exec php php bin/console lexik:jwt:generate-keypair --overwrite
+	$(COMPOSE_DEV) exec --user www-data php php bin/console lexik:jwt:generate-keypair --overwrite
 
 # ── FTP ──────────────────────────────────────────
 
@@ -71,3 +71,14 @@ ftp-info: ## Muestra la configuración FTP activa
 	@echo "─────────────────────────────────────────"
 	@echo " Modo pasivo: 30000-30009"
 	@echo "─────────────────────────────────────────"
+
+# ── Frontend Angular ──────────────────────────────
+
+frontend-build: ## Compila Angular para producción
+	cd frontend && npm ci && npx ng build --configuration production
+
+frontend-deploy: frontend-build ## Compila y sube el dist por FTP a producción
+	@echo "Sube la carpeta frontend/dist/frontend/ por FTP a /var/www/angular/"
+	@echo "Host: $$(grep PUBLICHOST .env.prod | cut -d= -f2)"
+	@echo "Dir remoto: /var/www/angular"
+	@echo "Puedes usar: lftp -u ftpuser,pass ftp://host -e 'mirror -R frontend/dist/frontend/ /var/www/angular/; quit'"

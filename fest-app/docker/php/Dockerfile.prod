@@ -1,9 +1,11 @@
 # ────────────────────────────────────────────────
 # Dockerfile.prod  –  PHP-FPM para producción
-# Build multi-stage: el código se sube por FTP
+# Context de build: raíz del proyecto (.)
+# El código se incluye en la imagen (igual que dev).
+# Para actualizar la app: rebuild + redeploy de la imagen.
 # ────────────────────────────────────────────────
 
-# ── Etapa 1: instalar dependencias Composer ──────
+# ── Etapa 1: dependencias Composer ───────────────
 FROM composer:latest AS composer_deps
 
 WORKDIR /app
@@ -15,10 +17,10 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
-# ── Etapa 2: imagen final ────────────────────────
+# ── Etapa 2: imagen final ─────────────────────────
 FROM php:8.2-fpm-alpine
 
-# Dependencias mínimas en Alpine
+# Dependencias runtime mínimas
 RUN apk add --no-cache \
     icu-libs \
     libzip \
@@ -27,6 +29,8 @@ RUN apk add --no-cache \
     libxml2 \
     freetype \
     libjpeg-turbo \
+    # Para el entrypoint
+    shadow \
     && apk add --no-cache --virtual .build-deps \
     icu-dev \
     libzip-dev \
@@ -46,30 +50,33 @@ RUN apk add --no-cache \
     && apk del .build-deps \
     && rm -rf /var/cache/apk/*
 
-# Configuración PHP optimizada para prod
-COPY docker/php/conf.d/opcache.prod.ini    /usr/local/etc/php/conf.d/opcache.ini
+# Configuración PHP prod
+COPY docker/php/conf.d/opcache.prod.ini      /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platform.ini
-COPY docker/php/conf.d/www.conf            /usr/local/etc/php/php-fpm.d/zz-app.conf
-COPY docker/php/php.prod.ini               /usr/local/etc/php/php.ini
+COPY docker/php/conf.d/www.conf              /usr/local/etc/php/php-fpm.d/zz-app.conf
+COPY docker/php/php.prod.ini                 /usr/local/etc/php/php.ini
 
 WORKDIR /var/www/html
 
-# Copiamos vendor desde la etapa composer_deps
+# Código de la aplicación
+COPY backend/ .
+
+# vendor desde etapa composer_deps (sin dev deps, optimizado)
 COPY --from=composer_deps /app/vendor ./vendor
 
-# El código de la aplicación llegará por FTP al volumen app_data
-# Este entrypoint espera que el volumen ya tenga los ficheros de Symfony
-COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-    && addgroup -g 1000 app \
-    && adduser -u 1000 -G app -s /bin/sh -D app \
-    && chown -R app:app /var/www/html
+# Permisos: www-data es el usuario de PHP-FPM (definido en www.conf)
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && mkdir -p var/cache var/log \
+    && chown -R www-data:www-data var/
 
-USER app
+# Entrypoint
+COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD php-fpm -t || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

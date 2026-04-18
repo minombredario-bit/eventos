@@ -15,19 +15,19 @@ chmod 700 /home/sftpuser/.ssh
 chown sftpuser:sftpuser /home/sftpuser/.ssh
 
 /usr/sbin/sshd
-echo "[entrypoint] SFTP/SSH activo en puerto 22 → host:2222"
+echo "[entrypoint] SFTP/SSH activo en puerto 22 → host:2223"
 # ─────────────────────────────────────────────────────────────────────────────
 
-# El código ya viene copiado en la imagen (COPY backend/ en el Dockerfile).
-# El volumen app_data se siembra desde la imagen en la primera arrancada.
-# Solo aseguramos permisos de var/ para cache y logs.
-mkdir -p var/cache var/log
-chown -R www-data:www-data var/
+# Asegurar permisos de var/ para cache y logs
+sh /var/www/html/scripts/fix_var_permissions.sh
 
-# Crear superadmin si no existe (requiere SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD)
+run_as_www_data() {
+    su -s /bin/sh -c "cd /var/www/html && $*" www-data
+}
+
+# Crear superadmin si no existe
 if [ -f /var/www/html/bin/console ]; then
-    cd /var/www/html
-    php bin/console app:ensure-superadmin --no-interaction 2>/dev/null || true
+    run_as_www_data 'php bin/console app:ensure-superadmin --no-interaction' 2>/dev/null || true
 fi
 
 exec "$@"

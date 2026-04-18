@@ -1,152 +1,135 @@
 services:
 
-  # ──────────────────────────────────────────────
-  # PHP-FPM  (Symfony backend)
-  # ──────────────────────────────────────────────
-  php:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile.dev
-    container_name: festapp2-php
-    restart: unless-stopped
-    # SIN volumen bind-mount: los ficheros llegan por FTP/SFTP (ver servicio ftp)
-    ports:
-      - "2223:22"       # SFTP/SSH para PhpStorm → sftp://sftpuser@localhost:2223
-    volumes:
-      - app_data:/var/www/html          # volumen interno compartido con nginx y ftp
-    environment:
-      APP_ENV: dev
-      APP_DEBUG: "0"
-      DATABASE_URL: "mysql://festapp_user:festapp_pass@db:3306/festapp_db?serverVersion=8.0&charset=utf8mb4"
-      XDEBUG_MODE: debug,develop
-      XDEBUG_CONFIG: "client_host=host.docker.internal client_port=9003 idekey=PHPSTORM"
-      PHP_IDE_CONFIG: "serverName=festapp-local"
-      SFTP_USER_PASS: "sftppass_dev"   # cámbialo o pon en .env.local
-      # Superadmin bootstrap (cámbialo o pon en .env.local antes de arrancar)
-      SUPERADMIN_EMAIL: "${SUPERADMIN_EMAIL:-superadmin@festapp.local}"
-      SUPERADMIN_PASSWORD: "${SUPERADMIN_PASSWORD:-superadmin_dev_changeme}"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - backend
-    labels:
-      ofelia.enabled: "true"
-      # Cola de correos: cada minuto, máx. 50 mensajes por ejecución
-      ofelia.job-exec.mail-queue.schedule: "@every 1m"
-      ofelia.job-exec.mail-queue.command: "php /var/www/html/bin/console app:mail-queue:process --limit=50 --no-interaction"
-      ofelia.job-exec.mail-queue.on-error: "mail"
-      # Estados de eventos: cada 10 minutos
-      ofelia.job-exec.event-status.schedule: "@every 10m"
-      ofelia.job-exec.event-status.command: "php /var/www/html/bin/console app:eventos:actualizar-estados --no-interaction"
-      ofelia.job-exec.event-status.on-error: "mail"
+    # ──────────────────────────────────────────────
+    # PHP-FPM  (Symfony backend)
+    # ──────────────────────────────────────────────
+    php:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile.dev
+        container_name: festapp2-php
+        restart: unless-stopped
+        ports:
+            - "2223:22"
+        volumes:
+            - app_data:/var/www/html
+        environment:
+            APP_ENV: dev
+            APP_DEBUG: "0"
+            DATABASE_URL: "mysql://festapp_user:festapp_pass@db:3306/festapp_db?serverVersion=8.0&charset=utf8mb4"
+            XDEBUG_MODE: debug,develop
+            XDEBUG_CONFIG: "client_host=host.docker.internal client_port=9003 idekey=PHPSTORM"
+            PHP_IDE_CONFIG: "serverName=festapp-local"
+            SFTP_USER_PASS: "sftppass_dev"
+            SUPERADMIN_EMAIL: "${SUPERADMIN_EMAIL:-superadmin@festapp.local}"
+            SUPERADMIN_PASSWORD: "${SUPERADMIN_PASSWORD:-superadmin_dev_changeme}"
+            MAILER_DSN: "smtp://festapp2-mailpit:1025"
+            MAILER_FROM: "festapp@festapp.local"
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        depends_on:
+            db:
+                condition: service_healthy
+        networks:
+            - backend
+        labels:
+            ofelia.enabled: "true"
+            # Cola de correos: cada minuto
+            ofelia.job-exec.mail-queue.schedule: "@every 1m"
+            ofelia.job-exec.mail-queue.command: "php /var/www/html/bin/console app:mail-queue:process --limit=50 --no-interaction"
+            # Estados de eventos: cada 10 minutos
+            ofelia.job-exec.event-status.schedule: "@every 10m"
+            ofelia.job-exec.event-status.command: "php /var/www/html/bin/console app:eventos:actualizar-estados --no-interaction"
 
-  # ──────────────────────────────────────────────
-  # OFELIA  – scheduler de tareas asíncronas
-  # El script entrypoint genera ofelia.ini desde las env vars en tiempo de arranque
-  # ──────────────────────────────────────────────
-  ofelia:
-    image: mcuadros/ofelia:latest
-    container_name: festapp2-ofelia
-    restart: unless-stopped
-    entrypoint: ["/bin/sh", "/entrypoint.sh"]
-    depends_on:
-      - php
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./docker/ofelia/entrypoint.sh:/entrypoint.sh:ro
-    environment:
-      # Destinatario de las alertas de error (superadmin)
-      SUPERADMIN_EMAIL: "${SUPERADMIN_EMAIL:-superadmin@festapp.local}"
-      # SMTP – en dev apunta a mailpit
-      OFELIA_SMTP_HOST: "${OFELIA_SMTP_HOST:-mailpit}"
-      OFELIA_SMTP_PORT: "${OFELIA_SMTP_PORT:-1025}"
-      OFELIA_MAIL_FROM: "${OFELIA_MAIL_FROM:-ofelia@festapp.local}"
-      # OFELIA_SMTP_USER y OFELIA_SMTP_PASSWORD no son necesarios en dev con mailpit
-    networks:
-      - backend
+    # ──────────────────────────────────────────────
+    # OFELIA  – scheduler
+    # Lee las labels del contenedor PHP via Docker socket
+    # ──────────────────────────────────────────────
+    ofelia:
+        image: mcuadros/ofelia:latest
+        container_name: festapp2-ofelia
+        restart: unless-stopped
+        # Sin entrypoint personalizado — usa el comando por defecto de la imagen
+        command: daemon --docker
+        depends_on:
+            - php
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        networks:
+            - backend
 
-  # ──────────────────────────────────────────────
-  # NGINX  (contenedor separado – solo proxy/static)
-  # ──────────────────────────────────────────────
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: festapp2-nginx
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    volumes:
-      - app_data:/var/www/html:ro                            # archivos de la app (solo lectura)
-      - ./docker/nginx/default.dev.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - php
-    networks:
-      - backend
-      - frontend
+    # ──────────────────────────────────────────────
+    # NGINX
+    # ──────────────────────────────────────────────
+    nginx:
+        image: nginx:1.27-alpine
+        container_name: festapp2-nginx
+        restart: unless-stopped
+        ports:
+            - "8080:80"
+        volumes:
+            - app_data:/var/www/html:ro
+            - ./docker/nginx/default.dev.conf:/etc/nginx/conf.d/default.conf:ro
+        depends_on:
+            - php
+        networks:
+            - backend
+            - frontend
 
-  # ──────────────────────────────────────────────
-  # FTP eliminado: usa SFTP → sftp://sftpuser@localhost:2222
-  # ──────────────────────────────────────────────
+    # ──────────────────────────────────────────────
+    # MySQL
+    # ──────────────────────────────────────────────
+    db:
+        image: mysql:8.0
+        container_name: festapp2-db
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        environment:
+            MYSQL_ROOT_PASSWORD: rootpass_dev
+            MYSQL_DATABASE: festapp_db
+            MYSQL_USER: festapp_user
+            MYSQL_PASSWORD: festapp_pass
+        volumes:
+            - festapp-mysql:/var/lib/mysql
+            - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass_dev"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - backend
 
-  # ──────────────────────────────────────────────
-  # MySQL
-  # ──────────────────────────────────────────────
-  db:
-    image: mysql:8.0
-    container_name: festapp2-db
-    restart: unless-stopped
-    ports:
-      - "3306:3306"                   # expuesto solo en dev para acceso desde IDE
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpass_dev
-      MYSQL_DATABASE: festapp_db
-      MYSQL_USER: festapp_user
-      MYSQL_PASSWORD: festapp_pass
-    volumes:
-      - festapp-mysql:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass_dev"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - backend
+    # ──────────────────────────────────────────────
+    # Herramientas opcionales (activa con: --profile tools)
+    # ──────────────────────────────────────────────
+    adminer:
+        image: adminer:latest
+        container_name: festapp2-adminer
+        ports:
+            - "8081:8080"
+        depends_on:
+            - db
+        networks:
+            - backend
+        profiles: [tools]
 
-  # ──────────────────────────────────────────────
-  # Herramientas opcionales  (activa con: --profile tools)
-  # ──────────────────────────────────────────────
-  adminer:
-    image: adminer:latest
-    container_name: festapp2-adminer
-    ports:
-      - "8081:8080"
-    depends_on:
-      - db
-    networks:
-      - backend
-    profiles: [tools]
-
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: festapp2-mailpit
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    networks:
-      - backend
-    profiles: [tools]
+    mailpit:
+        image: axllent/mailpit:latest
+        container_name: festapp2-mailpit
+        ports:
+            - "1025:1025"
+            - "8055:8025"
+        networks:
+            - backend
 
 volumes:
-  # Docker siembra este volumen desde la imagen en la primera arrancada (vacío → copia de /var/www/html).
-  # Para forzar una nueva siembra tras un rebuild: docker compose down -v && docker compose up -d
-  app_data:
-  festapp-mysql:
+    app_data:
+    festapp-mysql:
 
 networks:
-  backend:
-    driver: bridge
-  frontend:
-    driver: bridge
+    backend:
+        driver: bridge
+    frontend:
+        driver: bridge

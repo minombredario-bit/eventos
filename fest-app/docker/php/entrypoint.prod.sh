@@ -3,22 +3,41 @@ set -e
 
 echo "[entrypoint] Iniciando en modo producción..."
 
-if [ -f /var/www/html/bin/console ]; then
-    cd /var/www/html
+cd /var/www/html
 
-    # Cache warmup
-    php bin/console cache:warmup --env=prod --no-debug 2>/dev/null || true
+run_as_www_data() {
+    su -s /bin/sh -c "cd /var/www/html && $*" www-data
+}
 
-    # Migraciones automáticas (opcional; comenta si lo haces manualmente)
-    # php bin/console doctrine:migrations:migrate --no-interaction --env=prod 2>/dev/null || true
+# ── Espera activa a que el código esté disponible ─
+# (por si el volumen tarda en montarse o el código
+#  está en la imagen y el volumen lo sobreescribe vacío)
+MAX_WAIT=30
+WAITED=0
+while [ ! -f bin/console ]; do
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        echo "[entrypoint] ERROR: bin/console no encontrado tras ${MAX_WAIT}s. Abortando."
+        exit 1
+    fi
+    echo "[entrypoint] Esperando código... (${WAITED}s)"
+    sleep 2
+    WAITED=$((WAITED + 2))
+done
 
-    # Crear superadmin si no existe (requiere SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD)
-    php bin/console app:ensure-superadmin --no-interaction 2>/dev/null || true
+# ── Permisos de var/ ──────────────────────────────
+sh /var/www/html/scripts/fix_var_permissions.sh
 
-    echo "[entrypoint] Aplicación lista."
-else
-    echo "[entrypoint] AVISO: código Symfony no encontrado en el volumen."
-    echo "[entrypoint] Sube los archivos por FTP primero."
-fi
+# ── Migraciones ───────────────────────────────────
+echo "[entrypoint] Ejecutando migraciones..."
+run_as_www_data 'php bin/console doctrine:migrations:migrate --no-interaction --env=prod' 2>&1 \
+    && echo "[entrypoint] Migraciones OK" \
+    || echo "[entrypoint] AVISO: migraciones fallaron (puede ser normal si ya están aplicadas)"
+
+# ── Superadmin ────────────────────────────────────
+run_as_www_data 'php bin/console app:ensure-superadmin --no-interaction' 2>/dev/null \
+    && echo "[entrypoint] Superadmin OK" \
+    || echo "[entrypoint] AVISO: ensure-superadmin falló (puede que ya exista)"
+
+echo "[entrypoint] Aplicación lista."
 
 exec "$@"
