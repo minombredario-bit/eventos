@@ -27,11 +27,12 @@ use App\Enum\EstadoInscripcionEnum;
 use App\Enum\EstadoPagoEnum;
 use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\MetodoPagoEnum;
+use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-class AppFixtures extends Fixture
+class AppFixtures extends Fixture implements DependentFixtureInterface
 {
     public function __construct(
         private UserPasswordHasherInterface $passwordHasher
@@ -46,7 +47,9 @@ class AppFixtures extends Fixture
         $entidad->setNombre('Falla LlibreJoan Lloren 25');
         $entidad->setSlug('falla-llibre-joan-lloren-25');
         $entidad->setDescripcion('Falla histórica del barrio de Russafa, Valencia');
-        $entidad->setTipoEntidad(TipoEntidadEnum::FALLA);
+        /** @var \App\Entity\TipoEntidad $tipoEntidad */
+        $tipoEntidad = $this->getReference('tipo_entidad.falla', \App\Entity\TipoEntidad::class);
+        $entidad->setTipoEntidad($tipoEntidad);
         $entidad->setTerminologiaSocio('faller/a');
         $entidad->setTerminologiaEvento('mascletà');
         $entidad->setEmailContacto('info@fallallobre.es');
@@ -71,12 +74,9 @@ class AppFixtures extends Fixture
         $superadmin->setPassword($this->passwordHasher->hashPassword($superadmin, 'super123'));
         $superadmin->setRoles(['ROLE_SUPERADMIN']);
         $superadmin->setActivo(true);
-        $superadmin->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
-        $superadmin->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $superadmin->setEsCensadoInterno(true);
+        $superadmin->setTipoPersona(TipoPersonaEnum::ADULTO);
         $superadmin->setCensadoVia(CensadoViaEnum::MANUAL);
         $superadmin->setFechaAltaCenso(new \DateTimeImmutable('2023-01-15'));
-        $superadmin->setFechaValidacion(new \DateTimeImmutable('2023-01-16'));
         $manager->persist($superadmin);
 
         // Admin de entidad
@@ -89,12 +89,9 @@ class AppFixtures extends Fixture
         $adminEntidad->setPassword($this->passwordHasher->hashPassword($adminEntidad, 'admin123'));
         $adminEntidad->setRoles(['ROLE_ADMIN_ENTIDAD']);
         $adminEntidad->setActivo(true);
-        $adminEntidad->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
-        $adminEntidad->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $adminEntidad->setEsCensadoInterno(true);
+        $adminEntidad->setTipoPersona(TipoPersonaEnum::ADULTO);
         $adminEntidad->setCensadoVia(CensadoViaEnum::MANUAL);
         $adminEntidad->setFechaAltaCenso(new \DateTimeImmutable('2023-02-01'));
-        $adminEntidad->setFechaValidacion(new \DateTimeImmutable('2023-02-02'));
         $manager->persist($adminEntidad);
 
         // Usuario normal validado (con familiares)
@@ -107,13 +104,9 @@ class AppFixtures extends Fixture
         $usuario1->setPassword($this->passwordHasher->hashPassword($usuario1, 'user123'));
         $usuario1->setRoles(['ROLE_USER']);
         $usuario1->setActivo(true);
-        $usuario1->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
-        $usuario1->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $usuario1->setEsCensadoInterno(true);
+        $usuario1->setTipoPersona(TipoPersonaEnum::ADULTO);
         $usuario1->setCensadoVia(CensadoViaEnum::EXCEL);
-        $usuario1->setFechaSolicitudAlta(new \DateTimeImmutable('2024-01-10'));
         $usuario1->setFechaAltaCenso(new \DateTimeImmutable('2024-01-12'));
-        $usuario1->setFechaValidacion(new \DateTimeImmutable('2024-01-12'));
         $manager->persist($usuario1);
 
         // Usuario pendiente de validación
@@ -126,11 +119,8 @@ class AppFixtures extends Fixture
         $usuario2->setPassword($this->passwordHasher->hashPassword($usuario2, 'user123'));
         $usuario2->setRoles(['ROLE_USER']);
         $usuario2->setActivo(true);
-        $usuario2->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::EXTERNO);
-        $usuario2->setEstadoValidacion(EstadoValidacionEnum::PENDIENTE_VALIDACION);
-        $usuario2->setEsCensadoInterno(false);
+        $usuario2->setTipoPersona(TipoPersonaEnum::ADULTO);
         $usuario2->setCensadoVia(CensadoViaEnum::EXCEL);
-        $usuario2->setFechaSolicitudAlta(new \DateTimeImmutable('2024-02-01'));
         $manager->persist($usuario2);
 
         // ============================================
@@ -146,9 +136,7 @@ class AppFixtures extends Fixture
         $relacionadoConyuge->setPassword($this->passwordHasher->hashPassword($relacionadoConyuge, 'user123'));
         $relacionadoConyuge->setRoles(['ROLE_USER']);
         $relacionadoConyuge->setActivo(true);
-        $relacionadoConyuge->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
-        $relacionadoConyuge->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $relacionadoConyuge->setEsCensadoInterno(true);
+        $relacionadoConyuge->setTipoPersona(TipoPersonaEnum::ADULTO);
         $relacionadoConyuge->setCensadoVia(CensadoViaEnum::MANUAL);
         $relacionadoConyuge->setFechaNacimiento(new \DateTimeImmutable('1985-06-15'));
         $manager->persist($relacionadoConyuge);
@@ -162,9 +150,7 @@ class AppFixtures extends Fixture
         $relacionadoHijo->setPassword($this->passwordHasher->hashPassword($relacionadoHijo, 'user123'));
         $relacionadoHijo->setRoles(['ROLE_USER']);
         $relacionadoHijo->setActivo(true);
-        $relacionadoHijo->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
-        $relacionadoHijo->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $relacionadoHijo->setEsCensadoInterno(true);
+        $relacionadoHijo->setTipoPersona(TipoPersonaEnum::INFANTIL);
         $relacionadoHijo->setCensadoVia(CensadoViaEnum::MANUAL);
         $relacionadoHijo->setFechaNacimiento(new \DateTimeImmutable('2015-03-20'));
         $manager->persist($relacionadoHijo);
@@ -639,5 +625,12 @@ class AppFixtures extends Fixture
         // Add admin to entidad
         $entidad->addAdmin($adminEntidad);
         $manager->flush();
+
+        $this->addReference('entidad.demo', $entidad);
+    }
+
+    public function getDependencies(): array
+    {
+        return [TipoEntidadFixtures::class, CargoMasterFixtures::class];
     }
 }

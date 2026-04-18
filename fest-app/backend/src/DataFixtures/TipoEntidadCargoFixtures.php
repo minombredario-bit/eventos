@@ -27,11 +27,23 @@ final class TipoEntidadCargoFixtures extends Fixture
                     continue;
                 }
 
-                $tipoEntidadCargo = new TipoEntidadCargo();
+                $tipoEntidadCargo = $manager->getRepository(TipoEntidadCargo::class)->findOneBy([
+                    'tipoEntidad' => $tipoEntidad,
+                    'cargoMaster' => $cargoMaster,
+                ]);
+
+                if (!$tipoEntidadCargo instanceof TipoEntidadCargo) {
+                    $tipoEntidadCargo = new TipoEntidadCargo();
+                }
+
                 $tipoEntidadCargo->setTipoEntidad($tipoEntidad);
                 $tipoEntidadCargo->setCargoMaster($cargoMaster);
                 $tipoEntidadCargo->setActivo(true);
                 $manager->persist($tipoEntidadCargo);
+
+                $tipoCodigo = $tipoEntidad->getCodigo();
+                $cargoCodigo = $cargoMaster->getCodigo() ?? strtolower($cargoMaster->getNombre());
+                $this->addReference(sprintf('tipo_entidad_cargo.%s.%s', strtolower($tipoCodigo), strtolower($cargoCodigo)), $tipoEntidadCargo);
             }
         }
 

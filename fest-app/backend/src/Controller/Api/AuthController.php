@@ -143,11 +143,8 @@ class AuthController extends AbstractController
             'telefono' => $user->getTelefono(),
             'fechaNacimiento' => $user->getFechaNacimiento()?->format('Y-m-d'),
             'formaPagoPreferida' => $user->getFormaPagoPreferida()?->value,
-            'roles' => $user->getRoles(),
             'debeCambiarPassword' => $user->isDebeCambiarPassword(),
-            'entidad' => $user->getEntidad()?->getId(),
             'tipoUsuarioEconomico' => $user->getTipoUsuarioEconomico()->value,
-            'estadoValidacion' => $user->getEstadoValidacion()->value,
         ];
     }
 }

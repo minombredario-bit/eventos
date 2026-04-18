@@ -56,16 +56,12 @@ class RegistroController extends AbstractController
             'roles' => $user->getRoles(),
             'entidad' => '/api/entidads/' . $user->getEntidad()->getId(),
             'tipoUsuarioEconomico' => $user->getTipoUsuarioEconomico()->value,
-            'estadoValidacion' => $user->getEstadoValidacion()->value,
-            'esCensadoInterno' => $user->isEsCensadoInterno(),
             'censadoVia' => $user->getCensadoVia()?->value,
             'formaPagoPreferida' => $user->getFormaPagoPreferida()?->value,
             'antiguedad' => $user->getAntiguedad(),
             'antiguedadReal' => $user->getAntiguedadReal(),
             'debeCambiarPassword' => $user->isDebeCambiarPassword(),
             'puedeAcceder' => $user->puedeAcceder(),
-            'fechaSolicitudAlta' => $user->getFechaSolicitudAlta()?->format('c'),
-            'fechaValidacion' => $user->getFechaValidacion()?->format('c'),
         ]);
     }
 

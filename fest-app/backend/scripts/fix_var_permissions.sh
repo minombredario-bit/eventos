@@ -17,6 +17,7 @@ fi
 
 echo "[fix-var] ensuring $VAR_DIR exists"
 mkdir -p "$VAR_DIR"
+cd "$PROJECT_DIR"
 
 echo "[fix-var] setting owner to www-data:www-data (recursively)"
 chown -R www-data:www-data "$VAR_DIR"
@@ -36,11 +37,11 @@ if [ "$APP_ENV_VALUE" = "dev" ]; then
   echo "[fix-var] dev mode detected, skipping cache warmup"
 else
   echo "[fix-var] warming up Symfony cache as www-data (APP_ENV=${APP_ENV_VALUE})"
-  if su -s /bin/bash -c "php bin/console cache:warmup --env=$APP_ENV_VALUE" www-data 2>/dev/null; then
+  if su -s /bin/sh -c "cd '$PROJECT_DIR' && php bin/console cache:warmup --env=$APP_ENV_VALUE --no-debug" www-data 2>/dev/null; then
     echo "[fix-var] cache warmed up (www-data)"
   else
-    echo "[fix-var] warming up cache as www-data failed, trying as current user"
-    php bin/console cache:warmup --env="$APP_ENV_VALUE"
+    echo "[fix-var] ERROR: cache warmup as www-data failed"
+    exit 1
   fi
 fi
 

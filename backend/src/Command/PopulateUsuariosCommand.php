@@ -8,6 +8,7 @@ use App\Entity\Entidad;
 use App\Entity\Usuario;
 use App\Enum\EstadoValidacionEnum;
 use App\Enum\TipoEntidadEnum;
+use App\Entity\TipoEntidad as TipoEntidadEntity;
 use App\Enum\TipoRelacionEconomicaEnum;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -41,7 +42,11 @@ class PopulateUsuariosCommand extends Command
             $entidad = new Entidad();
             $entidad->setNombre('Entidad de Prueba');
             $entidad->setSlug('entidad-prueba');
-            $entidad->setTipoEntidad(TipoEntidadEnum::COMPARSA);
+            $tipoRepo = $this->em->getRepository(TipoEntidadEntity::class);
+            $tipo = $tipoRepo->findOneBy(['codigo' => TipoEntidadEnum::COMPARSA->value]);
+            if ($tipo) {
+                $entidad->setTipoEntidad($tipo);
+            }
             $entidad->setEmailContacto('contacto@prueba.local');
             $entidad->setCodigoRegistro('ENTPRUEBA');
             $entidad->setTemporadaActual('2026');
@@ -77,11 +82,8 @@ class PopulateUsuariosCommand extends Command
             // Hash de contraseña básica
             $usuario->setPassword(password_hash($pass, PASSWORD_BCRYPT));
             $usuario->setActivo(true);
-            $usuario->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
             // En entornos de desarrollo/populate marcamos los usuarios como VALIDADOS
             // para poder iniciar sesión inmediatamente. Revertir en producción si procede.
-            $usuario->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-            $usuario->setFechaValidacion(new \DateTimeImmutable());
             // Dato opcional: fecha nacimiento (si quieres ajustar, cambia aquí)
             $usuario->setFechaNacimiento(null);
             $usuario->setFechaNacimiento(null);

@@ -714,6 +714,10 @@ form {
     justify-content: flex-start;
     border-radius: 1rem;
   }
+
+  .relacion-search-wrap {
+    flex: 0 1 44px;
+  }
 }
 
 @media (max-width: 420px) {

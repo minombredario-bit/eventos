@@ -21,7 +21,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(security: "is_granted('ROLE_USER')"),
-        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new GetCollection(
+            normalizationContext: ['groups' => ['cargo:collection']],
+            security: "is_granted('ROLE_USER')",
+        ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
     ],
@@ -32,36 +35,60 @@ class Cargo
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['cargo:read', 'usuario:read'])]
+    #[Groups(['cargo:read', 'usuario:read', 'cargo:collection', 'entidad_cargo:read'])]
     private ?string $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Entidad::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\ManyToOne(targetEntity: Entidad::class, inversedBy: 'cargos')]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['cargo:read', 'cargo:write'])]
     #[Assert\NotNull]
     private Entidad $entidad;
 
     #[ORM\Column(type: Types::STRING, length: 120)]
-    #[Groups(['cargo:read', 'cargo:write', 'usuario:read'])]
+    #[Groups(['cargo:read', 'cargo:write', 'usuario:read', 'cargo:collection', 'entidad_cargo:read'])]
     #[Assert\NotBlank]
     private string $nombre;
 
+    #[ORM\Column(type: Types::STRING, length: 100, nullable: true)]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
+    private ?string $codigo = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['cargo:read', 'cargo:write'])]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
     private ?string $descripcion = null;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
-    #[Groups(['cargo:read', 'cargo:write'])]
-    private string $multiplicador = '1.00';
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
+    private bool $computaComoDirectivo = false;
 
-    /** @var Collection<int, Usuario> */
-    #[ORM\ManyToMany(targetEntity: Usuario::class, mappedBy: 'cargos')]
-    private Collection $usuarios;
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
+    private bool $esRepresentativo = false;
+
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
+    private bool $esInfantil = false;
+
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
+    private bool $infantilEspecial = false;
+
+    #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
+    private bool $activo = true;
+
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
+    #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
+    private int $ordenJerarquico = 0;
+
+    /** @var Collection<int, UsuarioTemporadaCargo> */
+    #[ORM\OneToMany(targetEntity: UsuarioTemporadaCargo::class, mappedBy: 'cargo')]
+    private Collection $usuariosTemporadaCargo;
 
     public function __construct()
     {
-        $this->id = Uuid::uuid4();
-        $this->usuarios = new ArrayCollection();
+        $this->id = Uuid::uuid4()->toString();
+        $this->usuariosTemporadaCargo = new ArrayCollection();
     }
 
     public function getId(): ?string
@@ -93,6 +120,18 @@ class Cargo
         return $this;
     }
 
+    public function getCodigo(): ?string
+    {
+        return $this->codigo;
+    }
+
+    public function setCodigo(?string $codigo): static
+    {
+        $this->codigo = $codigo;
+
+        return $this;
+    }
+
     public function getDescripcion(): ?string
     {
         return $this->descripcion;
@@ -105,22 +144,87 @@ class Cargo
         return $this;
     }
 
-    public function getMultiplicador(): float
+    public function isComputaComoDirectivo(): bool
     {
-        return (float) $this->multiplicador;
+        return $this->computaComoDirectivo;
     }
 
-    public function setMultiplicador(float $multiplicador): static
+    public function setComputaComoDirectivo(bool $computaComoDirectivo): static
     {
-        $this->multiplicador = (string) $multiplicador;
+        $this->computaComoDirectivo = $computaComoDirectivo;
 
         return $this;
     }
 
-    /** @return Collection<int, Usuario> */
-    public function getUsuarios(): Collection
+    public function isEsRepresentativo(): bool
     {
-        return $this->usuarios;
+        return $this->esRepresentativo;
+    }
+
+    public function setEsRepresentativo(bool $esRepresentativo): static
+    {
+        $this->esRepresentativo = $esRepresentativo;
+
+        return $this;
+    }
+
+    public function isEsInfantil(): bool
+    {
+        return $this->esInfantil;
+    }
+
+    public function setEsInfantil(bool $esInfantil): static
+    {
+        $this->esInfantil = $esInfantil;
+
+        return $this;
+    }
+
+    public function isInfantilEspecial(): bool
+    {
+        return $this->infantilEspecial;
+    }
+
+    public function setInfantilEspecial(bool $infantilEspecial): static
+    {
+        $this->infantilEspecial = $infantilEspecial;
+
+        return $this;
+    }
+
+    public function isActivo(): bool
+    {
+        return $this->activo;
+    }
+
+    public function setActivo(bool $activo): static
+    {
+        $this->activo = $activo;
+
+        return $this;
+    }
+
+    public function getOrdenJerarquico(): int
+    {
+        return $this->ordenJerarquico;
+    }
+
+    public function setOrdenJerarquico(int $ordenJerarquico): static
+    {
+        $this->ordenJerarquico = $ordenJerarquico;
+
+        return $this;
+    }
+
+    #[Groups(['cargo:read', 'cargo:collection', 'entidad_cargo:read'])]
+    public function getAniosComputables(): float
+    {
+        return 1.0;
+    }
+
+    /** @return Collection<int, UsuarioTemporadaCargo> */
+    public function getUsuariosTemporadaCargo(): Collection
+    {
+        return $this->usuariosTemporadaCargo;
     }
 }
-

@@ -30,7 +30,7 @@ class JWTAuthenticationSuccessListener
             'debeCambiarPassword' => $user->isDebeCambiarPassword(),
             'roles' => $user->getRoles(),
             'nombreEntidad' => $user->getEntidad()->getNombre(),
-            'tipoEntidad' => mb_strtolower($user->getEntidad()->getTipoEntidad()->label()),
+            'tipoEntidad' => mb_strtolower($user->getEntidad()->getTipoEntidad()?->getNombre() ?? ''),
         ];
 
         $event->setData($data);

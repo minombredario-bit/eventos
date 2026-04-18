@@ -4,8 +4,10 @@ import { map, Observable } from 'rxjs';
 import {
   ApiCollection,
   Cargo,
+  CargoTipoPersona,
   EnumOption,
   ImportResult,
+  EntidadCargo,
   Usuario,
   UsuarioCreatePayload,
   UsuarioPatch,
@@ -112,12 +114,54 @@ export class AdminApi {
     );
   }
 
-  getCargos(): Observable<Cargo[]> {
+  getEntidadCargos(tipoPersona?: CargoTipoPersona): Observable<EntidadCargo[]> {
+    let params = new HttpParams();
+
+    if (tipoPersona) {
+      params = params.set('tipoPersona', tipoPersona);
+      params = params.set('infantil_especial', tipoPersona === 'infantil' ? '1' : '0');
+    }
+
     return this.http
-      .get<ApiCollection<Cargo>>(`${this.apiBaseUrl}/api/cargos`)
-      .pipe(
-        map((response) => response.member ?? response['hydra:member'] ?? [])
-      );
+      .get<ApiCollection<EntidadCargo>>(`${this.apiBaseUrl}/api/entidad_cargos`, { params })
+      .pipe(map((response) => response.member ?? response['hydra:member'] ?? []));
+  }
+
+  getCargos(tipoPersona?: CargoTipoPersona): Observable<Cargo[]> {
+    return this.getEntidadCargos(tipoPersona).pipe(
+      map((entidadCargos) =>
+        entidadCargos
+          .filter((item) => item.activo !== false)
+          .map((item): Cargo | null => {
+            const cargo = item.cargo;
+
+            if (!cargo) {
+              return null;
+            }
+
+            const nombre = (item.nombre?.trim() || cargo.nombre).trim();
+            const codigo = cargo.codigo ?? null;
+            const tipoPersonaInferida = this.resolveCargoTipoPersona(codigo, nombre);
+
+            return {
+              id: cargo.id,
+              registroId: item.id,
+              nombre,
+              codigo,
+              descripcion: cargo.descripcion ?? null,
+              activo: item.activo,
+              infantilEspecial: cargo.infantilEspecial ?? false,
+              tipoPersona: tipoPersonaInferida,
+              origen: 'entidad_cargo' as const,
+              iri: `/api/cargos/${cargo.id}`,
+              entidadCargo: item,
+            } as Cargo;
+          })
+          .filter((item): item is Cargo => item !== null)
+          .filter((item) => (tipoPersona ? item.tipoPersona === tipoPersona : true))
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+      )
+    );
   }
 
   getEnumOptions<T extends string = string>(
@@ -138,5 +182,16 @@ export class AdminApi {
       `${this.apiBaseUrl}/api/admin/usuarios/importar-excel`,
       formData
     );
+  }
+
+  private resolveCargoTipoPersona(codigo: string | null | undefined, nombre: string): CargoTipoPersona {
+    const normalizedCode = (codigo ?? '').trim().toUpperCase();
+    const normalizedName = nombre.trim().toLowerCase();
+
+    if (normalizedCode.includes('INFANTIL') || normalizedName.includes('infantil')) {
+      return 'infantil';
+    }
+
+    return 'adulto';
   }
 }

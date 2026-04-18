@@ -10,6 +10,7 @@ enum MetodoPagoEnum: string
     case TPV = 'tpv';
     case ONLINE = 'online';
     case MANUAL = 'manual';
+    case TARJETA = 'tarjeta';
 
     public function label(): string
     {
@@ -17,6 +18,7 @@ enum MetodoPagoEnum: string
             self::EFECTIVO => 'Efectivo',
             self::TRANSFERENCIA => 'Transferencia',
             self::BIZUM => 'Bizum',
+            self::TARJETA =>'Tarjeta',
             self::TPV => 'TPV',
             self::ONLINE => 'Pago online',
             self::MANUAL => 'Manual',

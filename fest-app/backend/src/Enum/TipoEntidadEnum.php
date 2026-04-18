@@ -24,4 +24,24 @@ enum TipoEntidadEnum: string
             self::OTRO => 'Otro',
         };
     }
+
+    public function usaReconocimientos(): bool
+    {
+        return match($this) {
+            self::FALLA,
+            self::COMPARSA,
+            self::HERMANDAD => true,
+            default => false,
+        };
+    }
+
+    public function familia(): string
+    {
+        return match($this) {
+            self::FALLA => 'fallas',
+            self::COMPARSA => 'moros_cristianos',
+            self::HERMANDAD => 'semana_santa',
+            default => 'general',
+        };
+    }
 }

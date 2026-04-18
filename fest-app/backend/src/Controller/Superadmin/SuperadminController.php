@@ -3,6 +3,7 @@
 namespace App\Controller\Superadmin;
 
 use App\Entity\Entidad;
+use App\Entity\TipoEntidad;
 use App\Entity\Usuario;
 use App\Repository\EntidadRepository;
 use App\Service\CodeGeneratorService;
@@ -33,7 +34,7 @@ class SuperadminController extends AbstractController
             'id' => $entidad->getId(),
             'nombre' => $entidad->getNombre(),
             'slug' => $entidad->getSlug(),
-            'tipoEntidad' => $entidad->getTipoEntidad()->value,
+            'tipoEntidad' => $entidad->getTipoEntidad()?->getCodigo(),
             'emailContacto' => $entidad->getEmailContacto(),
             'activa' => $entidad->isActiva(),
             'censado' => $entidad->isCensado(),
@@ -67,7 +68,12 @@ class SuperadminController extends AbstractController
         $entidad = new Entidad();
         $entidad->setNombre($data['nombre']);
         $entidad->setSlug($data['slug']);
-        $entidad->setTipoEntidad(\App\Enum\TipoEntidadEnum::from($data['tipoEntidad']));
+        // find TipoEntidad by codigo
+        $tipo = $this->entityManager->getRepository(TipoEntidad::class)->findOneBy(['codigo' => $data['tipoEntidad']]);
+        if ($tipo === null) {
+            return $this->json(['error' => 'tipoEntidad no válido'], 400);
+        }
+        $entidad->setTipoEntidad($tipo);
         $entidad->setEmailContacto($data['emailContacto']);
         $entidad->setTemporadaActual($data['temporadaActual']);
         $entidad->setDescripcion($data['descripcion'] ?? null);
@@ -89,7 +95,7 @@ class SuperadminController extends AbstractController
             'nombre' => $entidad->getNombre(),
             'slug' => $entidad->getSlug(),
             'codigoRegistro' => $entidad->getCodigoRegistro(),
-            'tipoEntidad' => $entidad->getTipoEntidad()->value,
+            'tipoEntidad' => $entidad->getTipoEntidad()?->getCodigo(),
         ], 201);
     }
 

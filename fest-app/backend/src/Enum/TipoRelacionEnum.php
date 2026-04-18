@@ -14,4 +14,20 @@ enum TipoRelacionEnum: string
     case SOBRINA  = 'sobrina';
     case ABUELO   = 'abuelo';
     case ABUELA   = 'abuela';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::CONYUGE => 'Cónyuge',
+            self::PADRE => 'Padre',
+            self::MADRE => 'Madre',
+            self::PAREJA => 'Pareja',
+            self::HIJO => 'Hijo',
+            self::HIJA => 'Hija',
+            self::SOBRINO => 'Sobrino',
+            self::SOBRINA => 'Sobrina',
+            self::ABUELO => 'Abuelo',
+            self::ABUELA => 'Abuela',
+        };
+    }
 }

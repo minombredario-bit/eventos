@@ -61,14 +61,7 @@ class AdminController extends AbstractController
         $usuario->setTelefono(isset($data['telefono']) ? (string) $data['telefono'] : null);
         $usuario->setRoles(['ROLE_USER']);
         $usuario->setActivo(true);
-        $usuario->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $usuario->setTipoUsuarioEconomico(isset($data['tipoUsuarioEconomico'])
-            ? TipoRelacionEconomicaEnum::from((string) $data['tipoUsuarioEconomico'])
-            : TipoRelacionEconomicaEnum::INTERNO);
-        $usuario->setEsCensadoInterno((bool) ($data['esCensadoInterno'] ?? true));
         $usuario->setCensadoVia(CensadoViaEnum::MANUAL);
-        $usuario->setValidadoPor($admin);
-        $usuario->setFechaValidacion(new \DateTimeImmutable());
         $usuario->setFechaAltaCenso(new \DateTimeImmutable());
         $usuario->setAntiguedad(isset($data['antiguedad']) ? (int) $data['antiguedad'] : null);
         $usuario->setAntiguedadReal(isset($data['antiguedadReal']) ? (int) $data['antiguedadReal'] : null);
@@ -93,7 +86,6 @@ class AdminController extends AbstractController
         return $this->json([
             'id' => $usuario->getId(),
             'email' => $usuario->getEmail(),
-            'estadoValidacion' => $usuario->getEstadoValidacion()->value,
             'activo' => $usuario->isActivo(),
         ], 201);
     }
@@ -173,8 +165,6 @@ class AdminController extends AbstractController
             'apellidos' => $user->getApellidos(),
             'email' => $user->getEmail(),
             'telefono' => $user->getTelefono(),
-            'fechaSolicitudAlta' => $user->getFechaSolicitudAlta()?->format('c'),
-            'codigoRegistroUsado' => $user->getCodigoRegistroUsado(),
         ], $usuarios);
 
         return $this->json(['hydra:member' => $data]);
@@ -201,14 +191,6 @@ class AdminController extends AbstractController
 
         $data = json_decode($request->getContent(), true) ?? [];
 
-        $user->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $user->setValidadoPor($admin);
-        $user->setFechaValidacion(new \DateTimeImmutable());
-
-        if (isset($data['tipoUsuarioEconomico'])) {
-            $user->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::from($data['tipoUsuarioEconomico']));
-        }
-
         if (isset($data['censadoVia'])) {
             $user->setCensadoVia(CensadoViaEnum::from($data['censadoVia']));
         }
@@ -217,9 +199,6 @@ class AdminController extends AbstractController
 
         return $this->json([
             'id' => $user->getId(),
-            'estadoValidacion' => $user->getEstadoValidacion()->value,
-            'validadoPor' => $admin->getEmail(),
-            'fechaValidacion' => $user->getFechaValidacion()?->format('c'),
         ]);
     }
 
@@ -242,12 +221,10 @@ class AdminController extends AbstractController
             return $this->json(['error' => 'Acceso denegado'], 403);
         }
 
-        $user->setEstadoValidacion(EstadoValidacionEnum::RECHAZADO);
         $this->entityManager->flush();
 
         return $this->json([
             'id' => $user->getId(),
-            'estadoValidacion' => $user->getEstadoValidacion()->value,
         ]);
     }
 
@@ -270,18 +247,12 @@ class AdminController extends AbstractController
             return $this->json(['error' => 'Acceso denegado'], 403);
         }
 
-        $user->setEsCensadoInterno(true);
         $user->setFechaAltaCenso(new \DateTimeImmutable());
-        $user->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
         $user->setActivo(true);
-        if ($user->getEstadoValidacion() === EstadoValidacionEnum::BLOQUEADO) {
-            $user->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        }
         $this->entityManager->flush();
 
         return $this->json([
             'id' => $user->getId(),
-            'esCensadoInterno' => $user->isEsCensadoInterno(),
             'fechaAltaCenso' => $user->getFechaAltaCenso()?->format('c'),
         ]);
     }
@@ -307,12 +278,9 @@ class AdminController extends AbstractController
 
         $data = json_decode($request->getContent(), true) ?? [];
 
-        $user->setEsCensadoInterno(false);
         $user->setFechaBajaCenso(new \DateTimeImmutable());
         $user->setMotivoBajaCenso($data['motivo'] ?? null);
-        $user->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::EXTERNO);
         $user->setActivo(false);
-        $user->setEstadoValidacion(EstadoValidacionEnum::BLOQUEADO);
         $this->entityManager->flush();
 
         return $this->json([
@@ -503,14 +471,11 @@ class AdminController extends AbstractController
             'apellidos' => $usuario->getApellidos(),
             'email' => $usuario->getEmail(),
             'telefono' => $usuario->getTelefono(),
-            'estadoValidacion' => $usuario->getEstadoValidacion()->value,
             'tipoUsuarioEconomico' => $usuario->getTipoUsuarioEconomico()->value,
-            'esCensadoInterno' => $usuario->isEsCensadoInterno(),
             'censadoVia' => $usuario->getCensadoVia()?->value,
             'activo' => $usuario->isActivo(),
             'fechaAltaCenso' => $usuario->getFechaAltaCenso()?->format('c'),
             'fechaBajaCenso' => $usuario->getFechaBajaCenso()?->format('c'),
-            'fechaSolicitudAlta' => $usuario->getFechaSolicitudAlta()?->format('c'),
         ];
     }
 }

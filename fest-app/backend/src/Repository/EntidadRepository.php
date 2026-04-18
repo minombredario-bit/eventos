@@ -16,19 +16,35 @@ class EntidadRepository extends ServiceEntityRepository
         parent::__construct($registry, Entidad::class);
     }
 
-    public function findByCodigoRegistro(string $codigo): ?Entidad
+    /**
+     * @return list<Entidad>
+     */
+    public function findActivas(?string $tipoFiesta = null, ?string $subtipoFestero = null): array
     {
-        return $this->createQueryBuilder('e')
-            ->where('e.codigoRegistro = :codigo')
-            ->andWhere('e.activa = :activa')
-            ->setParameter('codigo', strtoupper($codigo))
-            ->setParameter('activa', true)
-            ->getQuery()
-            ->getOneOrNullResult();
+        $qb = $this->createQueryBuilder('e')
+            ->andWhere('e.activa = true')
+            ->orderBy('e.nombre', 'ASC');
+
+        if ($tipoFiesta !== null) {
+            $qb->andWhere('e.tipoFiesta = :tipoFiesta')
+                ->setParameter('tipoFiesta', $tipoFiesta);
+        }
+
+        if ($subtipoFestero !== null) {
+            $qb->andWhere('e.subtipoFestero = :subtipoFestero')
+                ->setParameter('subtipoFestero', $subtipoFestero);
+        }
+
+        return $qb->getQuery()->getResult();
     }
 
     public function findOneBySlug(string $slug): ?Entidad
     {
-        return $this->findOneBy(['slug' => $slug]);
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.slug = :slug')
+            ->setParameter('slug', $slug)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

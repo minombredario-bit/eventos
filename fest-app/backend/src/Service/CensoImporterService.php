@@ -175,7 +175,6 @@ class CensoImporterService
         $usuario->setApellidos(trim($apellidos));
         $usuario->setEmail($normalizedEmail);
         $usuario->setActivo(true);
-        $usuario->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
         if ($isNew) {
             $usuario->setDebeCambiarPassword(true);
             $usuario->setPasswordActualizadaAt(null);
@@ -183,8 +182,6 @@ class CensoImporterService
 
         $tipoRelacion = $this->getCellValue($row, $headerMap['tipo_relacion']) ?: 'interno';
         $tipoRelacionEnum = $this->parseTipoRelacion($tipoRelacion);
-        $usuario->setTipoUsuarioEconomico($tipoRelacionEnum);
-        $usuario->setEsCensadoInterno($tipoRelacionEnum === TipoRelacionEconomicaEnum::INTERNO);
         $usuario->setCensadoVia(CensadoViaEnum::EXCEL);
         if ($usuario->getFechaAltaCenso() === null) {
             $usuario->setFechaAltaCenso(new \DateTimeImmutable());

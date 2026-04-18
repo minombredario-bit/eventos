@@ -34,12 +34,41 @@ export type TipoRelacion =
   | 'abuela';
 
 export type TipoPersona = 'infantil' | 'cadete' | 'adulto';
+export type CargoTipoPersona = 'infantil' | 'adulto';
+export type CargoOrigen = 'cargo_master' | 'entidad_cargo';
 
 export type UsuariosFiltro = 'todos' | 'censado' | 'no_censado';
+
+export interface CargoMaster {
+  id: string;
+  nombre: string;
+  codigo?: string | null;
+  descripcion?: string | null;
+  activo?: boolean;
+}
+
+export interface EntidadCargo {
+  id: string;
+  entidad?: string;
+  cargo?: Cargo | null;
+  cargoMaster?: CargoMaster | null;
+  nombre?: string | null;
+  orden?: number;
+  activo?: boolean;
+}
 
 export interface Cargo {
   id: string;
   nombre: string;
+  registroId?: string;
+  codigo?: string | null;
+  descripcion?: string | null;
+  activo?: boolean;
+  infantilEspecial?: boolean;
+  tipoPersona?: CargoTipoPersona;
+  origen?: CargoOrigen;
+  iri?: string;
+  entidadCargo?: EntidadCargo;
 }
 
 export interface RelacionUsuario {

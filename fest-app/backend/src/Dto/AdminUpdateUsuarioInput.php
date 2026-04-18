@@ -50,5 +50,8 @@ final class AdminUpdateUsuarioInput
 
     #[Groups(['admin_usuario_update'])]
     public ?array $cargos = null;
+
+    #[Groups(['admin_usuario_update'])]
+    public ?string $temporada = null;
 }
 

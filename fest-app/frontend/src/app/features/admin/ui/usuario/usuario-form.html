@@ -126,26 +126,32 @@
             <div class="cargo-header">
               <div>
                 <h3>Cargos</h3>
-                <p class="cargo-help">Selecciona uno o varios cargos para este usuario.</p>
+                <p class="cargo-help">
+                  Selecciona uno o varios cargos para este usuario.
+                  <strong>Tipo:</strong> {{ tipoPersonaCargo() === 'infantil' ? 'Infantil' : 'Adulto' }}.
+                </p>
               </div>
               <span>{{ cargosSeleccionados().length }} seleccionados</span>
             </div>
 
             <div class="cargo-pills" role="group" aria-label="Selección de cargos">
               @for (cargo of cargos(); track cargo.id) {
+                @let cargoKey = cargo.id;
                 <button
                   type="button"
                   class="cargo-pill"
-                  [class.cargo-pill--selected]="isCargoSelected(cargo.id)"
-                  (click)="toggleCargo(cargo.id)"
-                  [attr.aria-pressed]="isCargoSelected(cargo.id)"
+                  [class.cargo-pill--selected]="isCargoSelected(cargoKey)"
+                  (click)="toggleCargo(cargoKey)"
+                  [attr.aria-pressed]="isCargoSelected(cargoKey)"
                 >
                   <span class="cargo-pill__check">
-                    @if (isCargoSelected(cargo.id)) {
+                    @if (isCargoSelected(cargoKey)) {
                       ✓
                     }
                   </span>
-                  <span class="cargo-pill__label">{{ cargo.nombre }}</span>
+                  <span class="cargo-pill__label">
+                    {{ cargo.nombre }}
+                  </span>
                 </button>
               }
             </div>

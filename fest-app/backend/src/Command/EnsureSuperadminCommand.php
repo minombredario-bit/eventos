@@ -7,6 +7,7 @@ use App\Entity\Usuario;
 use App\Enum\CensadoViaEnum;
 use App\Enum\EstadoValidacionEnum;
 use App\Enum\TipoEntidadEnum;
+use App\Entity\TipoEntidad as TipoEntidadEntity;
 use App\Enum\TipoRelacionEconomicaEnum;
 use App\Repository\EntidadRepository;
 use App\Repository\UsuarioRepository;
@@ -74,7 +75,12 @@ class EnsureSuperadminCommand extends Command
             $entidad = new Entidad();
             $entidad->setNombre('Sistema');
             $entidad->setSlug('sistema');
-            $entidad->setTipoEntidad(TipoEntidadEnum::OTRO);
+            // Map enum to TipoEntidad entity
+            $tipoRepo = $this->entityManager->getRepository(TipoEntidadEntity::class);
+            $tipo = $tipoRepo->findOneBy(['codigo' => TipoEntidadEnum::OTRO->value]);
+            if ($tipo) {
+                $entidad->setTipoEntidad($tipo);
+            }
             $entidad->setTerminologiaSocio('usuario');
             $entidad->setTerminologiaEvento('evento');
             $entidad->setEmailContacto($email);
@@ -94,11 +100,7 @@ class EnsureSuperadminCommand extends Command
         $superadmin->setPassword($this->passwordHasher->hashPassword($superadmin, $password));
         $superadmin->setRoles(['ROLE_SUPERADMIN']);
         $superadmin->setActivo(true);
-        $superadmin->setTipoUsuarioEconomico(TipoRelacionEconomicaEnum::INTERNO);
-        $superadmin->setEstadoValidacion(EstadoValidacionEnum::VALIDADO);
-        $superadmin->setEsCensadoInterno(false);
         $superadmin->setCensadoVia(CensadoViaEnum::MANUAL);
-        $superadmin->setFechaValidacion(new \DateTimeImmutable());
 
         $this->entityManager->persist($superadmin);
         $this->entityManager->flush();

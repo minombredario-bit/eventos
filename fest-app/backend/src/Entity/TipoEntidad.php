@@ -3,9 +3,14 @@
 namespace App\Entity;
 
 use App\Repository\TipoEntidadRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
+use ApiPlatform\Metadata\ApiResource;
+
+#[ApiResource(normalizationContext: ['groups' => ['tipo_entidad:read']], denormalizationContext: ['groups' => ['tipo_entidad:write']])]
 
 #[ORM\Entity(repositoryClass: TipoEntidadRepository::class)]
 #[ORM\Table(name: 'tipo_entidad')]
@@ -32,9 +37,15 @@ class TipoEntidad
     #[Groups(['tipo_entidad:read', 'tipo_entidad:write'])]
     private bool $activo = true;
 
+    /** @var Collection<int, TipoEntidadCargo> */
+    #[ORM\OneToMany(targetEntity: TipoEntidadCargo::class, mappedBy: 'tipoEntidad', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['tipo_entidad:read'])]
+    private Collection $tipoEntidadCargos;
+
     public function __construct()
     {
         $this->id = Uuid::uuid4();
+        $this->tipoEntidadCargos = new ArrayCollection();
     }
 
     public function getId(): ?string { return $this->id; }
@@ -50,5 +61,11 @@ class TipoEntidad
 
     public function isActivo(): bool { return $this->activo; }
     public function setActivo(bool $activo): static { $this->activo = $activo; return $this; }
+
+    /** @return Collection<int, TipoEntidadCargo> */
+    public function getTipoEntidadCargos(): Collection
+    {
+        return $this->tipoEntidadCargos;
+    }
 }
 

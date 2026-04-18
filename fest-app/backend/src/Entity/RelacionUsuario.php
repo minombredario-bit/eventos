@@ -75,7 +75,7 @@ class RelacionUsuario
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['relacion:read'])]
+    #[Groups(['relacion:read', 'usuario:read'])]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: Usuario::class, inversedBy: 'relacionesOrigen')]

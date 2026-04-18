@@ -118,8 +118,74 @@ Tabla de cargos internos de un colectivo (por ejemplo: presidente, tesorero, voc
 
 Relaciones:
 
-- N:M con Usuario mediante tabla pivote `usuario_cargo`
-- un usuario puede tener más de un cargo
+- N:M con Usuario mediante tabla pivote `usuario_temporada_cargo`
+- un usuario puede tener más de un cargo en una temporada
+
+#### Esquema relacional de cargos
+
+```mermaid
+erDiagram
+    CARGO_MASTER ||--o{ ENTIDAD_CARGO : habilita
+    CARGO_MASTER ||--o{ TIPO_ENTIDAD_CARGO : define
+    ENTIDAD ||--o{ ENTIDAD_CARGO : tiene
+    TIPO_ENTIDAD ||--o{ TIPO_ENTIDAD_CARGO : permite
+    CARGO ||--o{ USUARIO_TEMPORADA_CARGO : asigna
+    USUARIO ||--o{ USUARIO_TEMPORADA_CARGO : ocupa
+    TEMPORADA_ENTIDAD ||--o{ USUARIO_TEMPORADA_CARGO : contextualiza
+
+    CARGO_MASTER {
+        uuid id
+        string codigo
+        string nombre
+    }
+
+    ENTIDAD_CARGO {
+        uuid id
+        uuid entidad_id
+        uuid cargo_master_id
+        string nombre
+        smallint orden
+        bool activo
+    }
+
+    TIPO_ENTIDAD_CARGO {
+        uuid id
+        uuid tipo_entidad_id
+        uuid cargo_master_id
+        bool activo
+    }
+
+    CARGO {
+        uuid id
+        uuid entidad_id
+        string nombre
+        string codigo
+        bool computa_como_directivo
+        bool es_representativo
+        bool infantil_especial
+        smallint orden_jerarquico
+        decimal anios_extra_reconocimiento
+    }
+
+    USUARIO_TEMPORADA_CARGO {
+        uuid id
+        uuid usuario_id
+        uuid temporada_id
+        uuid cargo_id
+        bool principal
+        bool computa_antiguedad
+        bool computa_reconocimiento
+        string tipo_persona
+    }
+```
+
+| Tabla | Propósito | Relación clave |
+|---|---|---|
+| `cargo_master` | Catálogo maestro de cargos reutilizables | Base común para definir cargos |
+| `tipo_entidad_cargo` | Qué cargos maestros admite cada tipo de entidad | `tipo_entidad` ↔ `cargo_master` |
+| `entidad_cargo` | Qué cargos maestros usa una entidad concreta | `entidad` ↔ `cargo_master` |
+| `cargo` | Definición operativa del cargo dentro de la entidad | Cuelga de `entidad` y se usa para asignaciones |
+| `usuario_temporada_cargo` | Asignación de un usuario a un cargo en una temporada | `usuario` ↔ `cargo` ↔ `temporada_entidad` |
 
 ### 3.3 Usuario
 

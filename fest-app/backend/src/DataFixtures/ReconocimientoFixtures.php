@@ -31,7 +31,15 @@ final class ReconocimientoFixtures extends Fixture implements DependentFixtureIn
         ];
 
         foreach ($reconocimientos as [$codigo, $nombre, $tipo, $orden, $minAntiguedad, $minAntiguedadDirectivo, $requiereDirectivo, $requiereAnterior]) {
-            $reconocimiento = new Reconocimiento();
+            $reconocimiento = $manager->getRepository(Reconocimiento::class)->findOneBy([
+                'entidad' => $entidad,
+                'codigo' => $codigo,
+            ]);
+
+            if (!$reconocimiento instanceof Reconocimiento) {
+                $reconocimiento = new Reconocimiento();
+            }
+
             $reconocimiento->setEntidad($entidad);
             $reconocimiento->setCodigo($codigo);
             $reconocimiento->setNombre($nombre);
@@ -43,6 +51,7 @@ final class ReconocimientoFixtures extends Fixture implements DependentFixtureIn
             $reconocimiento->setRequiereAnterior($requiereAnterior);
             $reconocimiento->setActivo(true);
             $manager->persist($reconocimiento);
+            $this->addReference('reconocimiento.' . strtolower($codigo), $reconocimiento);
         }
 
         $manager->flush();

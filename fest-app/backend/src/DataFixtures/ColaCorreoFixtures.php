@@ -26,7 +26,7 @@ final class ColaCorreoFixtures extends Fixture implements DependentFixtureInterf
             [
                 'ana.rodriguez@example.com',
                 'Validación pendiente de usuario',
-                'validacion_usuario',
+                'email/validacion_usuario.html.twig',
                 ['usuario' => 'Ana Rodríguez'],
                 ColaCorreo::ESTADO_PENDIENTE,
                 0,
@@ -46,7 +46,7 @@ final class ColaCorreoFixtures extends Fixture implements DependentFixtureInterf
             [
                 'info@fallallobre.es',
                 'Error al enviar resumen semanal',
-                'resumen_semanal',
+                'email/resumen_semanal.html.twig',
                 ['intento' => 2, 'destino' => 'comision'],
                 ColaCorreo::ESTADO_ERROR,
                 2,
@@ -65,8 +65,12 @@ final class ColaCorreoFixtures extends Fixture implements DependentFixtureInterf
                 $correo = new ColaCorreo();
             }
 
-            $correo->setEntidad($destinatario === 'info@fallallobre.es' ? $entidad : $entidad);
-            $correo->setUsuario($destinatario === 'juan.perez@example.com' ? $usuario : $admin);
+            $correo->setEntidad($entidad);
+            $correo->setUsuario(match ($destinatario) {
+                'juan.perez@example.com' => $usuario,
+                'ana.rodriguez@example.com' => $admin,
+                default => null,
+            });
             $correo->setDestinatario($destinatario);
             $correo->setAsunto($asunto);
             $correo->setPlantilla($plantilla);

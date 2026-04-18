@@ -17,6 +17,7 @@ import {
   map,
   of,
   Subject,
+  startWith,
   switchMap,
 } from 'rxjs';
 
@@ -25,6 +26,7 @@ import { MobileHeader } from '../../../shared/components/mobile-header/mobile-he
 import { AdminApi } from '../../data/admin.api';
 import {
   Cargo,
+  CargoTipoPersona,
   EnumOption,
   MetodoPagoPreferida,
   TipoRelacion,
@@ -63,6 +65,7 @@ export class AdminUsuarioForm {
 
   protected readonly cargos = signal<Cargo[]>([]);
   protected readonly cargosSeleccionados = signal<string[]>([]);
+  protected readonly tipoPersonaCargo = signal<CargoTipoPersona>('adulto');
 
   protected readonly tiposRelacion = signal<EnumOption<TipoRelacion>[]>([]);
 
@@ -118,8 +121,8 @@ export class AdminUsuarioForm {
   });
 
   constructor() {
-    this.loadCargos();
     this.loadTiposRelacion();
+    this.initCargoTypeWatcher();
     this.initRelacionUsuariosSearch();
 
     this.route.paramMap
@@ -145,7 +148,7 @@ export class AdminUsuarioForm {
         this.loading.set(true);
 
         this.adminApi
-          .getUsuario(id.trim())
+          .getUsuarioAdmin(id.trim())
           .pipe(
             finalize(() => this.loading.set(false)),
             takeUntilDestroyed(this.destroyRef)
@@ -174,6 +177,11 @@ export class AdminUsuarioForm {
 
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
+      if (this.form.invalid) {
+        this.errorMessage.set(
+          'Revisa los campos obligatorios antes de guardar los cambios.'
+        );
+      }
       return;
     }
 
@@ -192,6 +200,7 @@ export class AdminUsuarioForm {
   protected isCargoSelected(id: string): boolean {
     return this.cargosSeleccionados().includes(id);
   }
+
 
   protected toggleCargo(id: string): void {
     const current = this.cargosSeleccionados();
@@ -317,9 +326,7 @@ export class AdminUsuarioForm {
       formaPagoPreferida: value.formaPagoPreferida,
       debeCambiarPassword: value.debeCambiarPassword,
       roles,
-      cargos: this.cargosSeleccionados().map(
-        (cargoId) => `/api/cargos/${cargoId}`
-      ),
+      cargos: this.buildCargoIris(this.cargosSeleccionados()),
       relacionUsuarios: this.usuariosRelacionadosSeleccionados().map(
         (item) => ({
           usuario: `/api/usuarios/${item.id}`,
@@ -373,13 +380,15 @@ export class AdminUsuarioForm {
       return;
     }
 
-    const roles: UserRole[] = [
-      value.role ? 'ROLE_ADMIN_ENTIDAD' : 'ROLE_USER',
-    ];
+    const roles: UserRole[] = [value.role];
 
     const payload: UsuarioPatch = {
       nombre: value.nombre.trim(),
       apellidos: value.apellidos.trim(),
+      email: (() => {
+        const e = value.email.trim();
+        return e ? e.toLowerCase() : null;
+      })(),
       telefono: value.telefono.trim() || null,
       activo: value.activo,
       motivoBajaCenso: value.activo
@@ -391,9 +400,7 @@ export class AdminUsuarioForm {
       formaPagoPreferida: value.formaPagoPreferida,
       debeCambiarPassword: value.debeCambiarPassword,
       roles,
-      cargos: this.cargosSeleccionados().map(
-        (cargoId) => `/api/cargos/${cargoId}`
-      ),
+      cargos: this.buildCargoIris(this.cargosSeleccionados()),
       relacionUsuarios: this.usuariosRelacionadosSeleccionados().map(
         (item) => ({
           usuario: `/api/usuarios/${item.id}`,
@@ -467,9 +474,13 @@ export class AdminUsuarioForm {
   }
 
   private patchCargos(usuario: Usuario): void {
-    this.cargosSeleccionados.set(
-      (usuario.cargos ?? []).map((cargo) => cargo.id)
+    const uniqueCargoIds = new Set(
+      (usuario.cargos ?? [])
+        .map((cargo) => this.getCargoSelectionKey(cargo))
+        .filter((cargoId): cargoId is string => cargoId.length > 0)
     );
+
+    this.cargosSeleccionados.set([...uniqueCargoIds]);
   }
 
   private patchRelacionUsuarios(usuario: Usuario): void {
@@ -541,25 +552,120 @@ export class AdminUsuarioForm {
     );
   }
 
+  private initCargoTypeWatcher(): void {
+    this.form.controls.fechaNacimiento.valueChanges
+      .pipe(
+        startWith(this.form.controls.fechaNacimiento.value),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.loadCargos();
+      });
+  }
+
   private applyFieldPermissions(): void {
+    const fechaNacimientoControl = this.form.controls.fechaNacimiento;
+
     if (this.isEditMode()) {
-      this.form.controls.email.disable({ emitEvent: false });
+      this.form.controls.email.enable({ emitEvent: false });
+      fechaNacimientoControl.clearValidators();
+      fechaNacimientoControl.updateValueAndValidity({ emitEvent: false });
       return;
     }
 
     this.form.controls.email.enable({ emitEvent: false });
+    fechaNacimientoControl.setValidators([Validators.required]);
+    fechaNacimientoControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private loadCargos(): void {
+    const tipoPersona = this.resolveTipoPersonaCargo();
+
+    this.tipoPersonaCargo.set(tipoPersona);
+
     this.adminApi
-      .getCargos()
+      .getCargos(tipoPersona)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (items) => this.cargos.set(items),
+        next: (items) => {
+          this.cargos.set(items);
+
+          const validIds = new Set(items.map((item) => this.getCargoSelectionKey(item)));
+          this.cargosSeleccionados.set(
+            this.cargosSeleccionados().filter((cargoId) => validIds.has(cargoId))
+          );
+        },
         error: () => {
           this.errorMessage.set('No se pudo cargar el listado de cargos.');
         },
       });
+  }
+
+  private resolveTipoPersonaCargo(): CargoTipoPersona {
+    const fechaNacimiento = this.form.controls.fechaNacimiento.value;
+
+    if (!fechaNacimiento) {
+      const usuarioTipo = this.normalizeTipoPersonaCargo(
+        this.usuario()?.tipoPersona ?? null
+      );
+
+      return usuarioTipo ?? 'adulto';
+    }
+
+    const fecha = new Date(`${fechaNacimiento}T00:00:00`);
+    if (Number.isNaN(fecha.getTime())) {
+      return 'adulto';
+    }
+
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - fecha.getFullYear();
+    const mes = hoy.getMonth() - fecha.getMonth();
+
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fecha.getDate())) {
+      edad -= 1;
+    }
+
+    return edad < 14 ? 'infantil' : 'adulto';
+  }
+
+  private normalizeTipoPersonaCargo(value: string | null | undefined): CargoTipoPersona | null {
+    if (!value) {
+      return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+
+    if (normalized === 'infantil') {
+      return 'infantil';
+    }
+
+    return 'adulto';
+  }
+
+  private buildCargoIris(cargoIds: string[]): string[] {
+    return [...new Set(cargoIds)]
+      .map((cargoId) => this.cargos().find((cargo) => this.getCargoSelectionKey(cargo) === cargoId))
+      .filter((cargo): cargo is Cargo => !!cargo)
+      .map((cargo) => cargo.iri ?? `/api/cargos/${cargo.id}`);
+  }
+
+  private getCargoSelectionKey(cargo: Cargo): string {
+    if (cargo.id?.trim()) {
+      return cargo.id.trim();
+    }
+
+    if (cargo.registroId?.trim()) {
+      return cargo.registroId.trim();
+    }
+
+    if (cargo.iri) {
+      const parts = cargo.iri.split('/').filter(Boolean);
+      return parts.at(-1) ?? '';
+    }
+
+
+    return '';
   }
 
   private loadTiposRelacion(): void {

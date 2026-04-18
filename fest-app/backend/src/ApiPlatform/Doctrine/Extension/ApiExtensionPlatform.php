@@ -7,9 +7,14 @@ use ApiPlatform\Doctrine\Orm\Extension\QueryItemExtensionInterface;
 use ApiPlatform\Doctrine\Orm\Util\QueryNameGeneratorInterface;
 use ApiPlatform\Metadata\Operation;
 use App\Entity\ActividadEvento;
+use App\Entity\CargoMaster;
+use App\Entity\EntidadCargo;
 use App\Entity\Entidad;
 use App\Entity\Evento;
 use App\Entity\Pago;
+use App\Entity\Cargo;
+use App\Entity\TipoEntidadCargo;
+use App\Entity\TipoEntidad;
 use App\Entity\Usuario;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -79,12 +84,28 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
                 $this->addWhereEntidad($queryBuilder, $rootAlias, $entidad);
                 break;
 
+            case CargoMaster::class:
+                $this->addWhereCargoMaster($queryBuilder, $rootAlias, $isItemOperation);
+                break;
+
+            case EntidadCargo::class:
+                $this->addWhereEntidadCargo($queryBuilder, $rootAlias, $entidad, $isItemOperation);
+                break;
+
+            case TipoEntidadCargo::class:
+                $this->addWhereTipoEntidadCargo($queryBuilder, $rootAlias, $entidad, $isItemOperation);
+                break;
+
             case Usuario::class:
                 $this->addWhereUsuario($queryBuilder, $rootAlias, $entidad, $isItemOperation);
                 break;
 
             case Evento::class:
                 $this->addWhereEvento($queryBuilder, $rootAlias, $entidad);
+                break;
+
+            case Cargo::class:
+                $this->addWhereCargo($queryBuilder, $rootAlias, $entidad, $isItemOperation);
                 break;
 
             case ActividadEvento::class:
@@ -191,6 +212,77 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
             $queryBuilder
                 ->andWhere(sprintf('%s.usuario = :%s_usuario', $inscripcionAlias, $parameterName))
                 ->setParameter(sprintf('%s_usuario', $parameterName), $currentUser);
+        }
+    }
+
+    private function addWhereCargo(
+        QueryBuilder $queryBuilder,
+        string $rootAlias,
+        Entidad $entidad,
+        bool $isItemOperation = false
+    ): void {
+        // Only superadmin may see cargos from all entidades. ROLE_ADMIN and ROLE_ADMIN_ENTIDAD
+        // must be restricted to the admin's entidad. For other authenticated users we also
+        // restrict to the user's entidad by default.
+        $parameterName = 'cargo_entidad';
+
+        $queryBuilder
+            ->andWhere(sprintf('%s.entidad = :%s', $rootAlias, $parameterName))
+            ->setParameter($parameterName, $entidad);
+
+        if (!$isItemOperation) {
+            $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
+        }
+    }
+
+    private function addWhereCargoMaster(
+        QueryBuilder $queryBuilder,
+        string $rootAlias,
+        bool $isItemOperation = false
+    ): void {
+        if (!$isItemOperation) {
+            $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
+        }
+    }
+
+    private function addWhereEntidadCargo(
+        QueryBuilder $queryBuilder,
+        string $rootAlias,
+        Entidad $entidad,
+        bool $isItemOperation = false
+    ): void {
+        $parameterName = 'entidad_cargo_entidad';
+
+        $queryBuilder
+            ->andWhere(sprintf('%s.entidad = :%s', $rootAlias, $parameterName))
+            ->setParameter($parameterName, $entidad);
+
+        if (!$isItemOperation) {
+            $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
+        }
+    }
+
+    private function addWhereTipoEntidadCargo(
+        QueryBuilder $queryBuilder,
+        string $rootAlias,
+        Entidad $entidad,
+        bool $isItemOperation = false
+    ): void {
+        $tipoEntidad = $entidad->getTipoEntidad();
+        if (!$tipoEntidad instanceof TipoEntidad || $tipoEntidad->getId() === null) {
+            $queryBuilder->andWhere('1 = 0');
+
+            return;
+        }
+
+        $parameterName = 'tipo_entidad_cargo_tipo_entidad';
+
+        $queryBuilder
+            ->andWhere(sprintf('%s.tipoEntidad = :%s', $rootAlias, $parameterName))
+            ->setParameter($parameterName, $tipoEntidad);
+
+        if (!$isItemOperation) {
+            $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
         }
     }
 }
