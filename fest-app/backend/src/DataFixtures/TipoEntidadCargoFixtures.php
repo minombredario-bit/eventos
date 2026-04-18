@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\DataFixtures;
+
+use App\Entity\CargoMaster;
+use App\Entity\TipoEntidad;
+use App\Entity\TipoEntidadCargo;
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Persistence\ObjectManager;
+
+final class TipoEntidadCargoFixtures extends Fixture
+{
+    public function load(ObjectManager $manager): void
+    {
+        $tipoEntidades = $manager->getRepository(TipoEntidad::class)->findAll();
+        $cargoMasters = $manager->getRepository(CargoMaster::class)->findAll();
+
+        foreach ($tipoEntidades as $tipoEntidad) {
+            if (!$tipoEntidad instanceof TipoEntidad) {
+                continue;
+            }
+
+            foreach ($cargoMasters as $cargoMaster) {
+                if (!$cargoMaster instanceof CargoMaster) {
+                    continue;
+                }
+
+                $tipoEntidadCargo = new TipoEntidadCargo();
+                $tipoEntidadCargo->setTipoEntidad($tipoEntidad);
+                $tipoEntidadCargo->setCargoMaster($cargoMaster);
+                $tipoEntidadCargo->setActivo(true);
+                $manager->persist($tipoEntidadCargo);
+            }
+        }
+
+        $manager->flush();
+    }
+
+    public function getDependencies(): array
+    {
+        return [TipoEntidadFixtures::class, CargoMasterFixtures::class];
+    }
+}
+

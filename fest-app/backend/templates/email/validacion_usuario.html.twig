@@ -1,0 +1,20 @@
+{% extends 'email/base.html.twig' %}
+
+{% block email_title %}Cuenta pendiente de validación{% endblock %}
+{% block email_preheader %}Tu alta está esperando revisión por parte de la entidad{% endblock %}
+{% block email_heading %}Tu usuario está pendiente de validación{% endblock %}
+
+{% block content %}
+	<p style="margin:0 0 18px;">Hola {{ usuario }}, tu alta está pendiente de revisión por parte de la entidad.</p>
+	<p style="margin:0 0 24px;">En cuanto la cuenta se valide, podrás acceder a la aplicación con normalidad y empezar a gestionar tus datos.</p>
+
+	{% if appUri %}
+		<table role="presentation" cellspacing="0" cellpadding="0" border="0">
+			<tr>
+				<td style="border-radius:14px; background:#4f46e5;">
+					<a href="{{ appUri }}" style="display:inline-block; padding:14px 22px; color:#ffffff; text-decoration:none; font-weight:700;">Abrir la aplicación</a>
+				</td>
+			</tr>
+		</table>
+	{% endif %}
+{% endblock %}

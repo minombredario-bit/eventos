@@ -1,0 +1,31 @@
+{% extends 'email/base.html.twig' %}
+
+{% block email_title %}Email actualizado{% endblock %}
+{% block email_preheader %}Se ha modificado el correo de acceso de tu cuenta{% endblock %}
+{% block email_heading %}Cambio de email en tu cuenta{% endblock %}
+
+{% block content %}
+    <p style="margin:0 0 18px;">Hola {{ nombre }}, se ha actualizado el email asociado a tu cuenta.</p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px; border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e5e7eb; border-radius:18px; overflow:hidden;">
+        <tr>
+            <td style="padding:18px 20px; font-size:14px; line-height:1.75; color:#334155;">
+                <div style="margin-bottom:8px;"><strong>Email anterior:</strong> {{ emailAnterior }}</div>
+                <div><strong>Email nuevo:</strong> {{ emailNuevo }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin:0 0 24px;">Si no has solicitado este cambio, revisa el acceso a la aplicación y contacta con tu entidad lo antes posible.</p>
+
+    {% if appUri %}
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+            <tr>
+                <td style="border-radius:14px; background:#4f46e5;">
+                    <a href="{{ appUri }}" style="display:inline-block; padding:14px 22px; color:#ffffff; text-decoration:none; font-weight:700;">Revisar mi cuenta</a>
+                </td>
+            </tr>
+        </table>
+    {% endif %}
+{% endblock %}
+

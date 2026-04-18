@@ -1,8 +1,32 @@
-<h2>Nuevo evento: {{ titulo }}</h2>
-<p>Hola {{ nombre }}, se ha publicado un nuevo evento en tu entidad.</p>
-<p><strong>Fecha:</strong> {{ fechaEvento }}</p>
-{% if descripcion %}
-<p>{{ descripcion }}</p>
-{% endif %}
-<p>Accede a la app para inscribirte.</p>
+{% extends 'email/base.html.twig' %}
 
+{% block email_title %}Nuevo evento disponible{% endblock %}
+{% block email_preheader %}Ya puedes consultar y reservar plaza en el nuevo evento{% endblock %}
+{% block email_heading %}Nuevo evento: {{ titulo }}{% endblock %}
+
+{% block content %}
+	<p style="margin:0 0 18px;">Hola {{ nombre }}, se ha publicado un nuevo evento en tu entidad.</p>
+
+	<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px; border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e5e7eb; border-radius:18px; overflow:hidden;">
+		<tr>
+			<td style="padding:18px 20px; font-size:14px; line-height:1.75; color:#334155;">
+				<div style="margin-bottom:8px;"><strong>Fecha:</strong> {{ fechaEvento }}</div>
+				{% if descripcion %}
+					<div style="color:#475569;">{{ descripcion }}</div>
+				{% endif %}
+			</td>
+		</tr>
+	</table>
+
+	<p style="margin:0 0 24px;">Accede a la aplicación para revisar los detalles y apuntarte con tiempo.</p>
+
+	{% if appUri %}
+		<table role="presentation" cellspacing="0" cellpadding="0" border="0">
+			<tr>
+				<td style="border-radius:14px; background:#4f46e5;">
+					<a href="{{ appUri }}" style="display:inline-block; padding:14px 22px; color:#ffffff; text-decoration:none; font-weight:700;">Ver en la aplicación</a>
+				</td>
+			</tr>
+		</table>
+	{% endif %}
+{% endblock %}

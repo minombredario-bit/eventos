@@ -20,6 +20,7 @@ class EmailQueueService
         private readonly ColaCorreoRepository $colaCorreoRepository,
         private readonly Environment $twig,
         private readonly MailerInterface $mailer,
+        private readonly string $appUri,
         private readonly string $mailerFrom = 'festapp@festapp.local',
     ) {}
 
@@ -31,6 +32,8 @@ class EmailQueueService
         ?Entidad $entidad = null,
         ?Usuario $usuario = null,
     ): ColaCorreo {
+        $plantilla = $this->normalizeTemplateName($plantilla);
+
         $item = new ColaCorreo();
         $item->setDestinatario($destinatario);
         $item->setAsunto($asunto);
@@ -46,6 +49,10 @@ class EmailQueueService
 
     public function enqueueUserWelcome(Usuario $usuario, string $plainPassword, string $appUri): void
     {
+        if (!$usuario->getEmail()) {
+            return;
+        }
+
         $this->enqueue(
             $usuario->getEmail(),
             'Alta de usuario en la aplicación',
@@ -54,6 +61,42 @@ class EmailQueueService
                 'nombre' => $usuario->getNombre(),
                 'email' => $usuario->getEmail(),
                 'password' => $plainPassword,
+                'appUri' => $appUri,
+            ],
+            $usuario->getEntidad(),
+            $usuario,
+        );
+    }
+
+    public function enqueueUserEmailChanged(
+        Usuario $usuario,
+        string $emailAnterior,
+        string $emailNuevo,
+        string $appUri,
+    ): void {
+        $destinatarios = [];
+
+        foreach ([$emailAnterior, $emailNuevo, $usuario->getEmail()] as $destinatario) {
+            $normalizado = strtolower(trim($destinatario));
+            if ($normalizado === '') {
+                continue;
+            }
+
+            $destinatarios[$normalizado] = true;
+        }
+
+        if ($destinatarios === []) {
+            return;
+        }
+
+        $this->enqueueRecipients(
+            array_keys($destinatarios),
+            'Cambio de email en tu cuenta',
+            'email/usuario_email_cambiado.html.twig',
+            [
+                'nombre' => $usuario->getNombre(),
+                'emailAnterior' => $emailAnterior,
+                'emailNuevo' => $emailNuevo,
                 'appUri' => $appUri,
             ],
             $usuario->getEntidad(),
@@ -108,6 +151,22 @@ class EmailQueueService
     }
 
     /**
+     * @param list<string> $destinatarios
+     */
+    private function enqueueRecipients(
+        array $destinatarios,
+        string $asunto,
+        string $plantilla,
+        array $contexto = [],
+        ?Entidad $entidad = null,
+        ?Usuario $usuario = null,
+    ): void {
+        foreach ($destinatarios as $destinatario) {
+            $this->enqueue($destinatario, $asunto, $plantilla, $contexto, $entidad, $usuario);
+        }
+    }
+
+    /**
      * Procesa mensajes pendientes: renderiza la plantilla y los envía por SMTP.
      * El transporte SMTP se configura con MAILER_DSN en el entorno.
      */
@@ -118,7 +177,13 @@ class EmailQueueService
 
         foreach ($pendientes as $item) {
             try {
-                $html = $this->twig->render($item->getPlantilla(), $item->getContexto());
+                $plantilla = $this->normalizeTemplateName($item->getPlantilla());
+                // Se añade contexto visual común para que todos los correos compartan marca,
+                // y el logo de la entidad solo se use cuando exista y sea resoluble.
+                $html = $this->twig->render(
+                    $plantilla,
+                    $this->buildRenderContext($item->getEntidad(), $item->getContexto())
+                );
 
                 $email = (new Email())
                     ->from($this->mailerFrom)
@@ -142,6 +207,59 @@ class EmailQueueService
         $this->entityManager->flush();
 
         return $procesados;
+    }
+
+    private function normalizeTemplateName(string $plantilla): string
+    {
+        $plantilla = trim($plantilla);
+
+        if ($plantilla === '') {
+            return $plantilla;
+        }
+
+        if (!str_contains($plantilla, '/')) {
+            $plantilla = 'email/' . $plantilla;
+        }
+
+        if (!str_ends_with($plantilla, '.twig')) {
+            $plantilla .= '.html.twig';
+        }
+
+        return $plantilla;
+    }
+
+    /**
+     * @param array<string, mixed> $contexto
+     * @return array<string, mixed>
+     */
+    private function buildRenderContext(?Entidad $entidad, array $contexto = []): array
+    {
+        $nombreEntidad = $entidad?->getNombre();
+        $marca = $nombreEntidad ?: 'Festapp';
+
+        $baseContexto = [
+            'appUri' => $this->appUri,
+            'entidadNombre' => $nombreEntidad,
+            'entidadLogoUrl' => $this->resolveEntityLogoUrl($entidad),
+            'marcaInicial' => mb_strtoupper(mb_substr($marca, 0, 1)),
+        ];
+
+        return array_replace($baseContexto, $contexto);
+    }
+
+    private function resolveEntityLogoUrl(?Entidad $entidad): ?string
+    {
+        $logo = trim((string) $entidad?->getLogo());
+
+        if ($logo === '') {
+            return null;
+        }
+
+        if (preg_match('#^(?:https?:)?//#i', $logo) === 1 || str_starts_with($logo, 'data:')) {
+            return $logo;
+        }
+
+        return rtrim($this->appUri, '/') . '/' . ltrim($logo, '/');
     }
 }
 

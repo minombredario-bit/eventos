@@ -3,6 +3,7 @@ parameters:
         - 'http://localhost:4200'
         - 'http://localhost:4250'
     app.mailer_from: '%env(MAILER_FROM)%'
+    app.uri: '%env(DEFAULT_URI)%'
 
 services:
     _defaults:
@@ -31,7 +32,19 @@ services:
 
     App\Service\EmailQueueService:
         arguments:
+            $appUri: '%app.uri%'
             $mailerFrom: '%app.mailer_from%'
+
+    App\Service\CalculadorAntiguedadService:
+        arguments:
+            $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'
+            $usuarioTemporadaCargoRepository: '@App\Repository\UsuarioTemporadaCargoRepository'
+
+    App\Service\CalculadorReconocimientosService:
+        arguments:
+            $calculadorAntiguedadService: '@App\Service\CalculadorAntiguedadService'
+            $reconocimientoRepository: '@App\Repository\ReconocimientoRepository'
+            $usuarioReconocimientoRepository: '@App\Repository\UsuarioReconocimientoRepository'
 
     App\EventSubscriber\ApiCorsSubscriber:
         arguments:
@@ -42,6 +55,15 @@ services:
             $entityManager: '@doctrine.orm.entity_manager'
             $invitadoRepository: '@App\Repository\InvitadoRepository'
             $seleccionParticipanteEventoRepository: '@App\Repository\SeleccionParticipanteEventoRepository'
+
+    App\State\AdminCreateUsuarioProcessor:
+        arguments:
+            $appUri: '%app.uri%'
+            $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'
+    App\State\AdminUpdateUsuarioProcessor:
+        arguments:
+            $appUri: '%app.uri%'
+            $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'
 
     App\Security\Voter\InscripcionVoter:
         arguments:
@@ -60,3 +82,7 @@ services:
     App\ApiPlatform\Doctrine\Extension\InscripcionOwnerExtension:
         tags:
             - { name: api_platform.doctrine.orm.query_extension.collection }
+    App\ApiPlatform\Doctrine\Extension\ApiExtensionPlatform:
+        tags:
+            - { name: api_platform.doctrine.orm.query_extension.collection, priority: 0 }
+            - { name: api_platform.doctrine.orm.query_extension.item, priority: 0 }

@@ -1,10 +1,31 @@
-<h2>Actualización de tu inscripción</h2>
-<p>Hola {{ nombre }}, se ha registrado un cambio en tu inscripción para <strong>{{ evento }}</strong>.</p>
-<ul>
-    <li><strong>Acción:</strong> {{ accion }}</li>
-    <li><strong>Estado inscripción:</strong> {{ estadoInscripcion }}</li>
-    <li><strong>Estado pago:</strong> {{ estadoPago }}</li>
-    <li><strong>Total:</strong> {{ importeTotal }}</li>
-    <li><strong>Pagado:</strong> {{ importePagado }}</li>
-</ul>
+{% extends 'email/base.html.twig' %}
 
+{% block email_title %}Actualización de inscripción{% endblock %}
+{% block email_preheader %}Tu inscripción para {{ evento }} ha cambiado de estado{% endblock %}
+{% block email_heading %}Actualización de tu inscripción{% endblock %}
+
+{% block content %}
+    <p style="margin:0 0 18px;">Hola {{ nombre }}, se ha registrado un cambio en tu inscripción para <strong>{{ evento }}</strong>.</p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px; border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e5e7eb; border-radius:18px; overflow:hidden;">
+        <tr>
+            <td style="padding:18px 20px; font-size:14px; line-height:1.75; color:#334155;">
+                <div style="margin-bottom:8px;"><strong>Acción:</strong> {{ accion }}</div>
+                <div style="margin-bottom:8px;"><strong>Estado inscripción:</strong> {{ estadoInscripcion }}</div>
+                <div style="margin-bottom:8px;"><strong>Estado pago:</strong> {{ estadoPago }}</div>
+                <div style="margin-bottom:8px;"><strong>Total:</strong> {{ importeTotal }}</div>
+                <div><strong>Pagado:</strong> {{ importePagado }}</div>
+            </td>
+        </tr>
+    </table>
+
+    {% if appUri %}
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+            <tr>
+                <td style="border-radius:14px; background:#4f46e5;">
+                    <a href="{{ appUri }}" style="display:inline-block; padding:14px 22px; color:#ffffff; text-decoration:none; font-weight:700;">Ver mi inscripción</a>
+                </td>
+            </tr>
+        </table>
+    {% endif %}
+{% endblock %}
