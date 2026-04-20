@@ -2,22 +2,21 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
 use App\Repository\EntidadRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\ApiFilter;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
-use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
-use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
-use App\Entity\TipoEntidad;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -146,13 +145,16 @@ class Entidad
     private Collection $cargos;
 
     /** @var Collection<int, EntidadCargo> */
-    #[ORM\OneToMany(targetEntity: EntidadCargo::class, mappedBy: 'entidad', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: EntidadCargo::class, mappedBy: 'entidad', cascade: [
+        'persist',
+        'remove',
+    ], orphanRemoval: true)]
     #[Groups(['entidad:read'])]
     private Collection $entidadCargos;
 
     #[ORM\Column(type: Types::BOOLEAN)]
     #[Groups(['entidad:read', 'entidad:write'])]
-    private bool $usaReconocimiento  = true;
+    private bool $usaReconocimiento = true;
 
     /** @var Collection<int, TemporadaEntidad> */
     #[ORM\OneToMany(
@@ -163,6 +165,10 @@ class Entidad
     )]
     private Collection $temporadas;
 
+    /** @var Collection<int, Reconocimiento> */
+    #[ORM\OneToMany(targetEntity: Reconocimiento::class, mappedBy: 'entidad')]
+    private Collection $reconocimientos;
+
     public function __construct()
     {
         $this->id = Uuid::uuid4();
@@ -172,6 +178,7 @@ class Entidad
         $this->cargos = new ArrayCollection();
         $this->entidadCargos = new ArrayCollection();
         $this->temporadas = new ArrayCollection();
+        $this->reconocimientos = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -182,64 +189,218 @@ class Entidad
         $this->updatedAt = new \DateTimeImmutable();
     }
 
-    public function getId(): ?string { return $this->id; }
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
 
-    public function getNombre(): string { return $this->nombre; }
-    public function setNombre(string $nombre): static { $this->nombre = $nombre; return $this; }
+    public function getNombre(): string
+    {
+        return $this->nombre;
+    }
 
-    public function getSlug(): string { return $this->slug; }
-    public function setSlug(string $slug): static { $this->slug = $slug; return $this; }
+    public function setNombre(string $nombre): static
+    {
+        $this->nombre = $nombre;
 
-    public function getDescripcion(): ?string { return $this->descripcion; }
-    public function setDescripcion(?string $descripcion): static { $this->descripcion = $descripcion; return $this; }
+        return $this;
+    }
 
-    public function getTipoEntidad(): ?TipoEntidad { return $this->tipoEntidad; }
-    public function setTipoEntidad(?TipoEntidad $tipoEntidad): static { $this->tipoEntidad = $tipoEntidad; return $this; }
+    public function getSlug(): string
+    {
+        return $this->slug;
+    }
 
-    public function getTerminologiaSocio(): ?string { return $this->terminologiaSocio; }
-    public function setTerminologiaSocio(?string $terminologiaSocio): static { $this->terminologiaSocio = $terminologiaSocio; return $this; }
+    public function setSlug(string $slug): static
+    {
+        $this->slug = $slug;
 
-    public function getTerminologiaEvento(): ?string { return $this->terminologiaEvento; }
-    public function setTerminologiaEvento(?string $terminologiaEvento): static { $this->terminologiaEvento = $terminologiaEvento; return $this; }
+        return $this;
+    }
 
-    public function getLogo(): ?string { return $this->logo; }
-    public function setLogo(?string $logo): static { $this->logo = $logo; return $this; }
+    public function getDescripcion(): ?string
+    {
+        return $this->descripcion;
+    }
 
-    public function getEmailContacto(): string { return $this->emailContacto; }
-    public function setEmailContacto(string $emailContacto): static { $this->emailContacto = $emailContacto; return $this; }
+    public function setDescripcion(?string $descripcion): static
+    {
+        $this->descripcion = $descripcion;
 
-    public function getTelefono(): ?string { return $this->telefono; }
-    public function setTelefono(?string $telefono): static { $this->telefono = $telefono; return $this; }
+        return $this;
+    }
 
-    public function getDireccion(): ?string { return $this->direccion; }
-    public function setDireccion(?string $direccion): static { $this->direccion = $direccion; return $this; }
+    public function getTipoEntidad(): ?TipoEntidad
+    {
+        return $this->tipoEntidad;
+    }
 
-    public function getCodigoRegistro(): string { return $this->codigoRegistro; }
-    public function setCodigoRegistro(string $codigoRegistro): static { $this->codigoRegistro = $codigoRegistro; return $this; }
+    public function setTipoEntidad(?TipoEntidad $tipoEntidad): static
+    {
+        $this->tipoEntidad = $tipoEntidad;
 
-    public function getTemporadaActual(): string { return $this->temporadaActual; }
-    public function setTemporadaActual(string $temporadaActual): static { $this->temporadaActual = $temporadaActual; return $this; }
+        return $this;
+    }
 
-    public function isActiva(): bool { return $this->activa; }
-    public function setActiva(bool $activa): static { $this->activa = $activa; return $this; }
+    public function getTerminologiaSocio(): ?string
+    {
+        return $this->terminologiaSocio;
+    }
 
-    public function isUsaReconocimiento(): bool { return $this->usaReconocimiento; }
-    public function setUsaReconocimiento(bool $usaReconocimiento): static { $this->usaReconocimiento = $usaReconocimiento; return $this; }
+    public function setTerminologiaSocio(?string $terminologiaSocio): static
+    {
+        $this->terminologiaSocio = $terminologiaSocio;
 
-    public function isCensado(): bool { return $this->censado; }
-    public function setCensado(bool $censado): static { $this->censado = $censado; return $this; }
+        return $this;
+    }
 
-    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
-    public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
+    public function getTerminologiaEvento(): ?string
+    {
+        return $this->terminologiaEvento;
+    }
+
+    public function setTerminologiaEvento(?string $terminologiaEvento): static
+    {
+        $this->terminologiaEvento = $terminologiaEvento;
+
+        return $this;
+    }
+
+    public function getLogo(): ?string
+    {
+        return $this->logo;
+    }
+
+    public function setLogo(?string $logo): static
+    {
+        $this->logo = $logo;
+
+        return $this;
+    }
+
+    public function getEmailContacto(): string
+    {
+        return $this->emailContacto;
+    }
+
+    public function setEmailContacto(string $emailContacto): static
+    {
+        $this->emailContacto = $emailContacto;
+
+        return $this;
+    }
+
+    public function getTelefono(): ?string
+    {
+        return $this->telefono;
+    }
+
+    public function setTelefono(?string $telefono): static
+    {
+        $this->telefono = $telefono;
+
+        return $this;
+    }
+
+    public function getDireccion(): ?string
+    {
+        return $this->direccion;
+    }
+
+    public function setDireccion(?string $direccion): static
+    {
+        $this->direccion = $direccion;
+
+        return $this;
+    }
+
+    public function getCodigoRegistro(): string
+    {
+        return $this->codigoRegistro;
+    }
+
+    public function setCodigoRegistro(string $codigoRegistro): static
+    {
+        $this->codigoRegistro = $codigoRegistro;
+
+        return $this;
+    }
+
+    public function getTemporadaActual(): string
+    {
+        return $this->temporadaActual;
+    }
+
+    public function setTemporadaActual(string $temporadaActual): static
+    {
+        $this->temporadaActual = $temporadaActual;
+
+        return $this;
+    }
+
+    public function isActiva(): bool
+    {
+        return $this->activa;
+    }
+
+    public function setActiva(bool $activa): static
+    {
+        $this->activa = $activa;
+
+        return $this;
+    }
+
+    public function isUsaReconocimiento(): bool
+    {
+        return $this->usaReconocimiento;
+    }
+
+    public function setUsaReconocimiento(bool $usaReconocimiento): static
+    {
+        $this->usaReconocimiento = $usaReconocimiento;
+
+        return $this;
+    }
+
+    public function isCensado(): bool
+    {
+        return $this->censado;
+    }
+
+    public function setCensado(bool $censado): static
+    {
+        $this->censado = $censado;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): \DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
 
     /** @return Collection<int, Usuario> */
-    public function getUsuarios(): Collection { return $this->usuarios; }
+    public function getUsuarios(): Collection
+    {
+        return $this->usuarios;
+    }
 
     /** @return Collection<int, Evento> */
-    public function getEventos(): Collection { return $this->eventos; }
+    public function getEventos(): Collection
+    {
+        return $this->eventos;
+    }
 
     /** @return Collection<int, Usuario> */
-    public function getAdmins(): Collection { return $this->admins; }
+    public function getAdmins(): Collection
+    {
+        return $this->admins;
+    }
 
     public function addAdmin(Usuario $admin): static
     {
@@ -273,5 +434,11 @@ class Entidad
     public function getTemporadas(): Collection
     {
         return $this->temporadas;
+    }
+
+    /** @return Collection<int, Reconocimiento> */
+    public function getReconocimientos(): Collection
+    {
+        return $this->reconocimientos;
     }
 }

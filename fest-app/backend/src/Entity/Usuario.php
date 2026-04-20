@@ -60,8 +60,8 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Post(
             uriTemplate: '/admin/usuarios',
-            denormalizationContext: ['groups' => ['admin_usuario_create']],
             normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
+            denormalizationContext: ['groups' => ['admin_usuario_create']],
             security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
             input: AdminCreateUsuarioInput::class,
             processor: AdminCreateUsuarioProcessor::class,
@@ -70,8 +70,8 @@ use Symfony\Component\Validator\Constraints as Assert;
         // Admin-specific PATCH that routes through a processor to handle relaciones and cargos
         new Patch(
             uriTemplate: '/admin/usuarios/{id}',
-            denormalizationContext: ['groups' => ['admin_usuario_update']],
             normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
+            denormalizationContext: ['groups' => ['admin_usuario_update']],
             security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
             input: AdminUpdateUsuarioInput::class,
             processor: AdminUpdateUsuarioProcessor::class
@@ -227,6 +227,10 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     )]
     private Collection $cargosTemporada;
 
+    /** @var Collection<int, UsuarioReconocimiento> */
+    #[ORM\OneToMany(targetEntity: UsuarioReconocimiento::class, mappedBy: 'usuario')]
+    private Collection $usuarioReconocimientos;
+
     public function __construct()
     {
         $this->id = Uuid::uuid4();
@@ -238,6 +242,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         $this->relacionesOrigen  = new ArrayCollection();
         $this->relacionesDestino = new ArrayCollection();
         $this->cargosTemporada = new ArrayCollection();
+        $this->usuarioReconocimientos = new ArrayCollection();
     }
 
     public function getId(): ?string
@@ -287,6 +292,155 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getNombreCompleto(): string {
         return $this->nombreCompleto;
+    }
+
+    /**
+     * Devuelve el último reconocimiento concedido al usuario en su entidad.
+     */
+    #[Groups(['usuario:read', 'read_user_admin'])]
+    public function getUltimoReconocimiento(): ?string
+    {
+        $ultimo = $this->findUltimoUsuarioReconocimiento();
+
+        if ($ultimo === null) {
+            return null;
+        }
+
+        $nombre = $ultimo->getReconocimiento()->getNombre();
+        $fechaConcesion = $ultimo->getFechaConcesion();
+
+        if ($fechaConcesion === null) {
+            return $nombre;
+        }
+
+        return $nombre . ' | ' . $fechaConcesion->format('d-m-Y');
+    }
+
+    /**
+     * Devuelve el próximo reconocimiento por antigüedad que todavía no ha recibido el usuario.
+     * Si ya tiene todos los reconocimientos disponibles para su antigüedad actual, devuelve el siguiente futuro.
+     */
+    #[Groups(['usuario:read', 'read_user_admin'])]
+    public function getProximoReconocimiento(): ?string
+    {
+        if ($this->antiguedad === null || !isset($this->entidad)) {
+            return null;
+        }
+
+        $candidatos = $this->getReconocimientosAntiguedadOrdenados();
+
+        if ($candidatos === []) {
+            return null;
+        }
+
+        $obtenidos = [];
+
+        foreach ($this->usuarioReconocimientos as $usuarioReconocimiento) {
+            if ($usuarioReconocimiento->getEntidad()->getId() !== $this->entidad->getId()) {
+                continue;
+            }
+
+            $reconocimientoId = $usuarioReconocimiento->getReconocimiento()->getId();
+
+            if ($reconocimientoId !== null) {
+                $obtenidos[$reconocimientoId] = true;
+            }
+        }
+
+        $siguienteFuturo = null;
+
+        foreach ($candidatos as $reconocimiento) {
+            $id = $reconocimiento->getId();
+
+            if ($id !== null && isset($obtenidos[$id])) {
+                continue;
+            }
+
+            $minAntiguedad = $reconocimiento->getMinAntiguedad();
+
+            if ($minAntiguedad === null) {
+                continue;
+            }
+
+            if ((float) $this->antiguedad < $minAntiguedad) {
+                return $reconocimiento->getNombre();
+            }
+
+            if ($siguienteFuturo === null) {
+                $siguienteFuturo = $reconocimiento->getNombre();
+            }
+        }
+
+        return $siguienteFuturo;
+    }
+
+    /**
+     * @return Reconocimiento[]
+     */
+    private function getReconocimientosAntiguedadOrdenados(): array
+    {
+        if (!isset($this->entidad)) {
+            return [];
+        }
+
+        $reconocimientos = [];
+
+        foreach ($this->entidad->getReconocimientos() as $reconocimiento) {
+            if (!$reconocimiento->isActivo()) {
+                continue;
+            }
+
+            if ($reconocimiento->getTipo() !== Reconocimiento::TIPO_ANTIGUEDAD) {
+                continue;
+            }
+
+            if ($reconocimiento->getMinAntiguedad() === null) {
+                continue;
+            }
+
+            $reconocimientos[] = $reconocimiento;
+        }
+
+        usort(
+            $reconocimientos,
+            static function (Reconocimiento $left, Reconocimiento $right): int {
+                $minLeft = $left->getMinAntiguedad() ?? 0.0;
+                $minRight = $right->getMinAntiguedad() ?? 0.0;
+
+                if ($minLeft !== $minRight) {
+                    return $minLeft <=> $minRight;
+                }
+
+                if ($left->getOrden() !== $right->getOrden()) {
+                    return $left->getOrden() <=> $right->getOrden();
+                }
+
+                return strcmp((string) $left->getNombre(), (string) $right->getNombre());
+            }
+        );
+
+        return $reconocimientos;
+    }
+
+    private function findUltimoUsuarioReconocimiento(): ?UsuarioReconocimiento
+    {
+        if (!isset($this->entidad)) {
+            return null;
+        }
+
+        $ultimo = null;
+
+        foreach ($this->usuarioReconocimientos as $usuarioReconocimiento) {
+            if ($usuarioReconocimiento->getEntidad()->getId() !== $this->entidad->getId()) {
+                continue;
+            }
+
+            if ($ultimo === null || $this->isMoreRecentUsuarioReconocimiento($usuarioReconocimiento, $ultimo)) {
+                $ultimo = $usuarioReconocimiento;
+            }
+        }
+
+        return $ultimo;
     }
 
     public function getEmail(): string
@@ -590,6 +744,45 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     public function getCargosTemporada(): Collection
     {
         return $this->cargosTemporada;
+    }
+
+    /**
+     * @return Collection<int, UsuarioReconocimiento>
+     */
+    public function getUsuarioReconocimientos(): Collection
+    {
+        return $this->usuarioReconocimientos;
+    }
+
+    private function isMoreRecentUsuarioReconocimiento(
+        UsuarioReconocimiento $candidate,
+        UsuarioReconocimiento $current
+    ): bool {
+        $candidateFecha = $candidate->getFechaConcesion();
+        $currentFecha = $current->getFechaConcesion();
+
+        if ($candidateFecha !== null || $currentFecha !== null) {
+            if ($candidateFecha !== null && $currentFecha === null) {
+                return true;
+            }
+
+            if ($candidateFecha === null && $currentFecha !== null) {
+                return false;
+            }
+
+            if ($candidateFecha != $currentFecha) {
+                return $candidateFecha > $currentFecha;
+            }
+        }
+
+        $candidateOrden = $candidate->getReconocimiento()->getOrden();
+        $currentOrden = $current->getReconocimiento()->getOrden();
+
+        if ($candidateOrden !== $currentOrden) {
+            return $candidateOrden > $currentOrden;
+        }
+
+        return strcmp((string) $candidate->getId(), (string) $current->getId()) > 0;
     }
 
     public function addCargoTemporada(UsuarioTemporadaCargo $cargoTemporada): static

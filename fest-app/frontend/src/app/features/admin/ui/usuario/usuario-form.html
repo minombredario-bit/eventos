@@ -19,13 +19,13 @@
         @if (isEditMode() && usuario(); as currentUser) {
           <div class="grid">
             <div>
-              <span>Estado</span>
-              <strong>{{ currentUser.estadoValidacion }}</strong>
+              <span>Última recompensa</span>
+              <strong>{{ currentUser.ultimoReconocimiento }}</strong>
             </div>
 
             <div>
-              <span>Censado vía</span>
-              <strong>{{ currentUser.censadoVia || 'No indicado' }}</strong>
+              <span>Siguiente recompensa</span>
+              <strong>{{ currentUser.proximoReconocimiento || 'No indicado' }}</strong>
             </div>
           </div>
         }

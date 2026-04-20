@@ -106,6 +106,9 @@ interface UsuarioBase {
   censadoVia?: string | null;
   estadoValidacion?: EstadoValidacion | null;
 
+  ultimoReconocimiento?: string | null;
+  proximoReconocimiento?: string | null;
+
   roles?: UserRole[];
 }
 
