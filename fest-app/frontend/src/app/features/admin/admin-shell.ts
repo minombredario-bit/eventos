@@ -14,6 +14,7 @@ import { NavItem } from '../eventos/domain/eventos.models';
 export class AdminShell {
   protected readonly navItems = computed<NavItem[]>(() => [
     { key: 'dashboard', label: 'Dashboard', icon: '📊', route: '/admin/dashboard' },
+    { key: 'eventos', label: 'Eventos', icon: '🎉', route: '/admin/eventos' },
     { key: 'censo', label: 'Censo', icon: '👥', route: '/admin/censo-usuarios' },
   ]);
 }

@@ -1,2 +1,7 @@
 node_modules/
 .gga
+
+# IDE y artefactos locales del workspace
+.idea/
+*.zip
+

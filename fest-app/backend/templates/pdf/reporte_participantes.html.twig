@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: DejaVu Sans, sans-serif;
+      font-size: 11px;
+      color: #1a1a1a;
+      padding: 32px;
+    }
+
+    /* ── Cabecera ─────────────────────────────────────────── */
+    .header {
+      border-bottom: 2px solid #e8520a;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      color: #e8520a;
+      margin-bottom: 6px;
+    }
+
+    .header .meta {
+      font-size: 11px;
+      color: #555;
+    }
+
+    .header .meta span {
+      margin-right: 18px;
+    }
+
+    /* ── Tarjetas resumen ─────────────────────────────────── */
+    .cards {
+      display: table;
+      width: 100%;
+      border-spacing: 8px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      display: table-cell;
+      width: 33%;
+      border: 1px solid #f59e0b;
+      border-radius: 6px;
+      background: #fff4e6;
+      padding: 10px 14px;
+      text-align: center;
+    }
+
+    .card--total {
+      background: #e8520a;
+      border-color: #e8520a;
+    }
+
+    .card__value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #b45309;
+      line-height: 1.1;
+    }
+
+    .card--total .card__value {
+      color: #fff;
+    }
+
+    .card__label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #92400e;
+      margin-top: 3px;
+    }
+
+    .card--total .card__label {
+      color: #ffe4c4;
+    }
+
+    /* ── Tabla actividades ────────────────────────────────── */
+    .section-title {
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #e8520a;
+      margin-bottom: 6px;
+      margin-top: 16px;
+      padding-top: 6px;
+      border-top: 1px solid #f5e6d3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .tbl-actividades thead tr {
+      background: #fff4e6;
+    }
+
+    .tbl-actividades thead th {
+      padding: 5px 8px;
+      text-align: left;
+      color: #b45309;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #f59e0b;
+    }
+
+    .tbl-actividades tbody td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    /* ── Tabla listado ────────────────────────────────────── */
+    .tbl-lista thead tr {
+      background: #e8520a;
+      color: #fff;
+    }
+
+    .tbl-lista thead th {
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tbl-lista tbody td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #ebebeb;
+    }
+
+    .tbl-lista tbody tr.alt {
+      background: #f9f9f9;
+    }
+
+    .num {
+      text-align: right;
+      font-weight: bold;
+    }
+
+    /* ── Pie ──────────────────────────────────────────────── */
+    .footer {
+      margin-top: 20px;
+      text-align: right;
+      font-size: 10px;
+      color: #888;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+{# ── Cabecera ──────────────────────────────────────────────── #}
+<div class="header">
+  <h1>{{ evento.titulo }}</h1>
+  <div class="meta">
+    <span>{{ evento.fechaEvento|date('d/m/Y') }}</span>
+    {% if evento.lugar %}
+      <span>{{ evento.lugar }}</span>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Tarjetas resumen ──────────────────────────────────────── #}
+<div class="cards">
+  <div class="card">
+    <div class="card__value">{{ adultos }}</div>
+    <div class="card__label">Adultos</div>
+  </div>
+  <div class="card">
+    <div class="card__value">{{ infantiles }}</div>
+    <div class="card__label">Infantiles</div>
+  </div>
+  <div class="card card--total">
+    <div class="card__value">{{ total }}</div>
+    <div class="card__label">Total personas</div>
+  </div>
+</div>
+
+{# ── Desglose por actividad ────────────────────────────────── #}
+{% if porActividad is not empty %}
+  <p class="section-title">Desglose por actividad</p>
+  <table class="tbl-actividades">
+    <thead>
+    <tr>
+      <th>Actividad</th>
+      <th>Franja</th>
+      <th class="num">Personas</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for item in porActividad %}
+      <tr>
+        <td>{{ item.actividad }}</td>
+        <td>{{ item.franja ?? '-' }}</td>
+        <td class="num">{{ item.total }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{# ── Listado de participantes ──────────────────────────────── #}
+<p class="section-title">Listado de participantes</p>
+<table class="tbl-lista">
+  <thead>
+  <tr>
+    <th>Nombre completo</th>
+    <th>Tipo</th>
+    <th>Actividad</th>
+    <th>Franja</th>
+  </tr>
+  </thead>
+  <tbody>
+  {% for persona in personas %}
+    <tr{% if loop.index is even %} class="alt"{% endif %}>
+      <td>{{ persona.nombreCompleto }}</td>
+      <td>{{ persona.tipo|capitalize }}</td>
+      <td>{{ persona.actividad }}</td>
+      <td>{{ persona.franja ?? '-' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<div class="footer">
+  Generado el {{ "now"|date('d/m/Y H:i') }}
+</div>
+
+</body>
+</html>

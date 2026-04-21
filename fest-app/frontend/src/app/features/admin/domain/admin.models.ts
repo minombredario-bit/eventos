@@ -1,3 +1,5 @@
+import {EventoAdminListado} from '../../eventos/domain/eventos.models';
+
 export type EstadoValidacion =
   | 'pendiente_validacion'
   | 'validado'

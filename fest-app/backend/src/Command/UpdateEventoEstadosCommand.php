@@ -81,17 +81,18 @@ class UpdateEventoEstadosCommand extends Command
     private function resolverEstado(Evento $evento, \DateTimeImmutable $ahora): EstadoEventoEnum
     {
         $finEvento = $evento->getFechaEvento()->setTime(23, 59, 59, 999999);
-        $finInscripcion = $evento->getFechaFinInscripcion()->setTime(23, 59, 59, 999999);
+        $finInscripcion = $evento->getFechaFinInscripcion();
+        $inicioInscripcion = $evento->getFechaInicioInscripcion();
 
         if ($ahora > $finEvento) {
             return EstadoEventoEnum::FINALIZADO;
         }
 
-        if ($ahora > $finInscripcion) {
+        if ($finInscripcion !== null && $ahora > $finInscripcion->setTime(23, 59, 59, 999999)) {
             return EstadoEventoEnum::CERRADO;
         }
 
-        if ($ahora >= $evento->getFechaInicioInscripcion()) {
+        if ($inicioInscripcion !== null && $ahora >= $inicioInscripcion) {
             return EstadoEventoEnum::PUBLICADO;
         }
 

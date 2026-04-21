@@ -83,59 +83,59 @@ class ActividadEvento
     private Evento $evento;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     #[Assert\NotBlank]
     private string $nombre;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write'])]
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoActividadEnum::class)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     #[Assert\NotNull]
     private TipoActividadEnum $tipoActividad;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: FranjaComidaEnum::class)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     #[Assert\NotNull]
     private FranjaComidaEnum $franjaComida;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: CompatibilidadPersonaActividadEnum::class)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     #[Assert\NotNull]
     private CompatibilidadPersonaActividadEnum $compatibilidadPersona;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private bool $esDePago = true;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private string $precioBase = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private ?string $precioAdultoInterno = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private ?string $precioAdultoExterno = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private ?string $precioInfantil = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write'])]
     private ?int $unidadesMaximas = null;
 
     #[ORM\Column(type: Types::INTEGER)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private int $ordenVisualizacion = 0;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write'])]
     private bool $activo = true;
 
     #[ORM\Column(type: Types::BOOLEAN)]

@@ -1,3 +1,5 @@
+import {Usuario} from '../../admin/domain/admin.models';
+
 export type EventStatus = 'abierto' | 'ultimas_plazas' | 'cerrado';
 export type PersonType = 'adulto' | 'infantil';
 export type ParticipantOrigin = 'familiar' | 'invitado';
@@ -5,6 +7,7 @@ export type PaymentBadgeStatus = 'pagado' | 'pendiente' | 'no_requiere' | 'parci
 export type MealSlot = 'almuerzo' | 'comida' | 'merienda' | 'cena';
 export type ActivityCompatibility = 'adulto' | 'infantil' | 'ambos';
 export type MetodoPago = 'efectivo' | 'transferencia' | 'bizum' | 'tpv' | 'online' | 'manual';
+export type EventoEstado = 'borrador' | 'publicado' | 'cerrado' | 'finalizado' | 'cancelado';
 
 export interface EventSummary {
   id: string;
@@ -94,10 +97,12 @@ export interface ActividadEvento {
   evento?: string | { id?: string };
   nombre: string;
   descripcion?: string | null;
+  tipoActividad?: string;
   franjaComida: MealSlot;
   compatibilidadPersona: ActivityCompatibility;
   esDePago: boolean;
   precioBase: number;
+  ordenVisualizacion?: number;
   activo?: boolean;
 }
 
@@ -107,13 +112,88 @@ export interface EventoDetalle {
   descripcion?: string | null;
   fechaEvento: string;
   horaInicio?: string | null;
+  horaFin?: string | null;
   lugar?: string | null;
   estado?: string;
   inscripcionAbierta?: boolean;
   permiteInvitados?: boolean;
   actividades?: ActividadEvento[];
   fechaLimiteInscripcion?: string | null;
-  fechaInicioInscripcion?: string;
+  fechaInicioInscripcion?: string | null;
+
+  aforo?: number | null;
+  visible?: boolean;
+  admitePago?: boolean;
+  fechaFinInscripcion?: string | null;
+}
+
+export interface EventoAdminListado {
+  id: string;
+  titulo: string;
+  fechaEvento: string;
+  estado: EventoEstado | string;
+  inscripcionAbierta?: boolean;
+  personasApuntadas?: number;
+}
+
+export interface EventoFormValue {
+  titulo: string;
+  descripcion: string;
+  tipoEvento: string;
+  fechaEvento: string;
+  horaInicio: string | null;
+  horaFin: string | null;
+  lugar: string;
+  aforo: number | null;
+  fechaInicioInscripcion?: string | null;
+  fechaFinInscripcion?: string | null;
+  visible: boolean;
+  publicado: boolean;
+  admitePago: boolean;
+  permiteInvitados: boolean;
+  estado: EventoEstado | string;
+  requiereVerificacionAcceso: boolean;
+  actividades: EventoActividadFormValue[];
+}
+
+export interface EventoActividadFormValue {
+  uiId: string;
+  id?: string | null;
+  nombre: string;
+  descripcion: string;
+  tipoActividad: string;
+  franjaComida: MealSlot;
+  compatibilidadPersona: ActivityCompatibility;
+  esDePago: boolean;
+  precioBase: number;
+  ordenVisualizacion: number;
+  activo: boolean;
+}
+
+export interface EventoParticipanteReporte {
+  nombreCompleto: string;
+  tipoPersona: PersonType;
+  actividad: string;
+  franjaComida?: MealSlot | null;
+  observaciones?: string | null;
+  inscripcionCodigo: string;
+  inscriptor: string;
+}
+
+export interface EventoParticipantesAgrupadosPorFranja {
+  franja: MealSlot | 'sin_franja';
+  etiqueta: string;
+  participantes: EventoParticipanteReporte[];
+}
+
+export interface EventoParticipantesReporteResponse {
+  evento: {
+    id: string;
+    titulo: string;
+    fecha: string;
+  };
+  totalPersonas: number;
+  personas: EventoParticipanteReporte[];
 }
 
 export interface EventoResumen {
@@ -270,4 +350,22 @@ export interface CredentialData {
   eventZone: string;
   qrToken: string;
   lines: CredentialLine[];
+}
+
+
+export interface EventosPage {
+  items: EventoAdminListado[];
+  totalItems: number;
+  page: number;
+  itemsPerPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface EventosAdminParams {
+  search?: string;
+  monthOnly?: boolean;
+  monthKey?: string;   // formato "YYYY-MM"
+  page?: number;
+  itemsPerPage?: number;
 }

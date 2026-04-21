@@ -1,0 +1,337 @@
+<section class="screen admin-evento-form-screen">
+  <app-mobile-header
+    [title]="pageTitle()"
+    subtitle="Crear y editar evento"
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()"
+  />
+
+  <div class="content">
+    @if (loading()) {
+      <article class="panel">
+        <p class="eyebrow">Cargando</p>
+        <h2>Recuperando evento</h2>
+      </article>
+    } @else {
+      @if (errorMessage(); as error) {
+        <article class="feedback feedback--error">
+          <strong>No se pudo guardar el evento.</strong>
+          <p>{{ error }}</p>
+        </article>
+      }
+
+      @if (successMessage(); as success) {
+        <article class="feedback feedback--success">
+          <strong>Hecho.</strong>
+          <p>{{ success }}</p>
+        </article>
+      }
+
+      <form class="edit-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <section class="form-section form-section--fixed">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Cabecera</p>
+              <h3>Datos fijos del evento</h3>
+              <p>Nombre, descripción y datos base del evento.</p>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <div class="field field--full">
+              <input id="titulo" type="text" formControlName="titulo" placeholder=" " />
+              <label for="titulo">
+                Título <span class="field-required" aria-hidden="true">*</span>
+              </label>
+            </div>
+
+            <div class="field field--full">
+              <textarea id="descripcion" formControlName="descripcion" placeholder=" "></textarea>
+              <label for="descripcion">Descripción</label>
+            </div>
+
+            <div class="field">
+              <input id="fechaEvento" type="date" formControlName="fechaEvento" placeholder=" " />
+              <label for="fechaEvento">
+                Fecha del evento <span class="field-required" aria-hidden="true">*</span>
+              </label>
+            </div>
+
+            <div class="field">
+              <input id="horaInicio" type="time" formControlName="horaInicio" placeholder=" " />
+              <label for="horaInicio">Hora inicio</label>
+            </div>
+
+            <div class="field">
+              <input id="horaFin" type="time" formControlName="horaFin" placeholder=" " />
+              <label for="horaFin">Hora fin</label>
+            </div>
+
+            <div class="field field--full">
+              <input id="lugar" type="text" formControlName="lugar" placeholder=" " />
+              <label for="lugar">Lugar</label>
+            </div>
+
+            <div class="field">
+              <input
+                id="aforo"
+                type="number"
+                min="0"
+                step="1"
+                formControlName="aforo"
+                placeholder=" "
+              />
+              <label for="aforo">Aforo</label>
+            </div>
+
+            <div class="field">
+              <input
+                id="fechaInicioInscripcion"
+                type="datetime-local"
+                formControlName="fechaInicioInscripcion"
+                placeholder=" "
+              />
+              <label for="fechaInicioInscripcion">
+                Inicio inscripción <span class="field-optional">(opcional)</span>
+              </label>
+            </div>
+
+            <div class="field">
+              <input
+                id="fechaFinInscripcion"
+                type="datetime-local"
+                formControlName="fechaFinInscripcion"
+                placeholder=" "
+              />
+              <label for="fechaFinInscripcion">
+                Fin inscripción <span class="field-optional">(opcional)</span>
+              </label>
+            </div>
+
+            <div class="field">
+              <select id="estado" formControlName="estado">
+                @for (estado of estadoOptions; track estado.value) {
+                  <option [value]="estado.value">{{ estado.label }}</option>
+                }
+              </select>
+              <label for="estado">
+                Estado <span class="field-required" aria-hidden="true">*</span>
+              </label>
+            </div>
+
+            <label class="checkbox-row">
+              <input type="checkbox" formControlName="visible" />
+              <span>Visible</span>
+            </label>
+
+            <label class="checkbox-row">
+              <input type="checkbox" formControlName="admitePago" />
+              <span>Admite pago</span>
+            </label>
+
+            <label class="checkbox-row">
+              <input type="checkbox" formControlName="permiteInvitados" />
+              <span>Permite invitados</span>
+            </label>
+          </div>
+        </section>
+
+        <div
+          #submitAnchor
+          class="submit-anchor"
+          [class.submit-anchor--reserve]="submitMode() === 'floating'"
+        >
+          <div
+            #submitBar
+            class="submit-bar"
+            [class.submit-bar--floating]="submitMode() === 'floating'"
+            [class.submit-bar--bottom]="submitMode() === 'bottom'"
+          >
+            <button type="submit" class="submit-button" [disabled]="saving()">
+              {{ submitLabel() }}
+            </button>
+          </div>
+        </div>
+
+        <section class="form-section form-section--activities">
+          <div class="section-head section-head--actions">
+            <div class="section-head__text">
+              <p class="eyebrow">Cuerpo del evento</p>
+              <h3>Stack de actividades</h3>
+              <p>
+                Crea varias actividades, incluso en la misma franja horaria. Se guardan en el orden
+                de la lista.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="secondary-button cta-icon-btn section-head__add-btn"
+              (click)="addActividad()"
+              aria-label="Añadir actividad"
+            >
+              <span class="button-icon" aria-hidden="true">＋</span>
+              <span class="button-text">Añadir actividad</span>
+            </button>
+          </div>
+
+          <div class="stack-note">
+            Opcional: si es un evento informativo, puedes dejar este bloque vacío. Si añades
+            actividades, puedes reordenarlas con los botones.
+          </div>
+
+          <div formArrayName="actividades" class="activities-stack">
+            @for (actividad of actividades.controls; track trackActividad($index, actividad); let i = $index) {
+              <article
+                class="activity-card"
+                [class.activity-card--collapsed]="isActividadCollapsed(i)"
+                [formGroupName]="i"
+              >
+                <div
+                  class="activity-card__header"
+                  (click)="toggleActividad(i)"
+                  role="button"
+                  [attr.aria-expanded]="!isActividadCollapsed(i)"
+                  [attr.aria-label]="'Expandir o colapsar ' + actividadTitle(actividad, i)"
+                >
+                  <div>
+                    <p class="activity-index">Actividad {{ i + 1 }}</p>
+                    <h4>{{ actividadTitle(actividad, i) }}</h4>
+                    <p>{{ actividadSubtitle(actividad) }}</p>
+                  </div>
+
+                  <div class="activity-card__actions">
+                    <button
+                      type="button"
+                      class="icon-button"
+                      [disabled]="!hasPreviousActividad(i)"
+                      (click)="$event.stopPropagation(); moveActividad(i, -1)"
+                      aria-label="Subir actividad"
+                    >
+                      <span aria-hidden="true">↑</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="icon-button"
+                      [disabled]="!hasNextActividad(i)"
+                      (click)="$event.stopPropagation(); moveActividad(i, 1)"
+                      aria-label="Bajar actividad"
+                    >
+                      <span aria-hidden="true">↓</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="icon-button icon-button--danger cta-icon-btn"
+                      (click)="$event.stopPropagation(); removeActividad(i)"
+                      aria-label="Eliminar actividad"
+                    >
+                      <span class="button-icon" aria-hidden="true">✕</span>
+                      <span class="button-text">Eliminar</span>
+                    </button>
+
+                    <!-- Indicador de estado -->
+                    <span class="collapse-indicator" aria-hidden="true">
+        {{ isActividadCollapsed(i) ? '﹀' : '︿' }}
+      </span>
+                  </div>
+                </div>
+
+                @if (!isActividadCollapsed(i)) {
+                  <div class="field-grid field-grid--activity">
+                    <div class="field field--full">
+                      <input
+                        id="actividad-nombre-{{ i }}"
+                        type="text"
+                        formControlName="nombre"
+                        placeholder=" "
+                      />
+                      <label [attr.for]="'actividad-nombre-' + i">
+                        Nombre de la actividad
+                        <span class="field-required" aria-hidden="true">*</span>
+                      </label>
+                    </div>
+
+                    <div class="field field--full">
+                    <textarea
+                      id="actividad-descripcion-{{ i }}"
+                      formControlName="descripcion"
+                      placeholder=" "
+                    ></textarea>
+                      <label [attr.for]="'actividad-descripcion-' + i">Descripción</label>
+                    </div>
+
+                    <div class="field">
+                      <select id="actividad-tipo-{{ i }}" formControlName="tipoActividad">
+                        @for (tipo of tipoActividadOptions; track tipo.value) {
+                          <option [value]="tipo.value">{{ tipo.label }}</option>
+                        }
+                      </select>
+                      <label [attr.for]="'actividad-tipo-' + i">
+                        Tipo de actividad
+                        <span class="field-required" aria-hidden="true">*</span>
+                      </label>
+                    </div>
+
+                    <div class="field">
+                      <select id="actividad-franja-{{ i }}" formControlName="franjaComida">
+                        @for (franja of franjaOptions; track franja.value) {
+                          <option [value]="franja.value">{{ franja.label }}</option>
+                        }
+                      </select>
+                      <label [attr.for]="'actividad-franja-' + i">
+                        Franja horaria
+                        <span class="field-required" aria-hidden="true">*</span>
+                      </label>
+                    </div>
+
+                    <div class="field">
+                      <select
+                        id="actividad-compatibilidad-{{ i }}"
+                        formControlName="compatibilidadPersona"
+                      >
+                        @for (compatibilidad of compatibilidadOptions; track compatibilidad.value) {
+                          <option [value]="compatibilidad.value">{{ compatibilidad.label }}</option>
+                        }
+                      </select>
+                      <label [attr.for]="'actividad-compatibilidad-' + i">
+                        Compatibilidad
+                        <span class="field-required" aria-hidden="true">*</span>
+                      </label>
+                    </div>
+
+                    <div class="field">
+                      <input
+                        id="actividad-precio-{{ i }}"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        formControlName="precioBase"
+                        placeholder=" "
+                      />
+                      <label [attr.for]="'actividad-precio-' + i">Precio base</label>
+                    </div>
+
+                    <label class="checkbox-row">
+                      <input type="checkbox" formControlName="esDePago" />
+                      <span>Es de pago</span>
+                    </label>
+
+                    <label class="checkbox-row">
+                      <input type="checkbox" formControlName="activo" />
+                      <span>Actividad activa</span>
+                    </label>
+                  </div>
+                }
+              </article>
+            }
+          </div>
+        </section>
+        <div #formEnd></div>
+      </form>
+    }
+  </div>
+</section>

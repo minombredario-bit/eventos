@@ -1,8 +1,25 @@
-import { Invitado, ParticipanteSeleccion } from '../domain/eventos.models';
+import {
+  EventoAdminListado,
+  ActivityCompatibility,
+  MealSlot,
+  EventoParticipanteReporte,
+  EventoActividadFormValue,
+  EventoFormValue,
+  Invitado,
+  ParticipanteSeleccion,
+} from './eventos.models';
 
 export interface ApiCollection<T> {
   member?: T[];
   'hydra:member'?: T[];
+  'hydra:totalItems'?: number;
+  'hydra:view'?: {
+    '@id'?: string;
+    'hydra:first'?: string;
+    'hydra:last'?: string;
+    'hydra:next'?: string;
+    'hydra:previous'?: string;
+  };
 }
 
 export interface EventoApuntadosCollectionItem {
@@ -99,6 +116,54 @@ export interface SeleccionParticipantesResponseApi {
   eventoId: string;
   participantes: ParticipanteSeleccion[];
   updatedAt: string | null;
+}
+
+export interface EventoListAdminResponse extends ApiCollection<EventoAdminListado> {
+  member?: EventoAdminListado[];
+  'hydra:member'?: EventoAdminListado[];
+}
+
+export interface EventoWritePayload {
+  titulo: string;
+  descripcion: string;
+  fechaEvento: string;
+  tipoEvento: string;
+  horaInicio?: string | undefined;
+  horaFin?: string | undefined;
+  lugar: string;
+  aforo: number | null;
+  fechaInicioInscripcion?: string | undefined;
+  fechaFinInscripcion?: string | undefined;
+  visible: boolean;
+  publicado: boolean;
+  admitePago: boolean;
+  permiteInvitados: boolean;
+  estado: string;
+  requiereVerificacionAcceso: boolean;
+  actividades: EventoActividadWritePayload[];
+}
+
+export interface EventoActividadWritePayload {
+  id?: string | null;
+  nombre: string;
+  descripcion: string;
+  tipoActividad: string;
+  franjaComida: MealSlot;
+  compatibilidadPersona: ActivityCompatibility;
+  esDePago: boolean;
+  precioBase: number;
+  ordenVisualizacion: number;
+  activo: boolean;
+}
+
+export interface EventoParticipantesReporteApi {
+  evento?: {
+    id?: string | number;
+    titulo?: string;
+    fecha?: string;
+  };
+  totalPersonas?: number;
+  personas?: EventoParticipanteReporte[];
 }
 
 export interface InvitadoStorageEntry extends Invitado {

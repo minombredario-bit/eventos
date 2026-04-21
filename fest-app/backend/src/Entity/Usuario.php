@@ -162,7 +162,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private ?CensadoViaEnum $censadoVia = null;
 
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
-    #[Groups(['usuario:read', 'usuario:write', 'usuario:list'])]
+    #[Groups(['usuario:read', 'usuario:write', 'usuario:collection'])]
     private ?int $antiguedad = null;
 
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]

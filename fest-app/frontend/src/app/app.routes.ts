@@ -96,6 +96,21 @@ export const routes: Routes = [
           import('./features/admin/ui/dashboard/dashboard').then((m) => m.AdminDashboard),
       },
       {
+        path: 'eventos',
+        loadComponent: () =>
+          import('./features/admin/ui/eventos/eventos').then((m) => m.AdminEventos),
+      },
+      {
+        path: 'eventos/crear',
+        loadComponent: () =>
+          import('./features/admin/ui/evento-form/index').then((m) => m.AdminEventoForm),
+      },
+      {
+        path: 'eventos/:id',
+        loadComponent: () =>
+          import('./features/admin/ui/evento-form/index').then((m) => m.AdminEventoForm),
+      },
+      {
         path: 'censo-usuarios',
         loadComponent: () =>
           import('./features/admin/ui/censo-usuarios/censo-usuarios').then((m) => m.AdminCensoUsuarios),

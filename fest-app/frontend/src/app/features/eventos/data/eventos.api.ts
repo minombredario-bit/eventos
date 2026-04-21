@@ -6,20 +6,28 @@ import { AuthService } from '../../../core/auth/auth';
 import {
   ActividadEvento,
   AltaInvitadoPayload,
+  EventoAdminListado,
   EventoApuntadosResponse,
   EventoDetalle,
+  EventoParticipanteReporte,
+  EventoParticipantesAgrupadosPorFranja,
+  EventoParticipantesReporteResponse,
+  PersonType,
   EventoResumen,
   Inscripcion,
   InscripcionResumen,
   Invitado,
   MetodoPago,
   ParticipanteSeleccion,
-  RelacionUsuario,
+  RelacionUsuario, EventosAdminParams, EventosPage,
 } from '../domain/eventos.models';
 
 import {
   ApiCollection,
   CrearInscripcionResponse,
+  EventoListAdminResponse,
+  EventoParticipantesReporteApi,
+  EventoWritePayload,
   EventoApuntadosCollectionResponse,
   InscripcionCollectionItem,
   InscripcionResumenCollectionItem,
@@ -27,6 +35,9 @@ import {
   RelacionUsuarioCollectionItem,
   SeleccionParticipantesResponseApi,
 } from '../domain/eventos.api.models';
+import {Usuario} from '../../admin/domain/admin.models';
+import {Eventos} from '../eventos';
+
 
 @Injectable({ providedIn: 'root' })
 export class EventosApi {
@@ -56,10 +67,96 @@ export class EventosApi {
       .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
   }
 
+  getEventosAdmin(params: EventosAdminParams = {}): Observable<EventosPage> {
+    const {
+      page = 1,
+      itemsPerPage = 10,
+      search,
+      monthOnly,
+      monthKey,
+    } = params;
+
+    let httpParams = new HttpParams()
+      .set('page', String(page))
+      .set('itemsPerPage', String(itemsPerPage))
+      .set('order[fechaEvento]', 'asc')
+      .set('order[horaInicio]', 'asc');
+
+    if (search?.trim()) {
+      httpParams = httpParams.set('titulo', search.trim());
+    }
+
+    // Filtro por mes en servidor usando DateFilter de API Platform
+    if (monthOnly && monthKey) {
+      const [year, month] = monthKey.split('-');
+      const lastDay = new Date(Number(year), Number(month), 0).getDate();
+      httpParams = httpParams
+        .set('fechaEvento[after]',  `${monthKey}-01`)
+        .set('fechaEvento[before]', `${monthKey}-${String(lastDay).padStart(2, '0')}`);
+    }
+
+    return this.http
+      .get<EventoListAdminResponse>(`${this.apiBaseUrl}/api/eventos`, { params: httpParams })
+      .pipe(
+        map((response) => {
+          const totalItems = Number(
+            (response as unknown as Record<string, unknown>)['hydra:totalItems'] ?? 0
+          );
+          const items = (response.member ?? response['hydra:member'] ?? [])
+            .map((item) => this.normalizeEventoListado(item));
+
+          return {
+            items,
+            totalItems,
+            page,
+            itemsPerPage,
+            hasNext: page * itemsPerPage < totalItems,
+            hasPrevious: page > 1,
+          } satisfies EventosPage;
+        }),
+      );
+  }
+
   getEvento(id: string): Observable<EventoDetalle> {
     return this.http
       .get<EventoDetalle & { actividades?: ActividadEvento[] }>(this.eventoBasePath(id))
       .pipe(map((evento) => this.normalizeEventoDetalle(evento)));
+  }
+
+  getEventoAdmin(id: string): Observable<EventoDetalle> {
+    return this.getEvento(id);
+  }
+
+  crearEvento(payload: EventoWritePayload): Observable<EventoDetalle> {
+    return this.http.post<EventoDetalle>(`${this.apiBaseUrl}/api/eventos`, payload);
+  }
+
+  actualizarEvento(id: string, payload: EventoWritePayload): Observable<EventoDetalle> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' });
+
+    return this.http.patch<EventoDetalle>(
+      this.eventoBasePath(id),
+      payload,
+      { headers },
+    );
+  }
+
+  publicarEvento(id: string): Observable<void> {
+    return this.http.post<void>(`${this.eventoBasePath(id)}/publicar`, {});
+  }
+
+  cerrarEvento(id: string): Observable<void> {
+    return this.http.post<void>(`${this.eventoBasePath(id)}/cerrar`, {});
+  }
+
+  descargarReportePdf(eventoId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.eventoBasePath(eventoId)}/reporte-participantes`,
+      {
+        responseType: 'blob',
+        headers: new HttpHeaders({ 'Accept': 'application/pdf' }),
+      },
+    );
   }
 
   // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya actividades embebidas.
@@ -312,12 +409,120 @@ export class EventosApi {
   private normalizeEventoDetalle(
     evento: EventoDetalle & { actividades?: ActividadEvento[] },
   ): EventoDetalle {
-    const actividades = Array.isArray(evento.actividades) ? evento.actividades : undefined;
+    const actividades = Array.isArray(evento.actividades)
+      ? [...evento.actividades]
+        .map((actividad, index) => ({
+          ...actividad,
+          tipoActividad: String(actividad.tipoActividad ?? '').trim() || 'libre',
+          ordenVisualizacion: this.toNumber(actividad.ordenVisualizacion ?? index),
+        }))
+        .sort((left, right) => (left.ordenVisualizacion ?? 0) - (right.ordenVisualizacion ?? 0))
+      : undefined;
 
     return {
       ...evento,
       actividades: actividades,
     };
+  }
+
+  private normalizeEventoListado(item: EventoAdminListado): EventoAdminListado {
+    return {
+      ...item,
+      id: String(item.id ?? '').trim(),
+      titulo: String(item.titulo ?? '').trim(),
+      fechaEvento: String(item.fechaEvento ?? '').trim(),
+      estado: String(item.estado ?? '').trim() || 'borrador',
+      inscripcionAbierta: item.inscripcionAbierta,
+      personasApuntadas: this.toNumber(item.personasApuntadas),
+    };
+  }
+
+  private normalizeReportePersonas(
+    response: EventoParticipantesReporteApi,
+  ): EventoParticipantesReporteResponse {
+    return {
+      evento: {
+        id: String(response.evento?.id ?? '').trim(),
+        titulo: String(response.evento?.titulo ?? 'Evento').trim() || 'Evento',
+        fecha: String(response.evento?.fecha ?? '').trim(),
+      },
+      totalPersonas: Number(response.totalPersonas ?? response.personas?.length ?? 0),
+      personas: Array.isArray(response.personas)
+        ? response.personas.map((persona): EventoParticipanteReporte => {
+          const tipoPersona: PersonType = persona.tipoPersona === 'infantil' ? 'infantil' : 'adulto';
+
+          return {
+            nombreCompleto: String(persona.nombreCompleto ?? '').trim(),
+            tipoPersona,
+            actividad: String(persona.actividad ?? '').trim(),
+            franjaComida: this.normalizeMealSlot(persona.franjaComida),
+            observaciones: typeof persona.observaciones === 'string' ? persona.observaciones.trim() : null,
+            inscripcionCodigo: String(persona.inscripcionCodigo ?? '').trim(),
+            inscriptor: String(persona.inscriptor ?? '').trim(),
+          };
+        }).filter((persona) => persona.nombreCompleto.length > 0)
+        : [],
+    };
+  }
+
+  private groupReportePersonasByFranja(
+    personas: EventoParticipanteReporte[],
+    actividades: ActividadEvento[],
+  ): EventoParticipantesAgrupadosPorFranja[] {
+    const actividadPorNombre = new Map(
+      actividades.map((actividad) => [actividad.nombre.trim().toLowerCase(), actividad.franjaComida]),
+    );
+
+    const grupos = new Map<EventoParticipantesAgrupadosPorFranja['franja'], EventoParticipanteReporte[]>();
+
+    for (const persona of personas) {
+      const franja = persona.franjaComida
+        ?? actividadPorNombre.get(persona.actividad.trim().toLowerCase())
+        ?? 'sin_franja';
+
+      const current = grupos.get(franja) ?? [];
+      current.push({
+        ...persona,
+        franjaComida: franja === 'sin_franja' ? null : franja,
+      });
+      grupos.set(franja, current);
+    }
+
+    const order: Array<EventoParticipantesAgrupadosPorFranja['franja']> = ['almuerzo', 'comida', 'merienda', 'cena', 'sin_franja'];
+
+    return order
+      .filter((franja) => (grupos.get(franja) ?? []).length > 0)
+      .map((franja) => ({
+        franja,
+        etiqueta: this.formatMealSlot(franja),
+        participantes: grupos.get(franja) ?? [],
+      }));
+  }
+
+  private normalizeMealSlot(value: string | null | undefined): ActividadEvento['franjaComida'] | null {
+    if (!value) {
+      return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'almuerzo' || normalized === 'comida' || normalized === 'merienda' || normalized === 'cena'
+      ? normalized
+      : null;
+  }
+
+  private formatMealSlot(value: EventoParticipantesAgrupadosPorFranja['franja']): string {
+    if (value === 'sin_franja') {
+      return 'Sin franja';
+    }
+
+    const labels: Record<ActividadEvento['franjaComida'], string> = {
+      almuerzo: 'Almuerzo',
+      comida: 'Comida',
+      merienda: 'Merienda',
+      cena: 'Cena',
+    };
+
+    return labels[value];
   }
 
   private normalizeEventoId(eventoId: string): string {

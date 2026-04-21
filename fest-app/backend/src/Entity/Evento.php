@@ -18,6 +18,7 @@ use App\Dto\InvitadoView;
 use App\Enum\TipoEventoEnum;
 use App\Enum\EstadoEventoEnum;
 use App\State\EventoInvitadosProvider;
+use App\State\EventoReporteParticipantesProvider;
 use App\State\EventoWriteProcessor;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -36,7 +37,10 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
     operations: [
         new Get(
             uriTemplate: '/eventos/{id}',
-            normalizationContext: ['groups' => ['evento:item:min', 'actividad-evento:evento:item:min'], 'enable_max_depth' => 1],
+            normalizationContext: [
+                'groups' => ['evento:item:min', 'actividad-evento:evento:item:min'],
+                'enable_max_depth' => 1,
+            ],
             security: "is_granted('EVENTO_VIEW', object)"
         ),
         new GetCollection(
@@ -66,24 +70,33 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
         ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')", processor: EventoWriteProcessor::class),
         new Patch(security: "is_granted('EVENTO_EDIT', object)", processor: EventoWriteProcessor::class),
+        new Get(
+            uriTemplate: '/eventos/{id}/reporte-participantes',
+            formats: ['pdf' => ['application/pdf']],
+            uriVariables: [
+                'id' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
+            output: false,
+            provider: EventoReporteParticipantesProvider::class,
+        ),
     ],
     normalizationContext: ['groups' => ['evento:read'], 'enable_max_depth' => 1],
     denormalizationContext: ['groups' => ['evento:write']],
-    order: ['fechaEvento' => 'ASC']
+    order: ['fechaEvento' => 'ASC'],
+    paginationClientEnabled: true
 )]
-
 #[ApiFilter(DateFilter::class, properties: ['fechaEvento' => DateFilter::EXCLUDE_NULL])]
 #[ApiFilter(SearchFilter::class, properties: [
-    'estado'    => 'exact',
-    'visible'   => 'exact',
+    'estado' => 'exact',
+    'visible' => 'exact',
     'publicado' => 'exact',
-    'entidad'   => 'exact',
+    'entidad' => 'exact',
 ])]
 #[ApiFilter(
     OrderFilter::class, properties: ['fechaEvento', 'horaInicio', 'createdAt'],
     arguments: ['orderParameterName' => 'order']
 )]
-
 class Evento
 {
     #[ORM\Id]
@@ -95,21 +108,32 @@ class Evento
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['evento:read', 'evento:write', 'evento:read:item'])]
     #[MaxDepth(1)]
-    #[Assert\NotNull]
     private Entidad $entidad;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection', 'evento:item:min'])]
-    #[Assert\NotBlank]
+    #[Groups([
+        'evento:read',
+        'evento:write',
+        'evento:collection',
+        'inscripcion:read',
+        'inscripcion:collection',
+        'evento:item:min',
+    ])]
     private string $titulo;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
     #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
-    #[Assert\NotBlank]
     private string $slug;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection', 'evento:item:min'])]
+    #[Groups([
+        'evento:read',
+        'evento:write',
+        'evento:collection',
+        'inscripcion:read',
+        'inscripcion:collection',
+        'evento:item:min',
+    ])]
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoEventoEnum::class)]
@@ -118,12 +142,26 @@ class Evento
     private TipoEventoEnum $tipoEvento;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection', 'evento:item:min'])]
+    #[Groups([
+        'evento:read',
+        'evento:write',
+        'evento:collection',
+        'inscripcion:read',
+        'inscripcion:collection',
+        'evento:item:min',
+    ])]
     #[Assert\NotNull]
     private \DateTimeImmutable $fechaEvento;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection', 'evento:item:min'])]
+    #[Groups([
+        'evento:read',
+        'evento:write',
+        'evento:collection',
+        'inscripcion:read',
+        'inscripcion:collection',
+        'evento:item:min',
+    ])]
     private ?\DateTimeImmutable $horaInicio = null;
 
     #[ORM\Column(type: Types::TIME_IMMUTABLE, nullable: true)]
@@ -131,22 +169,27 @@ class Evento
     private ?\DateTimeImmutable $horaFin = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:read', 'inscripcion:collection', 'evento:item:min'])]
+    #[Groups([
+        'evento:read',
+        'evento:write',
+        'evento:collection',
+        'inscripcion:read',
+        'inscripcion:collection',
+        'evento:item:min',
+    ])]
     private ?string $lugar = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     #[Groups(['evento:read', 'evento:write'])]
     private ?int $aforo = null;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Groups(['evento:read', 'evento:write'])]
-    #[Assert\NotNull]
-    private \DateTimeImmutable $fechaInicioInscripcion;
+    private ?\DateTimeImmutable $fechaInicioInscripcion = null;
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Groups(['evento:read', 'evento:write', 'inscripcion:read'])]
-    #[Assert\NotNull]
-    private \DateTimeImmutable $fechaFinInscripcion;
+    private ?\DateTimeImmutable $fechaFinInscripcion = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
     #[Groups(['evento:read', 'evento:write'])]
@@ -195,7 +238,11 @@ class Evento
     private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, ActividadEvento> */
-    #[ORM\OneToMany(targetEntity: ActividadEvento::class, mappedBy: 'evento', cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
+    #[ORM\OneToMany(targetEntity: ActividadEvento::class, mappedBy: 'evento', cascade: [
+        'persist',
+        'remove',
+    ], fetch: 'EXTRA_LAZY')]
+    #[ApiProperty(writableLink: true)]
     /** @return Collection<int, ActividadEvento> */
     #[Groups(['evento:read', 'evento:write', 'actividad-evento:read', 'evento:item:min'])]
     #[MaxDepth(2)]
@@ -206,7 +253,14 @@ class Evento
     private Collection $inscripciones;
 
     #[ApiProperty(readable: true, writable: false)]
-    #[Groups(['evento:read', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'inscripcion:collection', 'evento:item:min'])]
+    #[Groups([
+        'evento:read',
+        'evento:collection',
+        'evento:read:item',
+        'inscripcion:read',
+        'inscripcion:collection',
+        'evento:item:min',
+    ])]
     private ?bool $inscripcionAbierta = null;
 
     public function __construct()
@@ -238,6 +292,7 @@ class Evento
     public function setEntidad(Entidad $entidad): static
     {
         $this->entidad = $entidad;
+
         return $this;
     }
 
@@ -249,6 +304,7 @@ class Evento
     public function setTitulo(string $titulo): static
     {
         $this->titulo = $titulo;
+
         return $this;
     }
 
@@ -260,6 +316,7 @@ class Evento
     public function setSlug(string $slug): static
     {
         $this->slug = $slug;
+
         return $this;
     }
 
@@ -271,6 +328,7 @@ class Evento
     public function setDescripcion(?string $descripcion): static
     {
         $this->descripcion = $descripcion;
+
         return $this;
     }
 
@@ -282,6 +340,7 @@ class Evento
     public function setTipoEvento(TipoEventoEnum $tipoEvento): static
     {
         $this->tipoEvento = $tipoEvento;
+
         return $this;
     }
 
@@ -293,6 +352,7 @@ class Evento
     public function setFechaEvento(\DateTimeImmutable $fechaEvento): static
     {
         $this->fechaEvento = $fechaEvento;
+
         return $this;
     }
 
@@ -304,6 +364,7 @@ class Evento
     public function setHoraInicio(?\DateTimeImmutable $horaInicio): static
     {
         $this->horaInicio = $horaInicio;
+
         return $this;
     }
 
@@ -315,6 +376,7 @@ class Evento
     public function setHoraFin(?\DateTimeImmutable $horaFin): static
     {
         $this->horaFin = $horaFin;
+
         return $this;
     }
 
@@ -326,6 +388,7 @@ class Evento
     public function setLugar(?string $lugar): static
     {
         $this->lugar = $lugar;
+
         return $this;
     }
 
@@ -337,30 +400,34 @@ class Evento
     public function setAforo(?int $aforo): static
     {
         $this->aforo = $aforo;
+
         return $this;
     }
+
     #[Groups(['evento:read', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'evento:item:min'])]
-    public function getFechaInicioInscripcion(): \DateTimeImmutable
+    public function getFechaInicioInscripcion(): ?\DateTimeImmutable
     {
         return $this->fechaInicioInscripcion;
     }
 
-    public function setFechaInicioInscripcion(\DateTimeImmutable $fechaInicioInscripcion): static
+    public function setFechaInicioInscripcion(?\DateTimeImmutable $fechaInicioInscripcion): static
     {
         $this->fechaInicioInscripcion = $fechaInicioInscripcion;
+
         return $this;
     }
 
     #[Groups(['evento:read', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'evento:item:min'])]
     #[SerializedName('fechaLimiteInscripcion')]
-    public function getFechaFinInscripcion(): \DateTimeImmutable
+    public function getFechaFinInscripcion(): ?\DateTimeImmutable
     {
         return $this->fechaFinInscripcion;
     }
 
-    public function setFechaFinInscripcion(\DateTimeImmutable $fechaFinInscripcion): static
+    public function setFechaFinInscripcion(?\DateTimeImmutable $fechaFinInscripcion): static
     {
         $this->fechaFinInscripcion = $fechaFinInscripcion;
+
         return $this;
     }
 
@@ -372,6 +439,7 @@ class Evento
     public function setVisible(bool $visible): static
     {
         $this->visible = $visible;
+
         return $this;
     }
 
@@ -383,6 +451,7 @@ class Evento
     public function setPublicado(bool $publicado): static
     {
         $this->publicado = $publicado;
+
         return $this;
     }
 
@@ -394,6 +463,7 @@ class Evento
     public function setAdmitePago(bool $admitePago): static
     {
         $this->admitePago = $admitePago;
+
         return $this;
     }
 
@@ -417,6 +487,7 @@ class Evento
     public function setEstado(EstadoEventoEnum $estado): static
     {
         $this->estado = $estado;
+
         return $this;
     }
 
@@ -428,6 +499,7 @@ class Evento
     public function setRequiereVerificacionAcceso(bool $requiereVerificacionAcceso): static
     {
         $this->requiereVerificacionAcceso = $requiereVerificacionAcceso;
+
         return $this;
     }
 
@@ -439,6 +511,7 @@ class Evento
     public function setVentanaInicioVerificacion(?\DateTimeImmutable $ventanaInicioVerificacion): static
     {
         $this->ventanaInicioVerificacion = $ventanaInicioVerificacion;
+
         return $this;
     }
 
@@ -450,6 +523,7 @@ class Evento
     public function setVentanaFinVerificacion(?\DateTimeImmutable $ventanaFinVerificacion): static
     {
         $this->ventanaFinVerificacion = $ventanaFinVerificacion;
+
         return $this;
     }
 
@@ -461,6 +535,7 @@ class Evento
     public function setImagenVerificacion(?string $imagenVerificacion): static
     {
         $this->imagenVerificacion = $imagenVerificacion;
+
         return $this;
     }
 
@@ -472,6 +547,7 @@ class Evento
     public function setCodigoVisual(?string $codigoVisual): static
     {
         $this->codigoVisual = $codigoVisual;
+
         return $this;
     }
 
@@ -514,12 +590,14 @@ class Evento
             $this->actividades->add($actividad);
             $actividad->setEvento($this);
         }
+
         return $this;
     }
 
     public function removeActividad(ActividadEvento $actividad): static
     {
         $this->actividades->removeElement($actividad);
+
         return $this;
     }
 
@@ -529,6 +607,18 @@ class Evento
         return $this->inscripciones;
     }
 
+    #[Groups(['evento:read', 'evento:collection', 'evento:read:item'])]
+    public function getPersonasApuntadas(): int
+    {
+        $total = 0;
+
+        foreach ($this->inscripciones as $inscripcion) {
+            $total += $inscripcion->getLineas()->count();
+        }
+
+        return $total;
+    }
+
     public function getInscripcionAbierta(): bool
     {
         return $this->isInscripcionAbierta();
@@ -536,6 +626,10 @@ class Evento
 
     public function isInscripcionAbierta(): bool
     {
+        if (!$this->fechaInicioInscripcion || !$this->fechaFinInscripcion) {
+            return false;
+        }
+
         $ahora = new \DateTimeImmutable();
         $fechaFinInclusiva = $this->fechaFinInscripcion->setTime(23, 59, 59, 999999);
 
