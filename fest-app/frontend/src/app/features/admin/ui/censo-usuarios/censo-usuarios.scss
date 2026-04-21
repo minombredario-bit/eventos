@@ -20,6 +20,8 @@
   gap: 0.9rem;
 }
 
+// ─── Panel base ────────────────────────────────────────────────────────────────
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--border-soft);
@@ -28,12 +30,30 @@
   padding: 1rem;
 }
 
+// ─── Actions panel ─────────────────────────────────────────────────────────────
+
 .actions-panel {
   display: grid;
   gap: 0.7rem;
+
+  // Mobile: acciones → búsqueda → chips
+  grid-template-areas:
+    "actions"
+    "search"
+    "filters";
+
+  // Desktop: búsqueda full-width, luego chips izq + acciones der
+  @media (min-width: 600px) {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "search  search"
+      "filters actions";
+    align-items: center;
+  }
 }
 
 .search-field {
+  grid-area: search;
   display: grid;
   gap: 0.35rem;
 
@@ -49,20 +69,29 @@
     border: 1px solid var(--border-soft);
     padding: 0 0.8rem;
     background: #ffffff;
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
   }
 }
 
-.actions-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.55rem;
-}
-
 .filter-row {
+  grid-area: filters;
   display: flex;
   gap: 0.45rem;
   flex-wrap: wrap;
+  align-items: center;
 }
+
+.actions-row {
+  grid-area: actions;
+  display: flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+// ─── Chips ─────────────────────────────────────────────────────────────────────
 
 .chip-filter {
   min-height: 36px;
@@ -73,20 +102,31 @@
   background: #fff;
   color: var(--text-secondary);
   cursor: pointer;
+
+  &.active {
+    border-color: var(--border-strong);
+    background: #fff4e6;
+    color: var(--brand-ink);
+  }
+
+  &--clear {
+    color: var(--text-muted);
+    border-style: dashed;
+
+    &:hover {
+      border-color: var(--border-strong);
+      color: var(--brand-ink);
+    }
+  }
 }
 
-.chip-filter.active {
-  border-color: var(--border-strong);
-  background: #fff4e6;
-  color: var(--brand-ink);
-}
+// ─── Buttons ───────────────────────────────────────────────────────────────────
 
 .action-button {
   min-height: 44px;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   padding: 0 0.9rem;
-  /* Use global brand variables so button follows the current theme */
   background: linear-gradient(135deg, var(--brand-primary-strong, #b45309) 0%, var(--brand-primary, #e8520a) 100%);
   color: #fff;
   font-weight: 800;
@@ -96,26 +136,80 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
+  font: inherit;
+
+  &.secondary {
+    background: #fff4e6;
+    color: var(--brand-ink);
+    border-color: var(--border-strong);
+  }
+
+  &.disabled {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  &[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  input[type='file'] {
+    display: none;
+  }
 }
 
-.action-button.secondary {
-  background: #fff4e6;
-  color: var(--brand-ink);
+.action-button--icon {
+  gap: 0.45rem;
 }
 
-.action-button.disabled {
-  opacity: 0.7;
-  pointer-events: none;
+.action-button--sm {
+  min-height: 36px;
+  padding: 0 0.7rem;
+  font-size: 0.82rem;
+
+  // Mobile-first: solo icono
+  .button-text {
+    display: none;
+  }
+
+  .button-icon {
+    font-size: 1.05rem;
+  }
+
+  @media (min-width: 480px) {
+    .button-text {
+      display: inline-flex;
+    }
+  }
 }
 
-.action-button[disabled] {
-  opacity: 0.55;
-  cursor: not-allowed;
+.action-button--pag {
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+
+  .button-icon {
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
 }
 
-.action-button input[type='file'] {
-  display: none;
+.button-icon {
+  font-size: 1em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
+
+.button-text {
+  display: inline-flex;
+  align-items: center;
+}
+
+// ─── Feedback ──────────────────────────────────────────────────────────────────
 
 .feedback {
   margin: 0;
@@ -123,18 +217,18 @@
   padding: 0.6rem 0.75rem;
   font-size: 0.84rem;
   font-weight: 700;
-}
 
-.feedback.success {
-  color: #166534;
-  background: #ecfdf5;
-  border: 1px solid #86efac;
-}
+  &.success {
+    color: #166534;
+    background: #ecfdf5;
+    border: 1px solid #86efac;
+  }
 
-.feedback.error {
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  &.error {
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+  }
 }
 
 .import-summary {
@@ -145,25 +239,15 @@
   font-size: 0.82rem;
   color: var(--text-secondary);
 
-  strong {
-    color: #14532d;
-  }
-
-  small {
-    color: #92400e;
-  }
+  strong { color: #14532d; }
+  small  { color: #92400e; }
 }
 
-.form-panel {
-  h2 {
-    margin: 0 0 0.7rem;
-    font-size: 1rem;
-  }
+// ─── Misc ──────────────────────────────────────────────────────────────────────
 
-  form {
-    display: grid;
-    gap: 0.55rem;
-  }
+.form-panel {
+  h2 { margin: 0 0 0.7rem; font-size: 1rem; }
+  form { display: grid; gap: 0.55rem; }
 
   input,
   select {
@@ -195,6 +279,8 @@
 h2 {
   margin: 0.35rem 0 0;
 }
+
+// ─── List panel ────────────────────────────────────────────────────────────────
 
 .head-row {
   display: flex;
@@ -271,6 +357,8 @@ h2 {
   }
 }
 
+// ─── Pagination ────────────────────────────────────────────────────────────────
+
 .pagination-row {
   display: flex;
   align-items: center;
@@ -289,10 +377,3 @@ h2 {
   margin: 0;
   color: var(--text-secondary);
 }
-
-@media (min-width: 760px) {
-  .actions-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-

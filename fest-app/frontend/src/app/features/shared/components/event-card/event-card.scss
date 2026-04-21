@@ -1,9 +1,9 @@
 .event-card {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 0.85rem;
+  grid-template-columns: fit-content(3.25rem) minmax(0, 1fr);
+  gap: 0.7rem;
   border-radius: var(--radius-lg);
-  padding: 0.95rem;
+  padding: 0.8rem;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-soft);
@@ -16,18 +16,26 @@
 }
 
 .date-badge {
+  justify-self: start;
+  align-self: start;
+  width: fit-content;
+  min-width: 2.75rem;
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--brand-primary) 10%, var(--surface));
   color: var(--brand-ink);
   text-align: center;
-  padding: 0.4rem 0.25rem;
+  padding: 0.32rem 0.2rem;
   border: 1px solid var(--border-soft);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 
   strong {
     display: block;
-    font-size: 1.35rem;
+    font-size: 1.2rem;
     line-height: 1.1;
-    font-family: var(--font-display);
+    font-family: var(--font-display), serif;
     font-weight: 800;
   }
 
@@ -41,27 +49,28 @@
 }
 
 .title-row {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: start;
 }
 
 h3 {
   margin: 0;
-  font-size: 1rem;
-  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-family: var(--font-display), serif;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .state {
   font-size: 0.7rem;
-  padding: 0.22rem 0.55rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 999px;
   font-weight: 800;
   white-space: nowrap;
   letter-spacing: 0.03em;
+  justify-self: end;
 }
 
 .state.abierto   { color: #064e35; background: #c6f6d5; border: 1px solid #38a169; }
@@ -76,16 +85,24 @@ h3 {
 
 .meta,
 .description {
-  margin: 0.35rem 0 0;
+  margin: 0.28rem 0 0;
   color: var(--text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .details-link {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  margin-top: 0.35rem;
+  min-height: 40px;
+  margin-top: 0.2rem;
   color: var(--brand-ink);
   font-weight: 700;
   text-decoration: none;
@@ -93,3 +110,61 @@ h3 {
 
   &:hover { color: var(--brand-primary); }
 }
+
+:host-context(.upcoming) {
+  .event-card {
+    gap: 0.55rem;
+    padding: 0.68rem;
+  }
+
+  .date-badge {
+    min-width: 2.45rem;
+    padding: 0.22rem 0.14rem;
+
+    strong {
+      font-size: 1.05rem;
+    }
+
+    small {
+      font-size: 0.62rem;
+    }
+  }
+
+  .title-row {
+    gap: 0.35rem;
+  }
+
+  h3 {
+    font-size: 0.92rem;
+  }
+
+  .state {
+    padding: 0.16rem 0.42rem;
+    font-size: 0.64rem;
+  }
+
+  .meta,
+  .description {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  .details-link {
+    min-height: 34px;
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .event-card {
+    grid-template-columns: fit-content(2.9rem) minmax(0, 1fr);
+    gap: 0.6rem;
+    padding: 0.7rem;
+  }
+
+  .date-badge {
+    min-width: 2.5rem;
+    padding: 0.25rem 0.15rem;
+  }
+}
+

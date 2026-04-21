@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { DatePipe, NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EventSummary } from '../../../eventos/domain/eventos.models';
+import {formatDay, formatMonth} from '../../../../core/utils/date.utils';
 
 @Component({
   selector: 'app-event-card',
@@ -16,8 +17,10 @@ export class EventCard {
 
   protected readonly statusLabel = computed(() => {
     const status = this.event().status;
-    if (status === 'abierto') return 'Inscripción abierta';
+    if (status === 'abierto') return '';
     if (status === 'ultimas_plazas') return 'Últimas plazas';
     return 'Inscripción cerrada';
   });
+  protected readonly formatEventDay = formatDay;
+  protected readonly formatEventMonth = formatMonth;
 }

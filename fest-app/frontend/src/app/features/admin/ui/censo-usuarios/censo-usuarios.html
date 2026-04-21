@@ -8,6 +8,22 @@
 
   <div class="content">
     <article class="panel actions-panel">
+
+      <!-- Botones de acción: primera fila en mobile, derecha en desktop -->
+      <div class="actions-row">
+        <label class="action-button secondary action-button--icon action-button--sm" [class.disabled]="importing()">
+          <span class="button-icon" aria-hidden="true">{{ importing() ? '⏳' : '📥' }}</span>
+          <span class="button-text">{{ importing() ? 'Importando...' : 'Importar Excel' }}</span>
+          <input type="file" accept=".xlsx,.xls" [disabled]="importing()" (change)="onExcelSelected($event)" />
+        </label>
+
+        <button type="button" class="action-button action-button--icon action-button--sm" (click)="goToCreateUser()">
+          <span class="button-icon" aria-hidden="true">＋</span>
+          <span class="button-text">Crear usuario</span>
+        </button>
+      </div>
+
+      <!-- Barra de búsqueda -->
       <label class="search-field" aria-label="Buscar usuario">
         <span>Buscar por nombre o email</span>
         <input
@@ -18,20 +34,13 @@
         />
       </label>
 
+      <!-- Chips de filtro + borrar -->
       <div class="filter-row" role="group" aria-label="Filtros de censo">
         <button type="button" class="chip-filter" [class.active]="filtro() === 'todos'" (click)="setFiltro('todos')">Todos</button>
         <button type="button" class="chip-filter" [class.active]="filtro() === 'censado'" (click)="setFiltro('censado')">Censado</button>
         <button type="button" class="chip-filter" [class.active]="filtro() === 'no_censado'" (click)="setFiltro('no_censado')">No censado</button>
-      </div>
-
-      <div class="actions-row">
-        <label class="action-button secondary" [class.disabled]="importing()">
-          {{ importing() ? 'Importando...' : 'Importar Excel' }}
-          <input type="file" accept=".xlsx,.xls" [disabled]="importing()" (change)="onExcelSelected($event)" />
-        </label>
-
-        <button type="button" class="action-button" (click)="goToCreateUser()">
-          Crear usuario
+        <button type="button" class="chip-filter chip-filter--clear" (click)="setFiltro('todos'); setSearchTerm('')">
+          <span aria-hidden="true">✕</span> Borrar filtros
         </button>
       </div>
 
@@ -79,31 +88,34 @@
               </tr>
               </thead>
               <tbody>
-              @for (usuario of usuarios(); track usuario.id) {
-                <tr [routerLink]="['/admin/usuarios', usuario.id]" class="table-row-link">
-                  <td>
-                    <strong>{{ fullName(usuario) }}</strong>
-                    <div class="row-meta">
-                      <small></small>
-                      <small></small>
-                    </div>
-                  </td>
-                  <td>{{ usuario.telefono || '-' }}</td>
-                  <td>{{ antiguedadLabel(usuario) }}</td>
-                </tr>
-              }
+                @for (usuario of usuarios(); track usuario.id) {
+                  <tr [routerLink]="['/admin/usuarios', usuario.id]" class="table-row-link">
+                    <td>
+                      <strong>{{ fullName(usuario) }}</strong>
+                      <div class="row-meta">
+                        <small></small>
+                        <small></small>
+                      </div>
+                    </td>
+                    <td>{{ usuario.telefono || '-' }}</td>
+                    <td>{{ antiguedadLabel(usuario) }}</td>
+                  </tr>
+                }
               </tbody>
             </table>
           </div>
 
           <div class="pagination-row">
-            <button type="button" class="action-button secondary" [disabled]="!hasPreviousPage()" (click)="loadPreviousPage()">Anterior</button>
+            <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="!hasPreviousPage()" (click)="loadPreviousPage()" aria-label="Página anterior">
+              <span class="button-icon" aria-hidden="true">&lt;</span>
+            </button>
             <span>Página {{ currentPage() }}</span>
-            <button type="button" class="action-button secondary" [disabled]="!hasNextPage()" (click)="loadNextPage()">Siguiente</button>
+            <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="!hasNextPage()" (click)="loadNextPage()" aria-label="Página siguiente">
+              <span class="button-icon" aria-hidden="true">&gt;</span>
+            </button>
           </div>
         }
       </article>
     }
   </div>
 </section>
-
