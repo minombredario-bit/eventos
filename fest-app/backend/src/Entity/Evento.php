@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Post;
@@ -20,6 +21,8 @@ use App\Enum\EstadoEventoEnum;
 use App\State\EventoInvitadosProvider;
 use App\State\EventoReporteParticipantesProvider;
 use App\State\EventoWriteProcessor;
+use App\State\EventoCancelProcessor;
+use App\State\EventoForceDeleteProcessor;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
@@ -70,6 +73,17 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
         ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')", processor: EventoWriteProcessor::class),
         new Patch(security: "is_granted('EVENTO_EDIT', object)", processor: EventoWriteProcessor::class),
+        new Delete(security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
+        new Post(
+            uriTemplate: '/eventos/{id}/cancelar',
+            security: "is_granted('EVENTO_EDIT', object)",
+            processor: EventoCancelProcessor::class
+        ),
+        new Post(
+            uriTemplate: '/eventos/{id}/force_delete',
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            processor: EventoForceDeleteProcessor::class
+        ),
         new Get(
             uriTemplate: '/eventos/{id}/reporte-participantes',
             formats: ['pdf' => ['application/pdf']],
@@ -90,7 +104,6 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 #[ApiFilter(SearchFilter::class, properties: [
     'estado' => 'exact',
     'visible' => 'exact',
-    'publicado' => 'exact',
     'entidad' => 'exact',
 ])]
 #[ApiFilter(
@@ -196,10 +209,6 @@ class Evento
     private bool $visible = true;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['evento:read', 'evento:write'])]
-    private bool $publicado = false;
-
-    #[ORM\Column(type: Types::BOOLEAN)]
     #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     private bool $admitePago = true;
 
@@ -244,7 +253,7 @@ class Evento
     ], fetch: 'EXTRA_LAZY')]
     #[ApiProperty(writableLink: true)]
     /** @return Collection<int, ActividadEvento> */
-    #[Groups(['evento:read', 'evento:write', 'actividad-evento:read', 'evento:item:min'])]
+    #[Groups(['evento:read', 'actividad-evento:read', 'evento:item:min'])]
     #[MaxDepth(2)]
     private Collection $actividades;
 
@@ -439,18 +448,6 @@ class Evento
     public function setVisible(bool $visible): static
     {
         $this->visible = $visible;
-
-        return $this;
-    }
-
-    public function isPublicado(): bool
-    {
-        return $this->publicado;
-    }
-
-    public function setPublicado(bool $publicado): static
-    {
-        $this->publicado = $publicado;
 
         return $this;
     }
