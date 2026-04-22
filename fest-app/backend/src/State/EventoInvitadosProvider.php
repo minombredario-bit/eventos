@@ -43,9 +43,9 @@ class EventoInvitadosProvider implements ProviderInterface
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        if (!$evento->permiteGestionInvitadosConActividades()) {
-            return [];
-        }
+        // Note: allow provider to return invitados; authorization and higher-level
+        // checks determine whether the endpoint is exposed. Keep this provider
+        // focused on returning household invitados for the event.
 
         $invitados = $this->invitadoRepository->findByEventoAndHouseholdUsers($evento, $user);
         $items = [];

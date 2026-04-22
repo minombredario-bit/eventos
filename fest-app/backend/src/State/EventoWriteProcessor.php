@@ -3,94 +3,199 @@
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
-use App\Entity\Entidad;
+use App\Entity\ActividadEvento;
 use App\Entity\Evento;
-use App\Entity\Usuario;
-use App\Service\EmailQueueService;
+use App\Repository\ActividadEventoRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\String\Slugger\AsciiSlugger;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
-class EventoWriteProcessor implements ProcessorInterface
+/**
+ * @implements ProcessorInterface<Evento, Evento>
+ */
+final class EventoWriteProcessor implements ProcessorInterface
 {
     public function __construct(
-        #[Autowire(service: 'api_platform.doctrine.orm.state.persist_processor')]
-        private readonly ProcessorInterface $persistProcessor,
-        private readonly EmailQueueService $emailQueueService,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly EntityManagerInterface    $em,
+        private readonly SluggerInterface          $slugger,
+        private readonly ActividadEventoRepository $actividadRepo,
+        private readonly ProcessorInterface        $persistProcessor,
+        private readonly RequestStack              $requestStack,
         private readonly Security $security,
-    ) {
-    }
+    ) {}
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): Evento
     {
         if (!$data instanceof Evento) {
-            return $this->persistProcessor->process($data, $operation, $uriVariables, $context);
+            throw new BadRequestHttpException('Expected an Evento instance.');
+        }
+        $user = $this->security->getUser();
+        $data->setEntidad($user->getEntidad());
+        $this->syncSlug($data, $operation);
+        $this->syncActividades($data);
+
+        /** @var Evento $saved */
+        $saved = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
+
+        return $saved;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function syncSlug(Evento $evento, Operation $operation): void
+    {
+        if ($operation instanceof Post || !$evento->getSlug()) {
+            $evento->setSlug(
+                strtolower($this->slugger->slug($evento->getTitulo())->toString())
+            );
+            return;
         }
 
-        $admin = $this->security->getUser();
-        if (!$admin instanceof Usuario) {
-            throw new AccessDeniedHttpException('Usuario no autenticado.');
+        $expectedSlug = strtolower($this->slugger->slug($evento->getTitulo())->toString());
+        if ($evento->getSlug() !== $expectedSlug) {
+            $evento->setSlug($expectedSlug);
+        }
+    }
+
+    /**
+     * Lee las actividades directamente del JSON del request.
+     * API Platform NO deserializa la colección (actividades no está en evento:write),
+     * por lo que Doctrine nunca ve entidades con UUIDs falsos.
+     *
+     * - Con @id  → cargar por UUID, actualizar campos si los envía.
+     * - Sin @id  → nueva actividad, persistir.
+     * - Ausente del payload → no se toca (no hay borrado silencioso).
+     */
+    private function syncActividades(Evento $evento): void
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request === null) {
+            return;
         }
 
-        $entidad = $admin->getEntidad();
-        if (!$entidad instanceof Entidad) {
-            throw new AccessDeniedHttpException('El administrador no tiene entidad asignada.');
-        }
-        foreach ($context['data']->getActividades() as $key => $actividad) {
-            $actividad->setNombre('test' . $key);
-        }
-        $isCreate = !isset($context['previous_data']) || !$context['previous_data'] instanceof Evento;
+        $body = json_decode($request->getContent(), true);
 
-        $data->setEntidad($entidad);
-        if ($isCreate) {
-            $data->setSlug($this->generateUniqueSlug($data->getTitulo(), $entidad));
+        if (!isset($body['actividades']) || !is_array($body['actividades'])) {
+            return;
         }
 
-        $result = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
+        foreach ($body['actividades'] as $data) {
+            $iri = $data['id'] ?? null;
 
-        if ($result instanceof Evento) {
-            if ($isCreate) {
-                $this->emailQueueService->enqueueEventoCreado($result);
+            if ($iri !== null) {
+                // ── Actividad existente ──────────────────────────────────────
+                $uuid = $this->uuidFromIri($iri);
+                if ($uuid === null) {
+                    throw new BadRequestHttpException(
+                        sprintf('IRI inválida: "%s".', $iri)
+                    );
+                }
+
+                $actividad = $this->actividadRepo->find($uuid);
+                if ($actividad === null) {
+                    throw new BadRequestHttpException(
+                        sprintf('ActividadEvento "%s" no encontrada.', $iri)
+                    );
+                }
+
+                $this->applyFields($data, $actividad);
+
             } else {
-                // Para cambios de evento reutilizamos la misma plantilla de anuncio.
-                $this->emailQueueService->enqueueEventoCreado($result);
+                // ── Nueva actividad ──────────────────────────────────────────
+                $actividad = new ActividadEvento();
+                $actividad->setEvento($evento);
+                $this->applyFields($data, $actividad);
+                $this->em->persist($actividad);
+                $evento->addActividad($actividad);
             }
-            $this->entityManager->flush();
         }
-
-        return $result;
     }
 
-    private function generateUniqueSlug(string $titulo, Entidad $entidad): string
+    /**
+     * Extrae el UUID del último segmento de una IRI.
+     * "/api/actividad_eventos/0b662202-0df8-4b09-9dea-4e15a4847a9c" → "0b662202-..."
+     */
+    private function uuidFromIri(string $iri): ?string
     {
-        $slugger = new AsciiSlugger('es');
-        $base = strtolower($slugger->slug($titulo)->toString());
+        $segment = basename($iri);
 
-        if ($base === '') {
-            $base = 'evento';
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $segment)) {
+            return $segment;
         }
 
-        $candidate = $base;
-        $suffix = 2;
-
-        while ($this->slugExists($candidate, $entidad)) {
-            $candidate = sprintf('%s-%d', $base, $suffix);
-            $suffix++;
-        }
-
-        return $candidate;
+        return null;
     }
 
-    private function slugExists(string $slug, Entidad $entidad): bool
+    /**
+     * Aplica solo los campos presentes en el payload sobre la entidad.
+     * Usa array_key_exists para distinguir "no enviado" de "enviado como null".
+     *
+     * @param array<string, mixed> $data
+     */
+    private function applyFields(array $data, ActividadEvento $actividad): void
     {
-        return null !== $this->entityManager->getRepository(Evento::class)->findOneBy([
-            'entidad' => $entidad,
-            'slug' => $slug,
-        ]);
+        if (isset($data['nombre'])) {
+            $actividad->setNombre($data['nombre']);
+        }
+        if (array_key_exists('descripcion', $data)) {
+            $actividad->setDescripcion($data['descripcion']);
+        }
+        if (isset($data['tipoActividad'])) {
+            $actividad->setTipoActividad(
+                \App\Enum\TipoActividadEnum::from($data['tipoActividad'])
+            );
+        }
+        if (isset($data['franjaComida'])) {
+            $actividad->setFranjaComida(
+                \App\Enum\FranjaComidaEnum::from($data['franjaComida'])
+            );
+        }
+        if (isset($data['compatibilidadPersona'])) {
+            $actividad->setCompatibilidadPersona(
+                \App\Enum\CompatibilidadPersonaActividadEnum::from($data['compatibilidadPersona'])
+            );
+        }
+        if (array_key_exists('esDePago', $data)) {
+            $actividad->setEsDePago((bool) $data['esDePago']);
+        }
+        if (array_key_exists('precioBase', $data)) {
+            $actividad->setPrecioBase((float) $data['precioBase']);
+        }
+        if (array_key_exists('precioAdultoInterno', $data)) {
+            $actividad->setPrecioAdultoInterno(
+                $data['precioAdultoInterno'] !== null ? (float) $data['precioAdultoInterno'] : null
+            );
+        }
+        if (array_key_exists('precioAdultoExterno', $data)) {
+            $actividad->setPrecioAdultoExterno(
+                $data['precioAdultoExterno'] !== null ? (float) $data['precioAdultoExterno'] : null
+            );
+        }
+        if (array_key_exists('precioInfantil', $data)) {
+            $actividad->setPrecioInfantil(
+                $data['precioInfantil'] !== null ? (float) $data['precioInfantil'] : null
+            );
+        }
+        if (array_key_exists('unidadesMaximas', $data)) {
+            $actividad->setUnidadesMaximas(
+                $data['unidadesMaximas'] !== null ? (int) $data['unidadesMaximas'] : null
+            );
+        }
+        if (array_key_exists('ordenVisualizacion', $data)) {
+            $actividad->setOrdenVisualizacion((int) $data['ordenVisualizacion']);
+        }
+        if (array_key_exists('activo', $data)) {
+            $actividad->setActivo((bool) $data['activo']);
+        }
+        if (array_key_exists('confirmacionAutomatica', $data)) {
+            $actividad->setConfirmacionAutomatica((bool) $data['confirmacionAutomatica']);
+        }
+        if (array_key_exists('observacionesInternas', $data)) {
+            $actividad->setObservacionesInternas($data['observacionesInternas']);
+        }
     }
 }
-

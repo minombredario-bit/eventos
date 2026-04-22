@@ -117,7 +117,6 @@ class InscripcionServicePayloadAliasTest extends TestCase
     private function buildService(ActividadEventoRepository $actividadRepo): InscripcionService
     {
         $evento = $this->createMock(Evento::class);
-        $evento->method('isPublicado')->willReturn(true);
         $evento->method('estaInscripcionAbierta')->willReturn(true);
         $evento->method('getId')->willReturn('evento-1');
 

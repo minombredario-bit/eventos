@@ -60,10 +60,15 @@ services:
         arguments:
             $appUri: '%app.uri%'
             $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'
+
     App\State\AdminUpdateUsuarioProcessor:
         arguments:
             $appUri: '%app.uri%'
             $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'
+
+    App\State\EventoWriteProcessor:
+        bind:
+            $persistProcessor: '@api_platform.doctrine.orm.state.persist_processor'
 
     App\Security\Voter\InscripcionVoter:
         arguments:
@@ -79,6 +84,17 @@ services:
         tags:
             - { name: kernel.event_listener, event: lexik_jwt_authentication.on_authentication_success, method: onAuthenticationSuccess }
 
+    App\EventListener\ActividadEventoPreRemoveListener:
+        tags:
+            - { name: doctrine.event_listener, event: preRemove, method: preRemove }
+    App\EventListener\EventoPreRemoveListener:
+        tags:
+            - { name: doctrine.event_listener, event: preRemove, method: preRemove }
+
+    App\ApiPlatform\DataPersister\ActividadEventoDataPersister:
+        arguments:
+            $inscripcionLineaRepository: '@App\Repository\InscripcionLineaRepository'
+
     App\ApiPlatform\Doctrine\Extension\InscripcionOwnerExtension:
         tags:
             - { name: api_platform.doctrine.orm.query_extension.collection }
@@ -86,3 +102,11 @@ services:
         tags:
             - { name: api_platform.doctrine.orm.query_extension.collection, priority: 0 }
             - { name: api_platform.doctrine.orm.query_extension.item, priority: 0 }
+
+    # Decorate API Platform serializer context builder to add admin/form groups for Evento
+    App\ApiPlatform\Serializer\CustomSerializerContextBuilder:
+        decorates: 'api_platform.serializer.context_builder'
+        arguments:
+            $decorated: '@App\ApiPlatform\Serializer\CustomSerializerContextBuilder.inner'
+        tags: []
+

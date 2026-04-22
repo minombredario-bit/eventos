@@ -17,6 +17,7 @@ import { ActivityChangePayload } from '../../../eventos/domain/actividades.model
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MemberRow {
+  // member shape is FamilyMember in most callers; use runtime checks for other shapes when needed
   readonly member = input.required<FamilyMember>();
   readonly actionLabel = input('');
   readonly secondaryActionLabel = input('');
@@ -45,9 +46,11 @@ export class MemberRow {
   protected onActividadChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
 
+    const origin = (this.member() as any).origin ?? (this.member() as any).origen ?? 'familiar';
+
     const payload: ActivityChangePayload = {
       memberId: this.member().id,
-      memberOrigin: this.member().origin,
+      memberOrigin: origin as any,
       actividadId: target.value || null,
       slot: this.slot(),
     };
@@ -78,5 +81,18 @@ export class MemberRow {
     };
 
     return labels[status] ?? 'Pendiente';
+  }
+
+  /**
+   * Return a human label to show in the role/tag area.
+   * Prefer `role` when present, otherwise fallback to `parentesco` (guests/familiares).
+   */
+  protected relationLabel(): string | null {
+    const m = this.member() as any;
+    const role = m?.role && String(m.role).trim() ? String(m.role).trim() : null;
+    if (role) return role;
+    if (m?.parentesco) return String(m.parentesco);
+    if (m?.parentescoLabel) return String(m.parentescoLabel);
+    return null;
   }
 }

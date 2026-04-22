@@ -103,12 +103,12 @@ export const routes: Routes = [
       {
         path: 'eventos/crear',
         loadComponent: () =>
-          import('./features/admin/ui/evento-form/index').then((m) => m.AdminEventoForm),
+          import('./features/admin/ui/evento-form/evento-form').then((m) => m.AdminEventoForm),
       },
       {
         path: 'eventos/:id',
         loadComponent: () =>
-          import('./features/admin/ui/evento-form/index').then((m) => m.AdminEventoForm),
+          import('./features/admin/ui/evento-form/evento-form').then((m) => m.AdminEventoForm),
       },
       {
         path: 'censo-usuarios',

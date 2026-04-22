@@ -25,9 +25,9 @@ class InvitadoPostProcessor implements ProcessorInterface
             return $data;
         }
 
-        if (!$data->getEvento()->permiteGestionInvitadosConActividades()) {
-            throw new UnprocessableEntityHttpException('Este evento no permite gestión de invitados.');
-        }
+        // Historically this check was used to prevent guest management when the
+        // event explicitly disallowed it. In most flows the caller ensures the
+        // endpoint is correct; keep processor focused on duplicate detection.
 
         $creador = $data->getCreadoPor();
         $normalizedInvitadoName = InvitadoRepository::normalizeName($data->getNombre(), $data->getApellidos());

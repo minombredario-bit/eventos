@@ -13,7 +13,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import {
-  AbstractControl,
   FormArray,
   FormBuilder,
   FormControl,
@@ -27,6 +26,7 @@ import {finalize, map} from 'rxjs';
 
 import {AuthService} from '../../../../core/auth/auth';
 import {MobileHeader} from '../../../shared/components/mobile-header/mobile-header';
+import { ConfirmModal } from '../../../shared/components/confirm-modal/confirm-modal';
 import {EventosApi} from '../../../eventos/data/eventos.api';
 import {
   ActividadEvento,
@@ -49,7 +49,10 @@ type EventoActividadFormGroup = UntypedFormGroup & {
     franjaComida: FormControl<MealSlot>;
     compatibilidadPersona: FormControl<ActivityCompatibility>;
     esDePago: FormControl<boolean>;
-    precioBase: FormControl<number>;
+    precioBase: FormControl<string>;
+    precioInfantil: FormControl<string>;
+    precioAdultoInterno: FormControl<string>;
+    precioAdultoExterno: FormControl<string>;
     ordenVisualizacion: FormControl<number>;
     activo: FormControl<boolean>;
   };
@@ -66,6 +69,7 @@ type EventoFormGroup = UntypedFormGroup & {
     aforo: FormControl<number | null>;
     fechaInicioInscripcion: FormControl<string>;
     fechaFinInscripcion: FormControl<string>;
+    tipoEvento: FormControl<string>;
     visible: FormControl<boolean>;
     admitePago: FormControl<boolean>;
     permiteInvitados: FormControl<boolean>;
@@ -77,7 +81,7 @@ type EventoFormGroup = UntypedFormGroup & {
 @Component({
   selector: 'app-admin-evento-form',
   standalone: true,
-  imports: [CommonModule, MobileHeader, ReactiveFormsModule],
+  imports: [CommonModule, MobileHeader, ReactiveFormsModule, ConfirmModal],
   templateUrl: './evento-form.html',
   styleUrl: './evento-form.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -146,6 +150,39 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
 
   protected readonly collapsedActividades = signal<Set<number>>(new Set());
 
+  /** Señal que indica si el usuario actual puede borrar actividades/eventos */
+  protected readonly canDeleteActividades = computed(() => {
+    const roles = this.authService.userSignal()?.roles ?? [];
+    return Array.isArray(roles) && (roles.includes('ROLE_ADMIN_ENTIDAD') || roles.includes('ROLE_SUPERADMIN'));
+  });
+
+  /** Estado para el modal de confirmación de borrado */
+  protected readonly confirmData = signal<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    action?: () => void;
+  } | null>(null);
+
+  protected onConfirmModal(confirmed: boolean): void {
+    const data = this.confirmData();
+    this.confirmData.set(null);
+    if (!confirmed || !data?.action) {
+      // usuario canceló
+      this.saving.set(false);
+      return;
+    }
+
+    // Ejecutar la acción asociada (por ejemplo la llamada DELETE)
+    try {
+      data.action();
+    } catch (e) {
+      // action is expected to handle async errors itself
+      this.saving.set(false);
+    }
+  }
+
   protected toggleActividad(index: number): void {
     this.collapsedActividades.update(set => {
       const next = new Set(set);
@@ -162,6 +199,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     titulo: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(3)]),
     descripcion: this.fb.nonNullable.control(''),
     fechaEvento: this.fb.nonNullable.control('', [Validators.required]),
+    tipoEvento: this.fb.nonNullable.control('comida', [Validators.required]),
     horaInicio: this.fb.nonNullable.control(''),
     horaFin: this.fb.nonNullable.control(''),
     lugar: this.fb.nonNullable.control(''),
@@ -277,7 +315,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       fechaInicioInscripcion: this.normalizeOptionalString(value.fechaInicioInscripcion),
       fechaFinInscripcion: this.normalizeOptionalString(value.fechaFinInscripcion),
       visible: value.visible,
-      publicado: value.publicado,
       admitePago: value.admitePago,
       permiteInvitados: value.permiteInvitados,
       estado: value.estado,
@@ -299,6 +336,8 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       )
       .subscribe({
         next: (evento) => {
+          this.evento.set(evento);
+          this.patchForm(evento);
           this.successMessage.set(
             this.isEditMode()
               ? 'Evento actualizado correctamente.'
@@ -328,6 +367,63 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       return;
     }
 
+    const control = this.actividades.at(index);
+    const actividadId = this.getActividadId(control);
+
+    // Si la actividad ya existe en el servidor (tiene id), pedimos confirmación
+    // y delegamos la validación al backend (no hacemos la comprobación previa
+    // con /seleccion_participantes porque el servidor se encargará de impedir
+    // la eliminación si hay personas apuntadas).
+    if (actividadId && this.eventoId()) {
+      if (!this.canDeleteActividades()) {
+        this.errorMessage.set('No tienes permiso para eliminar actividades.');
+        this.saving.set(false);
+        return;
+      }
+
+      this.errorMessage.set(null);
+      // Indicador de operación (reutilizamos saving para señalizar operación en curso)
+      this.saving.set(true);
+
+      // Abrir modal de confirmación y, si confirma, intentar borrar en el servidor.
+      this.confirmData.set({
+        title: 'Eliminar actividad',
+        message: '¿Seguro que quieres eliminar esta actividad? Esta acción no se puede deshacer.',
+        confirmLabel: 'Eliminar',
+        cancelLabel: 'Cancelar',
+        action: () => {
+          this.eventosApi
+            .deleteActividad(actividadId)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (status) => {
+                // Consider successful deletion when backend returns 204 No Content
+                if (status === 204 || status === 200) {
+                  // Eliminamos del formulario y sincronizamos ordenes
+                  this.actividades.removeAt(index);
+                  this.syncActividadOrdenes();
+                  queueMicrotask(() => this.updateSubmitBarMode());
+                  this.collapsedActividades.set(new Set());
+                  this.successMessage.set('Actividad eliminada correctamente.');
+                } else {
+                  // Unexpected status - show a generic success but keep behavior
+                  this.successMessage.set('Actividad eliminada.');
+                }
+                this.saving.set(false);
+              },
+              error: (err) => {
+                // El backend devuelve un error si no es posible borrar (p.ej. hay inscripciones).
+                this.errorMessage.set(err?.error?.message ?? 'No se pudo eliminar la actividad en el servidor.');
+                this.saving.set(false);
+              },
+            });
+        }
+      });
+
+      return;
+    }
+
+    // Actividad local (nueva) — eliminamos sin llamadas al backend
     this.actividades.removeAt(index);
     this.syncActividadOrdenes();
     queueMicrotask(() => this.updateSubmitBarMode());
@@ -398,7 +494,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
 
     if (!anchorEl || !endEl) return;
 
-    const ACTIVATION_THRESHOLD = 48;
+    const ACTIVATION_THRESHOLD = 0;
     const bottomOffset = this.getBottomOffset();
     const anchorRect = anchorEl.getBoundingClientRect();
     const endRect = endEl.getBoundingClientRect();
@@ -426,6 +522,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       titulo: '',
       descripcion: '',
       fechaEvento: '',
+      tipoEvento: 'comida',
       horaInicio: '',
       horaFin: '',
       lugar: '',
@@ -446,6 +543,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       titulo: evento.titulo ?? '',
       descripcion: evento.descripcion ?? '',
       fechaEvento: this.toDateInputValue(evento.fechaEvento),
+      tipoEvento: String(evento.tipoEvento ?? 'comida').trim().toLowerCase(),
       horaInicio: this.toTimeInputValue(evento.horaInicio),
       horaFin: this.toTimeInputValue(evento.horaFin),
       lugar: evento.lugar ?? '',
@@ -503,7 +601,10 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
         [Validators.required]
       ),
       esDePago: this.fb.nonNullable.control(value.esDePago ?? true),
-      precioBase: this.fb.nonNullable.control(value.precioBase ?? 0, [Validators.min(0)]),
+      precioBase: this.fb.nonNullable.control(value.precioBase ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
+      precioInfantil: this.fb.nonNullable.control(value.precioInfantil ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
+      precioAdultoInterno: this.fb.nonNullable.control(value.precioAdultoInterno ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
+      precioAdultoExterno: this.fb.nonNullable.control(value.precioAdultoExterno ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
       ordenVisualizacion: this.fb.nonNullable.control(
         value.ordenVisualizacion ?? ordenVisualizacion
       ),
@@ -521,27 +622,41 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       franjaComida: this.normalizeFranja(actividad.franjaComida),
       compatibilidadPersona: this.normalizeCompatibilidad(actividad.compatibilidadPersona),
       esDePago: Boolean(actividad.esDePago),
-      precioBase: this.toNumber(actividad.precioBase),
+      precioBase: String(this.toNumber(actividad.precioBase)),
+      precioInfantil: this.toNumber(actividad.precioInfantil),
+      precioAdultoInterno: this.toNumber(actividad.precioAdultoInterno),
+      precioAdultoExterno: this.toNumber(actividad.precioAdultoExterno),
       ordenVisualizacion: this.toNumber(actividad.ordenVisualizacion),
       activo: actividad.activo !== false,
     };
   }
 
   private buildActividadesPayload(): EventoWritePayload['actividades'] {
-    return this.actividades.controls.map((control, index) => ({
-      ...(this.getActividadId(control) ? {id: this.getActividadId(control)!} : {}),
-      nombre: this.getActividadNombre(control),
-      descripcion: this.normalizeOptionalString(this.getActividadDescripcion(control)),
-      tipoActividad: this.getActividadTipo(control),
-      franjaComida: this.normalizeFranja(this.getActividadFranja(control)),
-      compatibilidadPersona: this.normalizeCompatibilidad(
-        this.getActividadCompatibilidad(control)
-      ),
-      esDePago: this.getActividadEsDePago(control),
-      precioBase: this.getActividadPrecio(control),
-      ordenVisualizacion: index,
-      activo: this.getActividadActivo(control),
-    })) as EventoWritePayload['actividades'];
+    return this.actividades.controls.map((control, index) => {
+      const actividadId = this.getActividadId(control);
+      return {
+        // Si tiene id (viene del backend), enviar el IRI para que API Platform
+        // identifique la entidad existente y la actualice en vez de crear una nueva.
+        // Si no tiene id (actividad nueva), se omite y el backend la crea.
+        ...(actividadId
+          ? { 'id': `/api/actividad_eventos/${actividadId}` }
+          : {}),
+        nombre: this.getActividadNombre(control),
+        descripcion: this.normalizeOptionalString(this.getActividadDescripcion(control)),
+        tipoActividad: this.getActividadTipo(control),
+        franjaComida: this.normalizeFranja(this.getActividadFranja(control)),
+        compatibilidadPersona: this.normalizeCompatibilidad(
+          this.getActividadCompatibilidad(control)
+        ),
+        esDePago: this.getActividadEsDePago(control),
+        precioBase: String(control.controls.precioBase.value),
+        precioInfantil: String(control.controls.precioInfantil.value),
+        precioAdultoInterno: String(control.controls.precioAdultoInterno.value),
+        precioAdultoExterno: String(control.controls.precioAdultoExterno.value),
+        ordenVisualizacion: index,
+        activo: this.getActividadActivo(control),
+      };
+    }) as EventoWritePayload['actividades'];
   }
 
   private syncActividadOrdenes(): void {
@@ -561,7 +676,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     const normalized = (value ?? '').trim().toLowerCase();
 
     if (normalized === 'adulto' || normalized === 'infantil' || normalized === 'ambos') {
-      return normalized;
+      return normalized as ActivityCompatibility;
     }
 
     return 'ambos';
@@ -585,7 +700,13 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       return '';
     }
 
-    return value.slice(0, 5);
+    // API may return a full datetime with timezone (e.g. "1970-01-01T16:15:00+01:00").
+    // Extract the time part after the 'T' and return HH:MM which is suitable for
+    // <input type="time"> or the form controls. If the value is already a time
+    // string ("16:15" or "16:15:00") return the first 5 chars.
+    const afterT = value.includes('T') ? value.split('T')[1] : value;
+    // afterT might contain seconds and timezone (+01:00), take first 5 chars (HH:MM)
+    return afterT.slice(0, 5);
   }
 
   private toDatetimeInputValue(value: string | null | undefined): string {
@@ -613,9 +734,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     return `actividad-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  private getActividadControlValue(control: AbstractControl): Record<string, unknown> {
-    return (control.value ?? {}) as Record<string, unknown>;
-  }
 
   private getActividadUiId(control: EventoActividadFormGroup): string {
     return control.controls.uiId.value ?? '';
@@ -650,9 +768,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     return Boolean(control.controls.esDePago.value);
   }
 
-  private getActividadPrecio(control: EventoActividadFormGroup): number {
-    return this.toNumber(control.controls.precioBase.value);
-  }
 
   private getActividadActivo(control: EventoActividadFormGroup): boolean {
     return Boolean(control.controls.activo.value);
@@ -682,3 +797,5 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     return typeof value === 'boolean' ? value : true;
   }
 }
+
+// ...existing code...

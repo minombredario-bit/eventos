@@ -195,7 +195,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $evento1->setFechaInicioInscripcion($fechaEventoCena->modify('-12 days')->setTime(10, 0));
         $evento1->setFechaFinInscripcion($fechaEventoCena->modify('-1 day')->setTime(23, 0));
         $evento1->setVisible(true);
-        $evento1->setPublicado(true);
         $evento1->setAdmitePago(true);
         $evento1->setPermiteInvitados(true);
         $evento1->setEstado(EstadoEventoEnum::PUBLICADO);
@@ -218,7 +217,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $evento2->setFechaInicioInscripcion($fechaEventoComida->modify('-14 days')->setTime(9, 0));
         $evento2->setFechaFinInscripcion($fechaEventoComida->modify('-1 day')->setTime(23, 0));
         $evento2->setVisible(true);
-        $evento2->setPublicado(true);
         $evento2->setAdmitePago(true);
         $evento2->setPermiteInvitados(true);
         $evento2->setEstado(EstadoEventoEnum::PUBLICADO);
@@ -241,7 +239,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $evento3->setFechaInicioInscripcion($fechaEventoMerienda->modify('-10 days')->setTime(9, 0));
         $evento3->setFechaFinInscripcion($fechaEventoMerienda->modify('-1 day')->setTime(22, 0));
         $evento3->setVisible(true);
-        $evento3->setPublicado(true);
         $evento3->setAdmitePago(true);
         $evento3->setPermiteInvitados(false);
         $evento3->setEstado(EstadoEventoEnum::PUBLICADO);
@@ -264,7 +261,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $evento4->setFechaInicioInscripcion($fechaEventoBorrador->modify('-20 days')->setTime(9, 0));
         $evento4->setFechaFinInscripcion($fechaEventoBorrador->modify('-2 days')->setTime(23, 0));
         $evento4->setVisible(false);
-        $evento4->setPublicado(false);
         $evento4->setAdmitePago(true);
         $evento4->setPermiteInvitados(false);
         $evento4->setEstado(EstadoEventoEnum::BORRADOR);
@@ -287,7 +283,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $eventoDemoFranjas->setFechaInicioInscripcion($fechaEventoDemo->modify('-15 days')->setTime(8, 0));
         $eventoDemoFranjas->setFechaFinInscripcion($fechaEventoDemo->modify('-1 day')->setTime(23, 30));
         $eventoDemoFranjas->setVisible(true);
-        $eventoDemoFranjas->setPublicado(true);
         $eventoDemoFranjas->setAdmitePago(true);
         $eventoDemoFranjas->setPermiteInvitados(true);
         $eventoDemoFranjas->setEstado(EstadoEventoEnum::PUBLICADO);
@@ -310,7 +305,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $eventoSinComida->setFechaInicioInscripcion($fechaEventoSinComida->modify('-7 days')->setTime(9, 0));
         $eventoSinComida->setFechaFinInscripcion($fechaEventoSinComida->modify('-1 day')->setTime(23, 0));
         $eventoSinComida->setVisible(true);
-        $eventoSinComida->setPublicado(true);
         $eventoSinComida->setAdmitePago(false);
         $eventoSinComida->setPermiteInvitados(false);
         $eventoSinComida->setEstado(EstadoEventoEnum::PUBLICADO);

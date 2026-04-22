@@ -166,6 +166,20 @@ export class EventosApi {
       .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
   }
 
+  /**
+   * Borra una actividad por id en el servidor.
+   * Devuelve void en caso de éxito.
+   */
+  deleteActividad(actividadId: string): Observable<number> {
+    // Observe the full response to allow callers to act based on the status code
+    return this.http
+      .delete<void>(
+        `${this.apiBaseUrl}/api/actividad_eventos/${encodeURIComponent(actividadId)}`,
+        { observe: 'response' as const }
+      )
+      .pipe(map((resp) => resp.status));
+  }
+
   // ── Inscripciones ─────────────────────────────────────────────────────
 
   crearInscripcion(

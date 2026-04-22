@@ -8,6 +8,7 @@ use App\Entity\Evento;
 use App\Entity\Invitado;
 use App\Entity\ActividadEvento;
 use App\Entity\Usuario;
+use App\Enum\EstadoEventoEnum;
 use App\Repository\InscripcionRepository;
 use App\Repository\EventoRepository;
 use App\Repository\InvitadoRepository;
@@ -64,7 +65,7 @@ class InscripcionService
             throw new BadRequestHttpException('Evento no encontrado');
         }
 
-        if (!$evento->isPublicado()) {
+        if ($evento->getEstado() !== EstadoEventoEnum::PUBLICADO) {
             throw new BadRequestHttpException('El evento no está publicado');
         }
 
@@ -103,13 +104,8 @@ class InscripcionService
                 ?? $lineaData['persona']
                 ?? null;
             $participanteId = $this->extractResourceId($usuarioReference);
-            $actividadId = $this->extractResourceId(
-                $lineaData['actividad_id']
-                ?? $lineaData['actividad']
-                ?? $lineaData['actividad_id']
-                ?? $lineaData['actividad']
-                ?? null,
-            );
+            // Only accept canonical 'actividad' key from now on.
+            $actividadId = $this->extractResourceId($lineaData['actividad'] ?? null);
             $observaciones = $lineaData['observaciones'] ?? null;
 
             if (!$participanteId || !$actividadId) {

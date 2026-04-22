@@ -223,15 +223,17 @@
                       <span aria-hidden="true">↓</span>
                     </button>
 
-                    <button
-                      type="button"
-                      class="icon-button icon-button--danger cta-icon-btn"
-                      (click)="$event.stopPropagation(); removeActividad(i)"
-                      aria-label="Eliminar actividad"
-                    >
-                      <span class="button-icon" aria-hidden="true">✕</span>
-                      <span class="button-text">Eliminar</span>
-                    </button>
+                    @if (canDeleteActividades()) {
+                      <button
+                        type="button"
+                        class="icon-button icon-button--danger cta-icon-btn"
+                        (click)="$event.stopPropagation(); removeActividad(i)"
+                        aria-label="Eliminar actividad"
+                      >
+                        <span class="button-icon" aria-hidden="true">✕</span>
+                        <span class="button-text">Eliminar</span>
+                      </button>
+                    }
 
                     <!-- Indicador de estado -->
                     <span class="collapse-indicator" aria-hidden="true">
@@ -315,6 +317,43 @@
                       <label [attr.for]="'actividad-precio-' + i">Precio base</label>
                     </div>
 
+                    <!-- Agregar campos de precio al formulario de actividades -->
+                    <div class="field">
+                      <input
+                        id="actividad-precio-infantil-{{ i }}"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        formControlName="precioInfantil"
+                        placeholder=" "
+                      />
+                      <label [attr.for]="'actividad-precio-infantil-' + i">Precio infantil</label>
+                    </div>
+
+                    <div class="field">
+                      <input
+                        id="actividad-precio-adulto-interno-{{ i }}"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        formControlName="precioAdultoInterno"
+                        placeholder=" "
+                      />
+                      <label [attr.for]="'actividad-precio-adulto-interno-' + i">Precio adulto interno</label>
+                    </div>
+
+                    <div class="field" *ngIf="form.controls.permiteInvitados.value">
+                      <input
+                        id="actividad-precio-adulto-externo-{{ i }}"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        formControlName="precioAdultoExterno"
+                        placeholder=" "
+                      />
+                      <label [attr.for]="'actividad-precio-adulto-externo-' + i">Precio adulto externo</label>
+                    </div>
+
                     <label class="checkbox-row">
                       <input type="checkbox" formControlName="esDePago" />
                       <span>Es de pago</span>
@@ -332,6 +371,15 @@
         </section>
         <div #formEnd></div>
       </form>
+      @if (confirmData(); as cd) {
+        <app-confirm-modal
+          [title]="cd.title"
+          [message]="cd.message"
+          [confirmLabel]="cd.confirmLabel ?? 'Eliminar'"
+          [cancelLabel]="cd.cancelLabel ?? 'Cancelar'"
+          (confirmed)="onConfirmModal($event)"
+        />
+      }
     }
   </div>
 </section>

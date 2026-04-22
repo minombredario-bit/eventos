@@ -102,6 +102,9 @@ export interface ActividadEvento {
   compatibilidadPersona: ActivityCompatibility;
   esDePago: boolean;
   precioBase: number;
+  precioInfantil?: number;
+  precioAdultoInterno?: number;
+  precioAdultoExterno?: number;
   ordenVisualizacion?: number;
   activo?: boolean;
 }
@@ -120,7 +123,7 @@ export interface EventoDetalle {
   actividades?: ActividadEvento[];
   fechaLimiteInscripcion?: string | null;
   fechaInicioInscripcion?: string | null;
-
+  tipoEvento: string;
   aforo?: number | null;
   visible?: boolean;
   admitePago?: boolean;
@@ -148,7 +151,6 @@ export interface EventoFormValue {
   fechaInicioInscripcion?: string | null;
   fechaFinInscripcion?: string | null;
   visible: boolean;
-  publicado: boolean;
   admitePago: boolean;
   permiteInvitados: boolean;
   estado: EventoEstado | string;
@@ -165,7 +167,10 @@ export interface EventoActividadFormValue {
   franjaComida: MealSlot;
   compatibilidadPersona: ActivityCompatibility;
   esDePago: boolean;
-  precioBase: number;
+  precioBase: string;
+  precioInfantil: number;
+  precioAdultoInterno: number;
+  precioAdultoExterno: number;
   ordenVisualizacion: number;
   activo: boolean;
 }

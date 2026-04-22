@@ -4,12 +4,13 @@ namespace App\Security\Voter;
 
 use App\Entity\Evento;
 use App\Entity\Usuario;
+use App\Enum\EstadoEventoEnum;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
  * Voter para controlar acceso a Eventos.
- * 
+ *
  * Atributos:
  * - VIEW: Ver evento (publicados para todos, no publicados para admins)
  * - EDIT: Editar evento
@@ -41,7 +42,7 @@ class EventoVoter extends Voter
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
     {
         $user = $token->getUser();
-        
+
         if (!$user instanceof Usuario) {
             return false;
         }
@@ -66,7 +67,7 @@ class EventoVoter extends Voter
     private function canView(Evento $evento, Usuario $user): bool
     {
         // Eventos publicados visibles para cualquier usuario autenticado
-        if ($evento->isPublicado()) {
+        if ($evento->getEstado() === EstadoEventoEnum::PUBLICADO) {
             return true;
         }
 

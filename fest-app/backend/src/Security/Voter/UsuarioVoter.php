@@ -20,19 +20,12 @@ class UsuarioVoter extends Voter
     public const EDIT = 'USUARIO_EDIT';
     public const DELETE = 'USUARIO_DELETE';
 
-    private const LEGACY_VIEW = 'VIEW';
-    private const LEGACY_EDIT = 'EDIT';
-    private const LEGACY_DELETE = 'DELETE';
-
     protected function supports(string $attribute, mixed $subject): bool
     {
         return in_array($attribute, [
             self::VIEW,
             self::EDIT,
             self::DELETE,
-            self::LEGACY_VIEW,
-            self::LEGACY_EDIT,
-            self::LEGACY_DELETE,
         ], true)
             && $subject instanceof Usuario;
     }
@@ -49,9 +42,9 @@ class UsuarioVoter extends Voter
         $targetUser = $subject;
 
         return match ($attribute) {
-            self::VIEW, self::LEGACY_VIEW => $this->canView($targetUser, $user),
-            self::EDIT, self::LEGACY_EDIT => $this->canEdit($targetUser, $user),
-            self::DELETE, self::LEGACY_DELETE => $this->canDelete($targetUser, $user),
+            self::VIEW => $this->canView($targetUser, $user),
+            self::EDIT => $this->canEdit($targetUser, $user),
+            self::DELETE => $this->canDelete($targetUser, $user),
             default => false,
         };
     }

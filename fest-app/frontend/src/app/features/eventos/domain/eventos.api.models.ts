@@ -124,6 +124,8 @@ export interface EventoListAdminResponse extends ApiCollection<EventoAdminListad
 }
 
 export interface EventoWritePayload {
+  '@id'?: string;  // IRI para actividades existentes
+  id?: string;
   titulo: string;
   descripcion: string;
   fechaEvento: string;
@@ -135,7 +137,6 @@ export interface EventoWritePayload {
   fechaInicioInscripcion?: string | undefined;
   fechaFinInscripcion?: string | undefined;
   visible: boolean;
-  publicado: boolean;
   admitePago: boolean;
   permiteInvitados: boolean;
   estado: string;
@@ -151,7 +152,7 @@ export interface EventoActividadWritePayload {
   franjaComida: MealSlot;
   compatibilidadPersona: ActivityCompatibility;
   esDePago: boolean;
-  precioBase: number;
+  precioBase: string;
   ordenVisualizacion: number;
   activo: boolean;
 }

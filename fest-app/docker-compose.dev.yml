@@ -15,7 +15,7 @@ services:
             - app_data:/var/www/html
         environment:
             APP_ENV: dev
-            APP_DEBUG: "0"
+            APP_DEBUG: "1"
             DATABASE_URL: "mysql://festapp_user:festapp_pass@db:3306/festapp_db?serverVersion=8.0&charset=utf8mb4"
             XDEBUG_MODE: debug,develop
             XDEBUG_CONFIG: "client_host=host.docker.internal client_port=9003 idekey=PHPSTORM"

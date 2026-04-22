@@ -8,7 +8,13 @@ use App\Enum\TipoActividadEnum;
 use App\Enum\TipoPersonaEnum;
 use App\Enum\TipoRelacionEconomicaEnum;
 use App\Service\PriceCalculatorService;
+use App\Entity\Usuario;
 use PHPUnit\Framework\TestCase;
+
+// Minimal placeholder used by the tests for mocking purposes. The real application
+// represents personas with several domain classes; tests mock this type.
+// Tests expect a lightweight user-like object; use the real Usuario class for
+// compatibility with PriceCalculatorService which accepts Usuario instances.
 
 class PriceCalculatorServiceTest extends TestCase
 {
@@ -48,13 +54,14 @@ class PriceCalculatorServiceTest extends TestCase
         TipoPersonaEnum $tipo = TipoPersonaEnum::ADULTO,
         TipoRelacionEconomicaEnum $relacion = TipoRelacionEconomicaEnum::INTERNO,
         EstadoValidacionEnum $validacion = EstadoValidacionEnum::VALIDADO
-    ): PersonaFamiliar {
-        $persona = $this->createMock(PersonaFamiliar::class);
-        $persona->method('getTipoPersona')->willReturn($tipo);
-        $persona->method('getTipoRelacionEconomica')->willReturn($relacion);
-        $persona->method('getEstadoValidacion')->willReturn($validacion);
-        $persona->method('getNombreCompleto')->willReturn('Juan García');
-        return $persona;
+    ): Usuario {
+        $usuario = $this->createMock(Usuario::class);
+        // PriceCalculatorService expects methods getEstadoValidacion() and
+        // getTipoUsuarioEconomico() on Usuario
+        $usuario->method('getEstadoValidacion')->willReturn($validacion);
+        $usuario->method('getTipoUsuarioEconomico')->willReturn($relacion);
+        $usuario->method('getNombreCompleto')->willReturn('Juan García');
+        return $usuario;
     }
 
     // ==========================================

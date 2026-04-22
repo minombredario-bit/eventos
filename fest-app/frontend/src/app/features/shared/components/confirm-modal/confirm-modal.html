@@ -1,0 +1,13 @@
+<div class="confirm-overlay" role="dialog" aria-modal="true">
+  <div class="confirm-panel">
+    <h3 class="confirm-title">{{ title() }}</h3>
+    <div class="confirm-body">
+      <p>{{ message() }}</p>
+    </div>
+    <div class="confirm-actions">
+      <button type="button" class="btn btn--cancel" (click)="onCancel()">{{ cancelLabel() }}</button>
+      <button type="button" class="btn btn--confirm" (click)="onConfirm()">{{ confirmLabel() }}</button>
+    </div>
+  </div>
+</div>
+

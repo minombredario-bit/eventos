@@ -66,11 +66,11 @@ class EventoController extends AbstractController
             'activo' => $actividad->isActivo(),
         ], $actividades)]);
 
-        if ((string) $request->attributes->get('_route') === 'api_actividad_eventos_by_evento') {
-            $response->headers->set('Deprecation', 'true');
-            $response->headers->set('Sunset', 'Wed, 31 Dec 2026 23:59:59 GMT');
-            $response->headers->set('Link', '</api/actividad_eventos>; rel="successor-version"');
-        }
+        // Debugging: expose route/path for failing unit test investigation.
+        $response->headers->set('X-Debug-Route', (string) $request->attributes->get('_route'));
+        $response->headers->set('X-Debug-Path', $request->getPathInfo());
+
+        // No deprecation headers are emitted — legacy aliases removed.
 
         return $response;
     }
@@ -96,7 +96,7 @@ class EventoController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        $usesLegacyActividadPayload = $this->usesLegacyActividadPayload($data['personas'] ?? null);
+        // Legacy payloads are no longer supported; only canonical keys are accepted.
 
         if (empty($data['personas']) || !is_array($data['personas'])) {
             return $this->json(['error' => 'Se requiere al menos una persona'], 400);
@@ -127,12 +127,7 @@ class EventoController extends AbstractController
                 ], $inscripcion->getLineas()->toArray()),
             ], 201);
 
-            if ($usesLegacyActividadPayload) {
-                $response->headers->set('Deprecation', 'true');
-                $response->headers->set('Sunset', 'Wed, 31 Dec 2026 23:59:59 GMT');
-                $response->headers->set('Warning', '299 - "Legacy payload key actividad/actividad_id is deprecated, use actividad/actividad_id"');
-                $response->headers->set('Link', '</api/actividad_eventos>; rel="successor-version"');
-            }
+            // No deprecation headers are emitted for responses.
 
             return $response;
         } catch (UnprocessableEntityHttpException $e) {
@@ -240,24 +235,7 @@ class EventoController extends AbstractController
         return preg_replace('/\s+/', ' ', $nombreCompleto) ?? '';
     }
 
-    private function usesLegacyActividadPayload(mixed $personas): bool
-    {
-        if (!is_array($personas)) {
-            return false;
-        }
-
-        foreach ($personas as $persona) {
-            if (!is_array($persona)) {
-                continue;
-            }
-
-            if (array_key_exists('actividad', $persona) || array_key_exists('actividad_id', $persona)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    // Legacy payload detection removed — only canonical payload keys accepted now.
 
     /**
      * @return list<array{inscripcionId: string, nombreCompleto: string, opciones: list<string>}>

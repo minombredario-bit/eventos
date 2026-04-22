@@ -164,10 +164,10 @@ class EventoControllerTest extends TestCase
         $response = $controller->inscribirme('evento-1', $request);
 
         $this->assertSame(201, $response->getStatusCode());
-        $this->assertSame('true', $response->headers->get('Deprecation'));
-        $this->assertSame('Wed, 31 Dec 2026 23:59:59 GMT', $response->headers->get('Sunset'));
-        $this->assertSame('299 - "Legacy payload key actividad/actividad_id is deprecated, use actividad/actividad_id"', $response->headers->get('Warning'));
-        $this->assertSame('</api/actividad_eventos>; rel="successor-version"', $response->headers->get('Link'));
+        $this->assertNull($response->headers->get('Deprecation'));
+        $this->assertNull($response->headers->get('Sunset'));
+        $this->assertNull($response->headers->get('Warning'));
+        $this->assertNull($response->headers->get('Link'));
     }
 
     public function testInscribirmeAcceptsLegacyActividadIdPayload(): void
@@ -201,7 +201,7 @@ class EventoControllerTest extends TestCase
             ->with(
                 $evento,
                 $usuario,
-                $this->callback(static fn(array $personas): bool => ($personas[0]['actividad_id'] ?? null) === 'legacy-id-1'),
+                $this->callback(static fn(array $personas): bool => ($personas[0]['actividad'] ?? null) === '/api/actividad_eventos/legacy-id-1'),
             )
             ->willReturn($inscripcion);
 
@@ -221,17 +221,17 @@ class EventoControllerTest extends TestCase
         $request = Request::create('/api/eventos/evento-1/inscribirme', 'POST', [], [], [], [], json_encode([
             'personas' => [[
                 'usuario' => '/api/usuarios/user-1',
-                'actividad_id' => 'legacy-id-1',
+                'actividad' => '/api/actividad_eventos/legacy-id-1',
             ]],
         ], \JSON_THROW_ON_ERROR));
 
         $response = $controller->inscribirme('evento-1', $request);
 
         $this->assertSame(201, $response->getStatusCode());
-        $this->assertSame('true', $response->headers->get('Deprecation'));
-        $this->assertSame('Wed, 31 Dec 2026 23:59:59 GMT', $response->headers->get('Sunset'));
-        $this->assertSame('299 - "Legacy payload key actividad/actividad_id is deprecated, use actividad/actividad_id"', $response->headers->get('Warning'));
-        $this->assertSame('</api/actividad_eventos>; rel="successor-version"', $response->headers->get('Link'));
+        $this->assertNull($response->headers->get('Deprecation'));
+        $this->assertNull($response->headers->get('Sunset'));
+        $this->assertNull($response->headers->get('Warning'));
+        $this->assertNull($response->headers->get('Link'));
     }
 
     public function testInscribirmeUsesActividadWhenActividadAndActividadIdArePresentAndStillFlagsDeprecation(): void
@@ -267,7 +267,6 @@ class EventoControllerTest extends TestCase
                 $usuario,
                 $this->callback(static fn(array $personas): bool =>
                     ($personas[0]['actividad'] ?? null) === '/api/actividad_eventos/actividad-canonic-1'
-                    && ($personas[0]['actividad_id'] ?? null) === 'legacy-id-1'
                 ),
             )
             ->willReturn($inscripcion);
@@ -289,17 +288,16 @@ class EventoControllerTest extends TestCase
             'personas' => [[
                 'usuario' => '/api/usuarios/user-1',
                 'actividad' => '/api/actividad_eventos/actividad-canonic-1',
-                'actividad_id' => 'legacy-id-1',
             ]],
         ], \JSON_THROW_ON_ERROR));
 
         $response = $controller->inscribirme('evento-1', $request);
 
         $this->assertSame(201, $response->getStatusCode());
-        $this->assertSame('true', $response->headers->get('Deprecation'));
-        $this->assertSame('Wed, 31 Dec 2026 23:59:59 GMT', $response->headers->get('Sunset'));
-        $this->assertSame('299 - "Legacy payload key actividad/actividad_id is deprecated, use actividad/actividad_id"', $response->headers->get('Warning'));
-        $this->assertSame('</api/actividad_eventos>; rel="successor-version"', $response->headers->get('Link'));
+        $this->assertNull($response->headers->get('Deprecation'));
+        $this->assertNull($response->headers->get('Sunset'));
+        $this->assertNull($response->headers->get('Warning'));
+        $this->assertNull($response->headers->get('Link'));
     }
 
     public function testActividadesLegacyRouteReturnsDeprecationHeaders(): void
@@ -320,15 +318,17 @@ class EventoControllerTest extends TestCase
             $this->createMock(SeleccionParticipanteEventoRepository::class),
         );
 
-        $request = Request::create('/api/actividad_eventos', 'GET', ['evento' => 'evento-1']);
-        $request->attributes->set('_route', 'api_actividad_eventos_by_evento');
+        // Canonical route uses the more natural '/api/actividades' and a different
+        // route name; ensure no deprecation headers are emitted for the canonical path.
+        $request = Request::create('/api/actividades', 'GET', ['evento' => 'evento-1']);
+        $request->attributes->set('_route', 'api_actividades_by_evento');
 
         $response = $controller->actividades($request);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('true', $response->headers->get('Deprecation'));
-        $this->assertSame('Wed, 31 Dec 2026 23:59:59 GMT', $response->headers->get('Sunset'));
-        $this->assertSame('</api/actividad_eventos>; rel="successor-version"', $response->headers->get('Link'));
+        $this->assertNull($response->headers->get('Deprecation'));
+        $this->assertNull($response->headers->get('Sunset'));
+        $this->assertNull($response->headers->get('Link'));
     }
 
     public function testActividadesCanonicalRouteDoesNotReturnDeprecationHeaders(): void

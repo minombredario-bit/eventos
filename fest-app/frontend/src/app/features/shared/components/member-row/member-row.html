@@ -4,8 +4,8 @@
     <div class="identity-copy">
       <div class="title-row">
         <h3>{{ member().name }}</h3>
-        @if (member().role.trim()) {
-          <span class="role">{{ member().role }}</span>
+        @if (relationLabel()) {
+          <span class="role">{{ relationLabel() }}</span>
         }
       </div>
       @if (member().notes) {

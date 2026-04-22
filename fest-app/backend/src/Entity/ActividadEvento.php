@@ -8,6 +8,7 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
@@ -29,6 +30,8 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(security: "is_granted('EVENTO_VIEW', object.getEvento())"),
         new GetCollection(security: "is_granted('ROLE_USER')"),
+
+        # explicit uriTemplates (legacy /actividad_eventos)
         new Get(
             uriTemplate: '/actividad_eventos/{id}',
             security: "is_granted('EVENTO_VIEW', object.getEvento())"
@@ -37,6 +40,17 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/actividad_eventos',
             security: "is_granted('ROLE_USER')"
         ),
+
+        # new, more natural aliases: /actividades
+        new Get(
+            uriTemplate: '/actividades/{id}',
+            security: "is_granted('EVENTO_VIEW', object.getEvento())"
+        ),
+        new GetCollection(
+            uriTemplate: '/actividades',
+            security: "is_granted('ROLE_USER')"
+        ),
+
         new Post(
             security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
             securityPostDenormalize: "is_granted('EVENTO_EDIT', object.getEvento())"
@@ -47,6 +61,9 @@ use Symfony\Component\Validator\Constraints as Assert;
             securityPostDenormalize: "is_granted('EVENTO_EDIT', object.getEvento())"
         ),
         new Patch(security: "is_granted('EVENTO_EDIT', object.getEvento())"),
+
+        new Delete(security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
+
         new Patch(
             uriTemplate: '/actividad_eventos/{id}',
             security: "is_granted('EVENTO_EDIT', object.getEvento())"
@@ -73,7 +90,7 @@ class ActividadEvento
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:evento:item:min'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:evento:item:min', 'evento:read'])]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: Evento::class, inversedBy: 'actividades')]
@@ -112,19 +129,20 @@ class ActividadEvento
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
-    private string $precioBase = '0.00';
+    // Allow serializer to accept numeric values (int/float) or strings coming from JSON
+    private string|float $precioBase = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
-    private ?string $precioAdultoInterno = null;
+    private string|float|null $precioAdultoInterno = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
-    private ?string $precioAdultoExterno = null;
+    private string|float|null $precioAdultoExterno = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
-    private ?string $precioInfantil = null;
+    private string|float|null $precioInfantil = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write'])]

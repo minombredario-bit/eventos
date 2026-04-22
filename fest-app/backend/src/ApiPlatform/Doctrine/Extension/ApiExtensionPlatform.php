@@ -16,6 +16,7 @@ use App\Entity\Cargo;
 use App\Entity\TipoEntidadCargo;
 use App\Entity\TipoEntidad;
 use App\Entity\Usuario;
+use App\Enum\EstadoEventoEnum;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
@@ -163,9 +164,9 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
 
         if (!$this->security->isGranted('ROLE_ADMIN_ENTIDAD')) {
             $queryBuilder
-                ->andWhere(sprintf('%s.publicado = :%s_publicado', $rootAlias, $parameterName))
+                ->andWhere(sprintf('%s.estado != :%s_publicado', $rootAlias, $parameterName))
                 ->andWhere(sprintf('%s.visible = :%s_visible', $rootAlias, $parameterName))
-                ->setParameter(sprintf('%s_publicado', $parameterName), true)
+                ->setParameter(sprintf('%s_publicado', $parameterName), EstadoEventoEnum::BORRADOR)
                 ->setParameter(sprintf('%s_visible', $parameterName), true);
         }
     }

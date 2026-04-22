@@ -10,6 +10,7 @@ run_as_www_data() {
 }
 
 # ── Espera activa a que el código esté disponible ─
+
 # (por si el volumen tarda en montarse o el código
 #  está en la imagen y el volumen lo sobreescribe vacío)
 MAX_WAIT=30

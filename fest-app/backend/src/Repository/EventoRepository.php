@@ -25,10 +25,10 @@ class EventoRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('e')
             ->where('e.entidad = :entidad')
-            ->andWhere('e.publicado = :publicado')
+            ->andWhere('e.estado = :publicado')
             ->andWhere('e.visible = :visible')
             ->setParameter('entidad', $entidad)
-            ->setParameter('publicado', true)
+            ->setParameter('publicado', EstadoEventoEnum::PUBLICADO)
             ->setParameter('visible', true)
             ->orderBy('e.fechaEvento', 'ASC')
             ->getQuery()
