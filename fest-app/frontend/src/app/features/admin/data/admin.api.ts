@@ -15,6 +15,7 @@ import {
   UsuariosFiltro,
   UsuariosPage,
 } from '../domain/admin.models';
+import {environment} from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AdminApi {
@@ -57,7 +58,7 @@ export class AdminApi {
     }
 
     return this.http
-      .get<ApiCollection<Usuario>>(`${this.apiBaseUrl}/api/usuarios`, { params })
+      .get<ApiCollection<Usuario>>(`${environment.apiUrl}/usuarios`, { params })
       .pipe(
         map((response) => {
           const items = parseCollection(response as unknown) as unknown as Usuario[];
@@ -85,20 +86,20 @@ export class AdminApi {
 
   getUsuario(id: string): Observable<Usuario> {
     return this.http.get<Usuario>(
-      `${this.apiBaseUrl}/api/usuarios/${encodeURIComponent(id)}`
+      `${environment.apiUrl}/usuarios/${encodeURIComponent(id)}`
     );
   }
 
   // Admin-specific user GET that requests the admin serialization group
   getUsuarioAdmin(id: string): Observable<Usuario> {
     return this.http.get<Usuario>(
-      `${this.apiBaseUrl}/api/admin/usuarios/${encodeURIComponent(id)}`
+      `${environment.apiUrl}/admin/usuarios/${encodeURIComponent(id)}`
     );
   }
 
   crearUsuario(payload: UsuarioCreatePayload): Observable<Usuario> {
     return this.http.post<Usuario>(
-      `${this.apiBaseUrl}/api/admin/usuarios`,
+      `${environment.apiUrl}/admin/usuarios`,
       payload
     );
   }
@@ -109,7 +110,7 @@ export class AdminApi {
     const headers = new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' });
 
     return this.http.patch<Usuario>(
-      `${this.apiBaseUrl}/api/admin/usuarios/${encodeURIComponent(id)}`,
+      `${environment.apiUrl}/admin/usuarios/${encodeURIComponent(id)}`,
       payload,
       { headers }
     );
@@ -124,7 +125,7 @@ export class AdminApi {
     }
 
     return this.http
-      .get<ApiCollection<EntidadCargo> | EntidadCargo[]>(`${this.apiBaseUrl}/api/entidad_cargos`, { params })
+      .get<ApiCollection<EntidadCargo> | EntidadCargo[]>(`${environment.apiUrl}/entidad_cargos`, { params })
       .pipe(map((response) => parseCollection<EntidadCargo>(response as unknown)));
   }
 
@@ -170,7 +171,7 @@ export class AdminApi {
   ): Observable<EnumOption<T>[]> {
     return this.http
       .get<{ enum: string; items: EnumOption<T>[] }>(
-        `${this.apiBaseUrl}/api/generic/enums/${encodeURIComponent(enumName)}`
+        `${environment.apiUrl}/generic/enums/${encodeURIComponent(enumName)}`
       )
       .pipe(map((response) => response.items));
   }
@@ -180,7 +181,7 @@ export class AdminApi {
     formData.append('file', file);
 
     return this.http.post<ImportResult>(
-      `${this.apiBaseUrl}/api/admin/usuarios/importar-excel`,
+      `${environment.apiUrl}/admin/usuarios/importar-excel`,
       formData
     );
   }

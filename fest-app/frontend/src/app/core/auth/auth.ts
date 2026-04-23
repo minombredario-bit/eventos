@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { AuthStore } from './auth-store';
+import { environment } from '../../../environments/environment';
 import {
   AuthUser,
   ChangePasswordResponse,
@@ -13,12 +14,11 @@ import {
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly authStore = inject(AuthStore);
-  private readonly apiBaseUrl = 'http://localhost:8080';
 
   authenticate(payload: LoginPayload): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse | Record<string, unknown>>(
-        `${this.apiBaseUrl}/api/login`,
+        `${environment.apiUrl}/login`,
         payload,
       )
       .pipe(
@@ -33,7 +33,7 @@ export class AuthService {
   ): Observable<ChangePasswordResponse> {
     return this.http
       .post<ChangePasswordResponse>(
-        `${this.apiBaseUrl}/api/me/cambiar-password`,
+        `${environment.apiUrl}/me/cambiar-password`,
         {
           currentPassword,
           newPassword,
@@ -54,7 +54,7 @@ export class AuthService {
   }
 
   getMe(): Observable<AuthUser> {
-    return this.http.get<AuthUser>(`${this.apiBaseUrl}/api/me`).pipe(
+    return this.http.get<AuthUser>(`${environment.apiUrl}/me`).pipe(
       tap((user) => {
         const currentUser = this.authStore.user();
         this.authStore.setUser({
@@ -71,7 +71,7 @@ export class AuthService {
     >,
   ): Observable<AuthUser> {
     return this.http
-      .patch<AuthUser>(`${this.apiBaseUrl}/api/me`, payload)
+      .patch<AuthUser>(`${environment.apiUrl}/me`, payload)
       .pipe(
         tap((user) => {
           const currentUser = this.authStore.user();

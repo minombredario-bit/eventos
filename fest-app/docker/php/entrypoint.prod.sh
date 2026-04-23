@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "[entrypoint] Iniciando en modo produccións..."
+echo "[entrypoint] Iniciando en modo producción..."
 
 cd /var/www/html
 
@@ -9,7 +9,6 @@ run_as_www_data() {
     su -s /bin/sh -c "cd /var/www/html && $*" www-data
 }
 
-# ── Espera activa a que el código esté disponible ────────────
 MAX_WAIT=30
 WAITED=0
 while [ ! -f bin/console ]; do
@@ -22,7 +21,6 @@ while [ ! -f bin/console ]; do
     WAITED=$((WAITED + 2))
 done
 
-# ── Permisos de var/ (sin warmup, solo permisos) ─────────────
 echo "[fix-var] Fijando permisos de var/..."
 mkdir -p var/cache/prod var/log
 chown -R www-data:www-data var/
@@ -62,3 +60,6 @@ echo "$SUPERADMIN_OUTPUT"
 if [ $SUPERADMIN_EXIT -ne 0 ]; then
     echo "[entrypoint] AVISO: ensure-superadmin falló (exit $SUPERADMIN_EXIT) — continuando"
 fi
+
+echo "[entrypoint] Arrancando proceso principal: $*"
+exec "$@"

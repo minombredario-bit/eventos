@@ -1,4 +1,3 @@
-# Base con extensiones PHP (se compila UNA sola vez)
 FROM php:8.2-fpm-alpine AS php_base
 
 RUN apk add --no-cache \
@@ -37,7 +36,6 @@ COPY docker/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platf
 COPY docker/php/conf.d/www.conf              /usr/local/etc/php/php-fpm.d/zz-app.conf
 COPY docker/php/php.prod.ini                 /usr/local/etc/php/php.ini
 
-# Stage de composer usando la misma base (sin recompilar extensiones)
 FROM php_base AS composer_deps
 
 WORKDIR /app
@@ -51,8 +49,7 @@ RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
     --optimize-autoloader \
     --no-scripts
 
-# Imagen final
-FROM php_base AS final
+FROM php_base
 
 WORKDIR /var/www/html
 COPY backend/ .
@@ -68,8 +65,8 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD php-fpm -t || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
+    CMD pgrep php-fpm > /dev/null || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["php-fpm"]
+CMD ["php-fpm", "-F"]

@@ -38,6 +38,7 @@ import {
 } from '../domain/eventos.api.models';
 import {Usuario} from '../../admin/domain/admin.models';
 import {Eventos} from '../eventos';
+import {environment} from '../../../../environments/environment';
 
 
 @Injectable({ providedIn: 'root' })
@@ -64,7 +65,7 @@ export class EventosApi {
       .set('order[horaInicio]', 'asc');
 
     return this.http
-      .get<ApiCollection<EventoResumen> | EventoResumen[]>(`${this.apiBaseUrl}/api/eventos`, { params })
+      .get<ApiCollection<EventoResumen> | EventoResumen[]>(`${environment.apiUrl}/eventos`, { params })
       .pipe(map((r) => parseCollection<EventoResumen>(r as unknown)));
   }
 
@@ -97,7 +98,7 @@ export class EventosApi {
     }
 
     return this.http
-      .get<EventoListAdminResponse>(`${this.apiBaseUrl}/api/eventos`, { params: httpParams })
+      .get<EventoListAdminResponse>(`${environment.apiUrl}/eventos`, { params: httpParams })
       .pipe(
         map((response) => {
           const totalItems = Number(
@@ -129,7 +130,7 @@ export class EventosApi {
   }
 
   crearEvento(payload: EventoWritePayload): Observable<EventoDetalle> {
-    return this.http.post<EventoDetalle>(`${this.apiBaseUrl}/api/eventos`, payload);
+    return this.http.post<EventoDetalle>(`${environment.apiUrl}/eventos`, payload);
   }
 
   actualizarEvento(id: string, payload: EventoWritePayload): Observable<EventoDetalle> {
@@ -163,7 +164,7 @@ export class EventosApi {
   // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya actividades embebidas.
   getActividadesByEvento(eventoId: string): Observable<ActividadEvento[]> {
     return this.http
-      .get<ApiCollection<ActividadEvento> | ActividadEvento[]>(`${this.apiBaseUrl}/api/actividades?evento=${encodeURIComponent(eventoId)}`)
+      .get<ApiCollection<ActividadEvento> | ActividadEvento[]>(`${environment.apiUrl}/actividades?evento=${encodeURIComponent(eventoId)}`)
       .pipe(map((r) => parseCollection<ActividadEvento>(r as unknown)));
   }
 
@@ -175,7 +176,7 @@ export class EventosApi {
     // Observe the full response to allow callers to act based on the status code
     return this.http
       .delete<void>(
-        `${this.apiBaseUrl}/api/actividad_eventos/${encodeURIComponent(actividadId)}`,
+        `${environment.apiUrl}/actividad_eventos/${encodeURIComponent(actividadId)}`,
         { observe: 'response' as const }
       )
       .pipe(map((resp) => resp.status));
@@ -249,7 +250,7 @@ export class EventosApi {
    */
   postSeleccionParticipante(body: Record<string, string>): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(
-      `${this.apiBaseUrl}/api/seleccion_participante_eventos`,
+      `${environment.apiUrl}/seleccion_participante_eventos`,
       body,
       { headers: new HttpHeaders({ 'Content-Type': 'application/ld+json' }) },
     );
@@ -261,7 +262,7 @@ export class EventosApi {
    */
   deleteSeleccionParticipante(seleccionId: string): Observable<void> {
     return this.http.delete<void>(
-      `${this.apiBaseUrl}/api/seleccion_participante_eventos/${encodeURIComponent(seleccionId)}`,
+      `${environment.apiUrl}/seleccion_participante_eventos/${encodeURIComponent(seleccionId)}`,
     );
   }
 
@@ -274,7 +275,7 @@ export class EventosApi {
     const params = new HttpParams().set('usuario.id', currentUserId.trim());
 
     return this.http
-      .get<ApiCollection<InscripcionResumenCollectionItem> | InscripcionResumenCollectionItem[]>(`${this.apiBaseUrl}/api/inscripcions`, { params })
+      .get<ApiCollection<InscripcionResumenCollectionItem> | InscripcionResumenCollectionItem[]>(`${environment.apiUrl}/inscripcions`, { params })
       .pipe(
         map((r) => parseCollection<InscripcionResumenCollectionItem>(r as unknown)),
         map((items) => items
@@ -292,7 +293,7 @@ export class EventosApi {
     const params = new HttpParams().set('usuario.id', currentUserId.trim());
 
     return this.http
-      .get<ApiCollection<InscripcionCollectionItem> | InscripcionCollectionItem[]>(`${this.apiBaseUrl}/api/inscripcions`, { params })
+      .get<ApiCollection<InscripcionCollectionItem> | InscripcionCollectionItem[]>(`${environment.apiUrl}/inscripcions`, { params })
       .pipe(
         map((r) => parseCollection<InscripcionCollectionItem>(r as unknown)),
         map((items) => items
@@ -325,7 +326,7 @@ export class EventosApi {
 
   getInscripcion(id: string): Observable<Inscripcion> {
     return this.http
-      .get<InscripcionCollectionItem>(`${this.apiBaseUrl}/api/inscripcions/${id}`)
+      .get<InscripcionCollectionItem>(`${environment.apiUrl}/inscripcions/${id}`)
       .pipe(
         map((item) => this.toInscripcionCollection(item)),
         map((item) => {
@@ -387,13 +388,13 @@ export class EventosApi {
   cancelarLineaInscripcion(inscripcionId: string, lineaId: string): Observable<unknown> {
     void inscripcionId;
     return this.http.delete(
-      `${this.apiBaseUrl}/api/inscripcion_lineas/${encodeURIComponent(lineaId)}`,
+      `${environment.apiUrl}/inscripcion_lineas/${encodeURIComponent(lineaId)}`,
     );
   }
 
   actualizarActividadLineaInscripcion(lineaId: string, actividadId: string): Observable<unknown> {
     return this.http.patch(
-      `${this.apiBaseUrl}/api/inscripcion_lineas/${encodeURIComponent(lineaId)}`,
+      `${environment.apiUrl}/inscripcion_lineas/${encodeURIComponent(lineaId)}`,
       { actividad: `/api/actividades/${actividadId}` },
       {
         headers: new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' }),
@@ -402,7 +403,7 @@ export class EventosApi {
   }
 
   actualizarFormaPagoPreferida(formaPagoPreferida: MetodoPago | null): Observable<unknown> {
-    return this.http.patch(`${this.apiBaseUrl}/api/me`, { formaPagoPreferida });
+    return this.http.patch(`${environment.apiUrl}/me`, { formaPagoPreferida });
   }
 
   // ── Invitados ─────────────────────────────────────────────────────────
@@ -425,7 +426,7 @@ export class EventosApi {
     }
 
     return this.http
-      .post<Invitado>(`${this.apiBaseUrl}/api/invitados`, {
+      .post<Invitado>(`${environment.apiUrl}/invitados`, {
         ...payload,
         creadoPor: `/api/usuarios/${currentUserId.trim()}`,
         evento: `/api/eventos/${this.normalizeEventoId(eventoId)}`,
@@ -444,7 +445,7 @@ export class EventosApi {
 
   bajaInvitadoEnEvento(eventoId: string, invitadoId: string): Observable<void> {
     return this.http
-      .delete<unknown>(`${this.apiBaseUrl}/api/invitados/${encodeURIComponent(invitadoId)}`)
+      .delete<unknown>(`${environment.apiUrl}/invitados/${encodeURIComponent(invitadoId)}`)
       .pipe(
         map((r) => this.mapper.mapInvitadoDelete(r, eventoId, invitadoId)),
         map(() => void 0),
@@ -486,7 +487,7 @@ export class EventosApi {
 
     return this.http
       .put<SeleccionParticipantesResponseApi>(
-        `${this.apiBaseUrl}/api/eventos/${encodeURIComponent(normalizedEventoId)}/seleccion_participantes`,
+        `${environment.apiUrl}/eventos/${encodeURIComponent(normalizedEventoId)}/seleccion_participantes`,
         { participantes: requestParticipantes },
       )
       .pipe(
@@ -500,7 +501,7 @@ export class EventosApi {
   getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {
     return this.http
       .get<ApiCollection<RelacionUsuarioCollectionItem> | RelacionUsuarioCollectionItem[]>(
-        `${this.apiBaseUrl}/api/usuarios/${usuarioId}/relaciones`,
+        `${environment.apiUrl}/usuarios/${usuarioId}/relaciones`,
       )
       .pipe(
         map((r) => parseCollection<RelacionUsuarioCollectionItem>(r as unknown)),
@@ -513,7 +514,7 @@ export class EventosApi {
   // ── Privados ──────────────────────────────────────────────────────────
 
   private eventoBasePath(eventoId: string): string {
-    return `${this.apiBaseUrl}/api/eventos/${this.normalizeEventoId(eventoId)}`;
+    return `${environment.apiUrl}/eventos/${this.normalizeEventoId(eventoId)}`;
   }
 
   private normalizeEventoDetalle(

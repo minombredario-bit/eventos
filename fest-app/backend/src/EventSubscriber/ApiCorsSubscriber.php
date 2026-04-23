@@ -80,7 +80,7 @@ final class ApiCorsSubscriber implements EventSubscriberInterface
 
         $response->headers->set('Access-Control-Allow-Origin', $origin);
         $response->setVary(['Origin', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'], false);
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
 
         $requestedHeaders = $request->headers->get('Access-Control-Request-Headers');
         $response->headers->set(

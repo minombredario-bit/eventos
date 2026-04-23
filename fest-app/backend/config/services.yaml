@@ -2,6 +2,7 @@ parameters:
     app.cors.allowed_origins:
         - 'http://localhost:4200'
         - 'http://localhost:4250'
+        - 'http://localhost:4250'
     app.mailer_from: '%env(MAILER_FROM)%'
     app.uri: '%env(DEFAULT_URI)%'
 
