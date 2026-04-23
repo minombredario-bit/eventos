@@ -42,7 +42,6 @@ services:
         networks:
             - backend
             - frontend
-            -
 
     ofelia:
         build:
@@ -69,5 +68,8 @@ volumes:
 networks:
     backend:
         driver: bridge
+        ipam:
+            config:
+                - subnet: 192.168.32.0/24
     frontend:
         driver: bridge
