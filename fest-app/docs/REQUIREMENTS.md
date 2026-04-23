@@ -324,7 +324,7 @@ Cada asistente posible dentro de la unidad familiar de un usuario.
 | id | uuid | |
 | inscripcion | FK Inscripcion | |
 | persona | FK PersonaFamiliar | |
-| actividad | FK ActividadEvento | canónico; alias legacy: `actividad` |
+| actividad | FK ActividadEvento | canónico |
 | nombrePersonaSnapshot | string | histórico |
 | tipoPersonaSnapshot | string | histórico |
 | tipoRelacionEconomicaSnapshot | string | histórico |

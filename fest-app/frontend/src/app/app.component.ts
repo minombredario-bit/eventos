@@ -1,4 +1,5 @@
-import { Component, effect, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, effect, inject, OnInit } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RouterOutlet } from '@angular/router';
 import { AuthStore } from './core/auth/auth-store';
@@ -6,13 +7,15 @@ import { AuthStore } from './core/auth/auth-store';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [CommonModule, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   private readonly title = inject(Title);
   private readonly authStore = inject(AuthStore);
+
+  loading = true;
 
   constructor() {
     effect(() => {
@@ -22,5 +25,10 @@ export class AppComponent {
       this.title.setTitle(entidad ? `FestApp - ${entidad}` : 'FestApp');
     });
   }
-}
 
+  ngOnInit(): void {
+    setTimeout(() => {
+      this.loading = false;
+    }, 1200);
+  }
+}

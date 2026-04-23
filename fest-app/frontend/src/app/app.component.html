@@ -1,1 +1,7 @@
-<router-outlet />
+<div class="app-splash" *ngIf="loading">
+  <img src="festapp.png" alt="FestApp">
+  <h1>FestApp</h1>
+  <p>Cargando...</p>
+</div>
+
+<router-outlet *ngIf="!loading"></router-outlet>

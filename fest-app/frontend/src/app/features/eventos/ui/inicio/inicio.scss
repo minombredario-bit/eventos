@@ -208,3 +208,7 @@ app-event-card { display: block; }
   }
   .intro, .selected-day { grid-column: 1 / -1; }
 }
+
+@media (max-width: 600px) {
+  .hide-mobile { display: none !important; }
+}

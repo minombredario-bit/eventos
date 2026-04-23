@@ -16,8 +16,8 @@ export class ThemeService {
   }
 
   private resolveTipoEntidad(value: unknown): TipoEntidad {
-    if (typeof value === 'string' && value.toLowerCase() === 'comparsa') return 'Comparsa';
-    return 'Falla'; // por defecto
+    if (typeof value === 'string' && value.toLowerCase() === 'comparsa') return 'comparsa';
+    return 'falla'; // por defecto
   }
 
   private applyTheme(tipo: TipoEntidad): void {

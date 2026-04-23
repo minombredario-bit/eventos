@@ -1,0 +1,25 @@
+{
+  "name": "FestApp",
+  "short_name": "FestApp",
+  "description": "Gestión de eventos y actividades",
+  "theme_color": "#f05a00",
+  "background_color": "#fff7f0",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
