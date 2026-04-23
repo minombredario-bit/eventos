@@ -257,12 +257,13 @@ export class EventosApi {
   }
 
   /**
-   * DELETE /api/seleccion_participante_eventos/{id}
-   * Elimina la selección; el processor del backend cancela las líneas sin pago.
+   * DELETE /api/eventos/{eventoId}/seleccion_participantes/{id}
+   * Elimina la selección; el backend cancela las líneas no pagadas
+   * y borra la inscripción si queda vacía.
    */
-  deleteSeleccionParticipante(seleccionId: string): Observable<void> {
+  deleteSeleccionParticipante(eventoId: string, seleccionId: string): Observable<void> {
     return this.http.delete<void>(
-      `${environment.apiUrl}/seleccion_participante_eventos/${encodeURIComponent(seleccionId)}`,
+      `${environment.apiUrl}/eventos/${encodeURIComponent(eventoId)}/seleccion_participantes/${encodeURIComponent(seleccionId)}`
     );
   }
 

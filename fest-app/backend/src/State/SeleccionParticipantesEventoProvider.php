@@ -55,6 +55,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             $response->eventoId = $evento->getId();
             $response->participantes = [];
             $response->updatedAt = null;
+            $response->inscripciones = [];
 
             return $response;
         }
@@ -69,7 +70,6 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             ));
         }
 
-        // Prefetch inscripciones activas para el evento and map by most recent createdAt per usuario/invitado
         $inscripciones = $this->inscripcionRepository->findApuntadosByEvento($evento);
         $inscripcionesPorUsuario = [];
         $inscripcionesPorInvitado = [];
@@ -81,7 +81,12 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             if ($u !== null && $u->getId() !== null) {
                 $uid = $u->getId();
                 $existing = $inscripcionesPorUsuario[$uid] ?? null;
-                if ($existing === null || ($createdAt !== null && $existing->getCreatedAt() !== null && $createdAt > $existing->getCreatedAt())) {
+
+                if (
+                    $existing === null
+                    || $existing->getCreatedAt() === null
+                    || ($createdAt !== null && $createdAt > $existing->getCreatedAt())
+                ) {
                     $inscripcionesPorUsuario[$uid] = $insc;
                 }
             }
@@ -94,13 +99,12 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
                 $iid = $inv->getId();
                 $existingInv = $inscripcionesPorInvitado[$iid] ?? null;
-                if ($existingInv === null) {
-                    $inscripcionesPorInvitado[$iid] = $insc;
-                    continue;
-                }
 
-                $existingCreated = $existingInv->getCreatedAt();
-                if ($createdAt !== null && $existingCreated !== null && $createdAt > $existingCreated) {
+                if (
+                    $existingInv === null
+                    || $existingInv->getCreatedAt() === null
+                    || ($createdAt !== null && $createdAt > $existingInv->getCreatedAt())
+                ) {
                     $inscripcionesPorInvitado[$iid] = $insc;
                 }
             }
@@ -108,10 +112,15 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
         $response = new SeleccionParticipantesView();
         $response->eventoId = $evento->getId();
-        $response->participantes = $this->buildParticipantesSeleccionResponse($participantes, $evento, $user, $inscripcionesPorUsuario, $inscripcionesPorInvitado);
+        $response->participantes = $this->buildParticipantesSeleccionResponse(
+            $participantes,
+            $evento,
+            $user,
+            $inscripcionesPorUsuario,
+            $inscripcionesPorInvitado,
+        );
         $response->updatedAt = $this->resolveUpdatedAtFromGranular($seleccionGranular);
 
-        // Include current user's inscripcion snapshot (if any)
         $inscPropia = $inscripcionesPorUsuario[$user->getId()] ?? null;
         if ($inscPropia !== null) {
             $lineas = [];
@@ -162,15 +171,13 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
     }
 
     /**
-     * Builds the list of actividades for the evento with a boolean indicating if the
-     * participant is enrolled in each one.
-     *
-     * @param list<array<string, mixed>> $lineasActivas Active inscription lines for the participant
+     * @param list<array<string, mixed>> $lineasActivas
      * @return list<array<string, mixed>>
      */
     private function buildActividadesSeleccionadas(Evento $evento, array $lineasActivas): array
     {
         $actividadesInscritas = [];
+
         foreach ($lineasActivas as $linea) {
             $actividadId = $linea['actividadId'] ?? null;
             if ($actividadId !== null) {
@@ -186,12 +193,12 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
             $actividadId = $actividad->getId();
             $result[] = [
-                'id'               => $actividadId,
-                'nombre'           => $actividad->getNombre(),
-                'franjaComida'     => $actividad->getFranjaComida(),
-                'tipoActividad'    => $actividad->getTipoActividad(),
-                'compatibilidad'   => $actividad->getCompatibilidadPersona(),
-                'inscrito'         => isset($actividadesInscritas[$actividadId]),
+                'id' => $actividadId,
+                'nombre' => $actividad->getNombre(),
+                'franjaComida' => $actividad->getFranjaComida(),
+                'tipoActividad' => $actividad->getTipoActividad(),
+                'compatibilidad' => $actividad->getCompatibilidadPersona(),
+                'inscrito' => isset($actividadesInscritas[$actividadId]),
             ];
         }
 
@@ -200,18 +207,16 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
     /**
      * @param list<array<string, mixed>> $participantes
-     * @return list<array<string, mixed>>
-     */
-    /**
      * @param array<string, Inscripcion> $inscripcionesPorUsuario
      * @param array<string, Inscripcion> $inscripcionesPorInvitado
+     * @return list<array<string, mixed>>
      */
     private function buildParticipantesSeleccionResponse(
         array $participantes,
         Evento $evento,
         Usuario $user,
         array $inscripcionesPorUsuario = [],
-        array $inscripcionesPorInvitado = []
+        array $inscripcionesPorInvitado = [],
     ): array {
         $response = [];
 
@@ -238,36 +243,38 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
             if ($origen === 'familiar') {
                 $usuario = $this->usuarioRepository->find($participanteId);
-                if ($usuario !== null) {
-                    $item['nombre'] = $usuario->getNombre();
-                    $item['apellidos'] = $usuario->getApellidos();
+                if ($usuario === null) {
+                    continue;
+                }
 
-                    $inscripcion = $inscripcionesPorUsuario[$usuario->getId()] ?? null;
-                    $item['tipoPersona'] = 'adulto';
+                $item['nombre'] = $usuario->getNombre();
+                $item['apellidos'] = $usuario->getApellidos();
+                $item['tipoPersona'] = 'adulto';
 
-                    $inscripcionRelacion = $this->buildInscripcionRelacion(
-                        $inscripcion,
-                        static fn($linea): bool => $linea->getUsuario()?->getId() === $usuario->getId(),
-                    );
+                $inscripcion = $inscripcionesPorUsuario[$usuario->getId()] ?? null;
+                $inscripcionRelacion = $this->buildInscripcionRelacion(
+                    $inscripcion,
+                    static fn($linea): bool => $linea->getUsuario()?->getId() === $usuario->getId(),
+                );
 
-                    if ($inscripcionRelacion !== null) {
-                        $item['inscripcionRelacion'] = $inscripcionRelacion;
+                if ($inscripcionRelacion !== null) {
+                    $item['inscripcionRelacion'] = $inscripcionRelacion;
 
-                        $tipoDesdeSnapshot = $this->resolveTipoPersonaFromInscripcion($inscripcionRelacion['lineas']);
-                        if ($tipoDesdeSnapshot !== null) {
-                            $item['tipoPersona'] = $tipoDesdeSnapshot;
-                        }
-
-                        $lineasActivas = array_values(array_filter(
-                            $inscripcionRelacion['lineas'],
-                            static fn(array $l): bool => ($l['estadoLinea'] ?? '') !== 'cancelada',
-                        ));
-                        $item['estaInscrito'] = count($lineasActivas) > 0;
-                        $item['actividadesSeleccionadas'] = $this->buildActividadesSeleccionadas($evento, $lineasActivas);
-                    } else {
-                        $item['estaInscrito'] = false;
-                        $item['actividadesSeleccionadas'] = $this->buildActividadesSeleccionadas($evento, []);
+                    $tipoDesdeSnapshot = $this->resolveTipoPersonaFromInscripcion($inscripcionRelacion['lineas']);
+                    if ($tipoDesdeSnapshot !== null) {
+                        $item['tipoPersona'] = $tipoDesdeSnapshot;
                     }
+
+                    $lineasActivas = array_values(array_filter(
+                        $inscripcionRelacion['lineas'],
+                        static fn(array $l): bool => ($l['estadoLinea'] ?? '') !== 'cancelada',
+                    ));
+
+                    $item['estaInscrito'] = count($lineasActivas) > 0;
+                    $item['actividadesSeleccionadas'] = $this->buildActividadesSeleccionadas($evento, $lineasActivas);
+                } else {
+                    $item['estaInscrito'] = false;
+                    $item['actividadesSeleccionadas'] = $this->buildActividadesSeleccionadas($evento, []);
                 }
             } else {
                 $invitado = $this->invitadoRepository->findActiveByIdAndEventoAndHouseholdUsuario(
@@ -297,6 +304,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
                         $inscripcionRelacion['lineas'],
                         static fn(array $l): bool => ($l['estadoLinea'] ?? '') !== 'cancelada',
                     ));
+
                     $item['estaInscrito'] = count($lineasActivas) > 0;
                     $item['actividadesSeleccionadas'] = $this->buildActividadesSeleccionadas($evento, $lineasActivas);
                 } else {
@@ -400,16 +408,12 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
     private function normalizeOrigen(mixed $origen): string
     {
-        if ($origen === 'invitado') {
-            return 'invitado';
-        }
-
-        return 'familiar';
+        return $origen === 'invitado' ? 'invitado' : 'familiar';
     }
 
     /**
      * @param list<SeleccionParticipanteEvento> $seleccionGranular
-     * @return list<array{id: string, origen: string}>
+     * @return list<array{id: string, origen: string, seleccionId: ?string}>
      */
     private function buildParticipantesFromGranular(array $seleccionGranular): array
     {
@@ -432,8 +436,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             }
 
             $seen[$clave] = true;
-            // Include the SeleccionParticipanteEvento id so the frontend can
-            // reference the exact selection resource for DELETE operations.
+
             $participantes[] = [
                 'id' => $participanteId,
                 'origen' => $origen,

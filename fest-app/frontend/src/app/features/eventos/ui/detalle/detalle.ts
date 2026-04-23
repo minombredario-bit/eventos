@@ -780,24 +780,34 @@ export class Detalle {
       .subscribe({
         next: (inscritos) => {
           this.inscritos.set(inscritos);
-          // Populate seleccionIds map from server-provided seleccionId when available
-          this.seleccionIds.update((current) => {
-            const updated = { ...current } as Record<string, string>;
-            for (const participante of inscritos) {
-              const key = `${participante.origen}:${participante.id}`;
-              const sid = (participante as any).seleccionId ?? '';
-              if (typeof sid === 'string' && sid.trim()) {
-                updated[key] = sid.trim();
+
+          this.seleccionIds.set(
+            inscritos.reduce((acc, participante) => {
+              const key = this.inscritoKey(participante);
+
+              const rawSeleccionId =
+                (participante as { seleccionId?: unknown }).seleccionId;
+
+              const sid =
+                typeof rawSeleccionId === 'string'
+                  ? rawSeleccionId.trim()
+                  : '';
+
+              if (sid) {
+                acc[key] = sid;
               }
-            }
-            return updated;
-          });
+
+              return acc;
+            }, {} as Record<string, string>),
+          );
+
           this.selectedMemberIds.set(toSelectedMemberKeys(inscritos));
           this.inscritosLoaded.set(true);
           this.loadingInscritos.set(false);
         },
         error: () => {
           this.inscritos.set([]);
+          this.seleccionIds.set({});
           this.selectedMemberIds.set([]);
           this.inscritosError.set('No pudimos cargar a quiénes ya apuntaste en este evento.');
           this.inscritosLoaded.set(true);
@@ -930,6 +940,11 @@ export class Detalle {
   }
 
   private cancelRemovedParticipantLines(selectedKeys: string[]) {
+    const eventId = this.eventId();
+    if (!eventId) {
+      return of(void 0);
+    }
+
     const selectedSet = new Set(selectedKeys);
     const cancellableLines: Array<{ inscripcionId: string; lineId: string }> = [];
     const cancellableSelections: string[] = [];
@@ -945,28 +960,29 @@ export class Detalle {
         continue;
       }
 
-      // If any active line for this participant is paid, skip deletion for safety.
-      const hasPaidActiveLine = relation.lineas.some((linea) =>
-        linea.estadoLinea !== 'cancelada' && this.lineBelongsToParticipant(inscrito, linea.usuarioId, linea.invitadoId) && Boolean((linea as { pagada?: unknown }).pagada)
+      const hasPaidActiveLine = relation.lineas.some(
+        (linea) =>
+          linea.estadoLinea !== 'cancelada'
+          && this.lineBelongsToParticipant(inscrito, linea.usuarioId, linea.invitadoId)
+          && Boolean((linea as { pagada?: unknown }).pagada),
       );
 
       if (hasPaidActiveLine) {
         continue;
       }
 
-      // Prefer deleting the SeleccionParticipanteEvento resource if we have its id.
       const seleccionIdFromMap = this.seleccionIds()[participantKey];
-      const seleccionIdFromServer = (inscrito as any).seleccionId;
-      const seleccionId = typeof seleccionIdFromServer === 'string' && seleccionIdFromServer.trim()
-        ? seleccionIdFromServer.trim()
-        : seleccionIdFromMap;
+      const seleccionIdFromServer = (inscrito as { seleccionId?: unknown }).seleccionId;
+      const seleccionId =
+        typeof seleccionIdFromServer === 'string' && seleccionIdFromServer.trim()
+          ? seleccionIdFromServer.trim()
+          : seleccionIdFromMap;
 
       if (seleccionId && String(seleccionId).trim()) {
         cancellableSelections.push(String(seleccionId).trim());
         continue;
       }
 
-      // Fall back to deleting individual inscripcion lines if we don't have a seleccionId.
       for (const linea of relation.lineas) {
         if (!linea.id || linea.estadoLinea === 'cancelada' || Boolean((linea as { pagada?: unknown }).pagada)) {
           continue;
@@ -988,12 +1004,19 @@ export class Detalle {
     }
 
     const calls: Array<Observable<unknown>> = [];
+
     if (cancellableSelections.length) {
-      calls.push(...cancellableSelections.map((sid) => this.eventosApi.deleteSeleccionParticipante(sid)));
+      calls.push(
+        ...cancellableSelections.map((sid) => this.eventosApi.deleteSeleccionParticipante(eventId, sid)),
+      );
     }
 
     if (cancellableLines.length) {
-      calls.push(...cancellableLines.map((line) => this.eventosApi.cancelarLineaInscripcion(line.inscripcionId, line.lineId)));
+      calls.push(
+        ...cancellableLines.map((line) =>
+          this.eventosApi.cancelarLineaInscripcion(line.inscripcionId, line.lineId),
+        ),
+      );
     }
 
     return forkJoin(calls).pipe(map(() => void 0));
@@ -1048,19 +1071,30 @@ export class Detalle {
    * El processor del backend cancela las InscripcionLineas activas sin pagos.
    */
   private removeParticipantEnrollment(member: FamilyMember): void {
-    const key         = this.participantKey(member);
-    const seleccionId = this.seleccionIds()[key];
+    const key = this.participantKey(member);
+    const eventId = this.eventId();
+    const seleccionIdFromMap = this.seleccionIds()[key];
+    const seleccionIdFromMember =
+      typeof (member as { seleccionId?: unknown }).seleccionId === 'string'
+        ? String((member as { seleccionId?: unknown }).seleccionId).trim()
+        : '';
+
+    const seleccionId = seleccionIdFromMember || seleccionIdFromMap;
+
+    if (!eventId) {
+      this.errorMessage.set('No se pudo identificar el evento.');
+      return;
+    }
 
     if (!seleccionId) {
-      // Sin id de selección en memoria (p.ej. tras recarga), usamos el flujo legacy
-      this.toggleMemberSelection(member);
+      this.errorMessage.set('No se pudo identificar la selección del participante para eliminarla.');
       return;
     }
 
     this.setEnrollmentStatus(key, 'removing');
 
     this.eventosApi
-      .deleteSeleccionParticipante(seleccionId)
+      .deleteSeleccionParticipante(eventId, seleccionId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -1072,6 +1106,10 @@ export class Detalle {
           });
           this.clearEnrollmentStatus(key);
           this.errorMessage.set(null);
+
+          if (eventId) {
+            this.loadInscritos(eventId);
+          }
         },
         error: (error: unknown) => {
           this.setEnrollmentStatus(key, 'error');

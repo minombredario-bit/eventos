@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\Link;
 use App\Repository\SeleccionParticipanteEventoRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -47,9 +48,17 @@ use App\State\SeleccionParticipantesEventoDeleteProcessor;
             security: "is_granted('ROLE_USER')",
             processor: SeleccionParticipanteEventoPostProcessor::class,
         ),
-        // Nested DELETE for removing selections/inscripciones for the logged user in an evento
         new Delete(
             uriTemplate: '/eventos/{eventoId}/seleccion_participantes/{id}',
+            uriVariables: [
+                'eventoId' => new Link(
+                    toProperty: 'evento',
+                    fromClass: Evento::class
+                ),
+                'id' => new Link(
+                    fromClass: SeleccionParticipanteEvento::class
+                ),
+            ],
             security: "is_granted('ROLE_USER')",
             processor: SeleccionParticipantesEventoDeleteProcessor::class,
         ),
