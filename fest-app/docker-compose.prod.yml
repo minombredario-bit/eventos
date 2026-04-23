@@ -54,8 +54,7 @@ services:
         depends_on:
             php:
                 condition: service_healthy
-        env_file:
-            - .env.prod
+        command: daemon --config=/etc/ofelia/config.ini
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - ./docker/ofelia/config.ini:/etc/ofelia/config.ini:ro
