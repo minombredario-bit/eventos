@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "[entrypoint] Iniciando en modo producción..."
+echo "[entrypoint] Iniciando en modo produccións..."
 
 cd /var/www/html
 
@@ -9,10 +9,7 @@ run_as_www_data() {
     su -s /bin/sh -c "cd /var/www/html && $*" www-data
 }
 
-# ── Espera activa a que el código esté disponible ─
-
-# (por si el volumen tarda en montarse o el código
-#  está en la imagen y el volumen lo sobreescribe vacío)
+# ── Espera activa a que el código esté disponible ────────────
 MAX_WAIT=30
 WAITED=0
 while [ ! -f bin/console ]; do
@@ -25,20 +22,43 @@ while [ ! -f bin/console ]; do
     WAITED=$((WAITED + 2))
 done
 
-# ── Permisos de var/ ──────────────────────────────
-sh /var/www/html/scripts/fix_var_permissions.sh
+# ── Permisos de var/ (sin warmup, solo permisos) ─────────────
+echo "[fix-var] Fijando permisos de var/..."
+mkdir -p var/cache/prod var/log
+chown -R www-data:www-data var/
+find var/ -type d -exec chmod 2775 {} +
+find var/ -type f -exec chmod 0664 {} +
+echo "[fix-var] Permisos OK"
 
-# ── Migraciones ───────────────────────────────────
+# ── Cache warmup (con output completo para debug) ─────────────
+echo "[entrypoint] Calentando cache de Symfony..."
+WARMUP_OUTPUT=$(run_as_www_data 'php bin/console cache:warmup --env=prod --no-debug 2>&1')
+WARMUP_EXIT=$?
+if [ $WARMUP_EXIT -ne 0 ]; then
+    echo "[entrypoint] ERROR: cache:warmup falló (exit $WARMUP_EXIT):"
+    echo "$WARMUP_OUTPUT"
+    exit 1
+fi
+echo "[entrypoint] Cache OK"
+
+# ── Migraciones ───────────────────────────────────────────────
 echo "[entrypoint] Ejecutando migraciones..."
-run_as_www_data 'php bin/console doctrine:migrations:migrate --no-interaction --env=prod' 2>&1 \
-    && echo "[entrypoint] Migraciones OK" \
-    || echo "[entrypoint] AVISO: migraciones fallaron (puede ser normal si ya están aplicadas)"
+set +e
+MIGRATION_OUTPUT=$(run_as_www_data 'php bin/console doctrine:migrations:migrate --no-interaction --env=prod 2>&1')
+MIGRATION_EXIT=$?
+set -e
+echo "$MIGRATION_OUTPUT"
+if [ $MIGRATION_EXIT -ne 0 ]; then
+    echo "[entrypoint] AVISO: migraciones fallaron (exit $MIGRATION_EXIT) — continuando"
+fi
 
-# ── Superadmin ────────────────────────────────────
-run_as_www_data 'php bin/console app:ensure-superadmin --no-interaction' 2>/dev/null \
-    && echo "[entrypoint] Superadmin OK" \
-    || echo "[entrypoint] AVISO: ensure-superadmin falló (puede que ya exista)"
-
-echo "[entrypoint] Aplicación lista."
-
-exec "$@"
+# ── Superadmin ────────────────────────────────────────────────
+echo "[entrypoint] Verificando superadmin..."
+set +e
+SUPERADMIN_OUTPUT=$(run_as_www_data 'php bin/console app:ensure-superadmin --no-interaction 2>&1')
+SUPERADMIN_EXIT=$?
+set -e
+echo "$SUPERADMIN_OUTPUT"
+if [ $SUPERADMIN_EXIT -ne 0 ]; then
+    echo "[entrypoint] AVISO: ensure-superadmin falló (exit $SUPERADMIN_EXIT) — continuando"
+fi

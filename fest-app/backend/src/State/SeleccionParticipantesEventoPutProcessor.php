@@ -125,11 +125,48 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
             $this->seleccionParticipanteEventoRepository,
         );
 
+        // Prefetch inscripciones activas for evento and map the most recent by usuario and invitado
+        $inscripciones = $this->inscripcionRepository->findApuntadosByEvento($evento);
+        $inscripcionesPorUsuario = [];
+        $inscripcionesPorInvitado = [];
+        foreach ($inscripciones as $insc) {
+            $createdAt = $insc->getCreatedAt();
+
+            $u = $insc->getUsuario();
+            if ($u !== null && $u->getId() !== null) {
+                $uid = $u->getId();
+                $existing = $inscripcionesPorUsuario[$uid] ?? null;
+                if ($existing === null || ($createdAt !== null && $existing->getCreatedAt() !== null && $createdAt > $existing->getCreatedAt())) {
+                    $inscripcionesPorUsuario[$uid] = $insc;
+                }
+            }
+
+            foreach ($insc->getLineas() as $linea) {
+                $inv = $linea->getInvitado();
+                if ($inv === null || $inv->getId() === null) {
+                    continue;
+                }
+
+                $iid = $inv->getId();
+                $existingInv = $inscripcionesPorInvitado[$iid] ?? null;
+                if ($existingInv === null) {
+                    $inscripcionesPorInvitado[$iid] = $insc;
+                    continue;
+                }
+
+                $existingCreated = $existingInv->getCreatedAt();
+                if ($createdAt !== null && $existingCreated !== null && $createdAt > $existingCreated) {
+                    $inscripcionesPorInvitado[$iid] = $insc;
+                }
+            }
+        }
+
         $this->syncLineaSelection(
             $seleccionesPrincipales,
             $evento,
             $this->seleccionParticipanteEventoLineaRepository,
-            $this->inscripcionRepository,
+            $inscripcionesPorUsuario,
+            $inscripcionesPorInvitado,
         );
 
         $inscripcionTitular = $this->inscripcionRepository->findOneByUsuarioAndEvento($user->getId(), $evento->getId());
@@ -144,6 +181,95 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
         $response->eventoId = $evento->getId();
         $response->participantes = $this->buildLegacySnapshotFromPrincipal($seleccionesPrincipales);
         $response->updatedAt = $updatedAt?->format('c');
+
+        // Build inscripciones snapshot for the selected participants (avoid duplicates)
+        // Prefetch all active inscripciones for the evento to avoid N+1 DB queries
+        $inscripcionesMap = [];
+
+        $inscripciones = $this->inscripcionRepository->findApuntadosByEvento($evento);
+        $inscripcionesPorUsuario = [];
+        $inscripcionesPorInvitado = [];
+
+        foreach ($inscripciones as $insc) {
+            $u = $insc->getUsuario();
+            if ($u !== null && $u->getId() !== null) {
+                $inscripcionesPorUsuario[$u->getId()] = $insc;
+            }
+
+            foreach ($insc->getLineas() as $linea) {
+                $inv = $linea->getInvitado();
+                if ($inv !== null && $inv->getId() !== null && !isset($inscripcionesPorInvitado[$inv->getId()])) {
+                    // map invitado id to the inscripcion that contains it (first occurrence)
+                    $inscripcionesPorInvitado[$inv->getId()] = $insc;
+                }
+            }
+        }
+
+        foreach ($seleccionesPrincipales as $seleccion) {
+            $usuario = $seleccion->getUsuario();
+            $invitado = $seleccion->getInvitado();
+
+            $inscripcion = null;
+
+            if ($usuario !== null) {
+                $inscripcion = $inscripcionesPorUsuario[$usuario->getId()] ?? null;
+            } elseif ($invitado !== null) {
+                $inscripcion = $inscripcionesPorInvitado[$invitado->getId()] ?? null;
+            }
+
+            if ($inscripcion === null) {
+                continue;
+            }
+
+            $inscId = $inscripcion->getId();
+            if ($inscId === null || isset($inscripcionesMap[$inscId])) {
+                continue;
+            }
+
+            $lineas = [];
+            foreach ($inscripcion->getLineas() as $linea) {
+                $actividadId = $linea->getActividadId();
+
+                $lineas[] = [
+                    'id' => $linea->getId(),
+                    'usuario' => $linea->getUsuario()?->getId() ? '/api/usuarios/' . $linea->getUsuario()?->getId() : null,
+                    'invitado' => $linea->getInvitado()?->getId() ? '/api/invitados/' . $linea->getInvitado()?->getId() : null,
+                    'actividad' => $actividadId ? '/api/actividad_eventos/' . $actividadId : null,
+                    'nombrePersonaSnapshot' => $linea->getNombrePersonaSnapshot(),
+                    'tipoPersonaSnapshot' => $linea->getTipoPersonaSnapshot(),
+                    'nombreActividadSnapshot' => $linea->getNombreActividadSnapshot(),
+                    'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
+                    'precioUnitario' => $linea->getPrecioUnitario(),
+                    'estadoLinea' => $linea->getEstadoLinea()->value,
+                    'pagada' => $linea->isPagada(),
+                    'actividadId' => $actividadId,
+                ];
+            }
+
+            $eventoSnapshot = [
+                'id' => $evento->getId(),
+                'titulo' => $evento->getTitulo(),
+                'descripcion' => $evento->getDescripcion(),
+                'fechaEvento' => $evento->getFechaEvento()->format('c'),
+                'horaInicio' => $evento->getHoraInicio()?->format('c'),
+                'lugar' => $evento->getLugar(),
+                'estado' => $evento->getEstado()->value,
+                'inscripcionAbierta' => $evento->getInscripcionAbierta(),
+            ];
+
+            $inscripcionesMap[$inscId] = [
+                'id' => $inscId,
+                'evento' => $eventoSnapshot,
+                'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
+                'estadoPago' => $inscripcion->getEstadoPago()->value,
+                'importeTotal' => $inscripcion->getImporteTotal(),
+                'moneda' => $inscripcion->getMoneda(),
+                'lineas' => $lineas,
+            ];
+        }
+
+        // Preserve ordering: use values
+        $response->inscripciones = array_values($inscripcionesMap);
 
         return $response;
     }
@@ -323,11 +449,17 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
     /**
      * @param list<SeleccionParticipanteEvento> $seleccionesPrincipales
      */
+    /**
+     * @param list<SeleccionParticipanteEvento> $seleccionesPrincipales
+     * @param array<string, Inscripcion> $inscripcionesPorUsuario
+     * @param array<string, Inscripcion> $inscripcionesPorInvitado
+     */
     private function syncLineaSelection(
         array $seleccionesPrincipales,
         Evento $evento,
         SeleccionParticipanteEventoLineaRepository $seleccionParticipanteEventoLineaRepository,
-        InscripcionRepository $inscripcionRepository,
+        array $inscripcionesPorUsuario,
+        array $inscripcionesPorInvitado,
     ): void {
         foreach ($seleccionesPrincipales as $seleccionPrincipal) {
             $lineasExistentes = $seleccionParticipanteEventoLineaRepository->findBySeleccionParticipanteEvento($seleccionPrincipal);
@@ -343,7 +475,8 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
             $lineasDeseadasPorActividadId = $this->buildDesiredLineSelections(
                 $evento,
                 $seleccionPrincipal,
-                $inscripcionRepository,
+                $inscripcionesPorUsuario,
+                $inscripcionesPorInvitado,
             );
 
             foreach ($lineasExistentesPorActividadId as $actividadId => $lineaExistente) {
@@ -371,12 +504,18 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
     /**
      * @return array<string, array{evento: Evento, usuario: ?Usuario, invitado: ?Invitado, actividad: ActividadEvento, inscripcionLinea: ?InscripcionLinea}>
      */
+    /**
+     * @param array<string, Inscripcion> $inscripcionesPorUsuario
+     * @param array<string, Inscripcion> $inscripcionesPorInvitado
+     * @return array<string, array{evento: Evento, usuario: ?Usuario, invitado: ?Invitado, actividad: ActividadEvento, inscripcionLinea: ?InscripcionLinea}>
+     */
     private function buildDesiredLineSelections(
         Evento $evento,
         SeleccionParticipanteEvento $seleccionPrincipal,
-        InscripcionRepository $inscripcionRepository,
+        array $inscripcionesPorUsuario,
+        array $inscripcionesPorInvitado,
     ): array {
-        $lineasInscripcion = $this->resolveLineasParticipante($evento, $seleccionPrincipal, $inscripcionRepository);
+        $lineasInscripcion = $this->resolveLineasParticipante($evento, $seleccionPrincipal, $inscripcionesPorUsuario, $inscripcionesPorInvitado);
         $lineasDeseadas = [];
 
         foreach ($lineasInscripcion as $lineaInscripcion) {
@@ -403,11 +542,12 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
     private function resolveLineasParticipante(
         Evento $evento,
         SeleccionParticipanteEvento $seleccionPrincipal,
-        InscripcionRepository $inscripcionRepository,
+        array $inscripcionesPorUsuario,
+        array $inscripcionesPorInvitado,
     ): array {
         $usuario = $seleccionPrincipal->getUsuario();
         if ($usuario !== null) {
-            $inscripcion = $inscripcionRepository->findOneByUsuarioAndEvento($usuario->getId(), $evento->getId());
+            $inscripcion = $inscripcionesPorUsuario[$usuario->getId()] ?? null;
             if ($inscripcion === null) {
                 return [];
             }
@@ -433,7 +573,7 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
             return [];
         }
 
-        $inscripcion = $inscripcionRepository->findOneByInvitadoAndEvento($invitado->getId(), $evento->getId());
+        $inscripcion = $inscripcionesPorInvitado[$invitado->getId()] ?? null;
         if ($inscripcion === null) {
             return [];
         }

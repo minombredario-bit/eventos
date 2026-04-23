@@ -1,75 +1,46 @@
 services:
-
-    # ──────────────────────────────────────────────
-    # PHP-FPM  (Symfony backend)
-    # ──────────────────────────────────────────────
     php:
         build:
             context: .
             dockerfile: docker/php/Dockerfile.prod
         image: festapp-php:${APP_VERSION:-latest}
+        pull_policy: build
         container_name: festapp-php
-        restart: always
-        volumes:
-            - app_data:/var/www/html
+        restart: unless-stopped
+        healthcheck:
+            test: ["CMD-SHELL", "nc -z 127.0.0.1 9000 || exit 1"]
+            interval: 15s
+            timeout: 5s
+            retries: 5
+            start_period: 60s
         env_file:
             - .env.prod
         environment:
             APP_ENV: prod
             APP_DEBUG: "0"
         extra_hosts:
-            - "host.docker.internal:host-gateway"  # acceso al MySQL del servidor
+            - "host.docker.internal:host-gateway"
         networks:
             - backend
-        deploy:
-            resources:
-                limits:
-                    memory: 512M
 
-    # ──────────────────────────────────────────────
-    # NGINX  – sirve Angular (/) y Symfony (/api)
-    # ──────────────────────────────────────────────
     nginx:
         image: nginx:1.27-alpine
         container_name: festapp-nginx
-        restart: always
+        restart: unless-stopped
         ports:
-            - "8081:80"       # Plesk hace reverse proxy hacia este puerto
+            - "8081:80"
         volumes:
-            - app_data:/var/www/html:ro
             - angular_dist:/var/www/angular:ro
             - ./docker/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
             - nginx_logs:/var/log/nginx
         depends_on:
-            - php
+            php:
+                condition: service_healthy
         networks:
             - backend
             - frontend
 
-    # ──────────────────────────────────────────────
-    # FTP  – sube código al servidor
-    # ──────────────────────────────────────────────
-    ftp:
-        image: stilliard/pure-ftpd:latest
-        container_name: festapp-ftp
-        restart: always
-        ports:
-            - "21:21"
-            - "30000-30009:30000-30009"
-        env_file:
-            - .env.prod
-        environment:
-            FTP_USER_HOME: /var/www
-            ADDED_FLAGS: "--tls=2"
-        volumes:
-            - app_data:/var/www/html
-            - angular_dist:/var/www/angular
-            - ./docker/ftp/ssl:/etc/ssl/private:ro
-        networks:
-            - backend
-
 volumes:
-    app_data:
     angular_dist:
     nginx_logs:
 

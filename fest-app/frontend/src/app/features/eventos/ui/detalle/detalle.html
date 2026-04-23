@@ -86,7 +86,7 @@
                     [disabled]="isParticipantActionDisabled(member)"
                     [showEnrollmentInfo]="true"
                     aria-label="Fila de persona para inscribir"
-                    (actionPressed)="toggleMemberSelection(member)"
+                    (actionPressed)="toggleMemberEnrollment(member)"
                     (secondaryActionPressed)="handleParticipantSecondaryAction($event)"
                   />
                 }
@@ -142,14 +142,14 @@
                     <textarea formControlName="observaciones" rows="2" placeholder="Alergias, notas, etc. (opcional)"></textarea>
                   </label>
 
-                    <app-cta-button
-                      class="form-cta"
-                      label="Dar de alta invitado"
-                      loadingLabel="Guardando..."
-                      type="submit"
-                      [loading]="submittingInvitado()"
-                      [disabled]="submittingInvitado()"
-                    />
+                  <app-cta-button
+                    class="form-cta"
+                    label="Dar de alta invitado"
+                    loadingLabel="Guardando..."
+                    type="submit"
+                    [loading]="submittingInvitado()"
+                    [disabled]="submittingInvitado()"
+                  />
                 </form>
 
                 @if (invitadosError()) {

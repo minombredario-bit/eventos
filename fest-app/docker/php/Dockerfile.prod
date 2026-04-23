@@ -1,26 +1,6 @@
-# ────────────────────────────────────────────────
-# Dockerfile.prod  –  PHP-FPM para producción
-# Context de build: raíz del proyecto (.)
-# El código se incluye en la imagen (igual que dev).
-# Para actualizar la app: rebuild + redeploy de la imagen.
-# ────────────────────────────────────────────────
+# Base con extensiones PHP (se compila UNA sola vez)
+FROM php:8.2-fpm-alpine AS php_base
 
-# ── Etapa 1: dependencias Composer ───────────────
-FROM composer:latest AS composer_deps
-
-WORKDIR /app
-COPY backend/composer.json backend/composer.lock ./
-
-RUN composer install \
-    --no-dev \
-    --no-interaction \
-    --optimize-autoloader \
-    --no-scripts
-
-# ── Etapa 2: imagen final ─────────────────────────
-FROM php:8.2-fpm-alpine
-
-# Dependencias runtime mínimas
 RUN apk add --no-cache \
     icu-libs \
     libzip \
@@ -29,8 +9,9 @@ RUN apk add --no-cache \
     libxml2 \
     freetype \
     libjpeg-turbo \
-    # Para el entrypoint
     shadow \
+    git \
+    unzip \
     && apk add --no-cache --virtual .build-deps \
     icu-dev \
     libzip-dev \
@@ -39,6 +20,7 @@ RUN apk add --no-cache \
     libxml2-dev \
     freetype-dev \
     libjpeg-turbo-dev \
+    $PHPIZE_DEPS \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo_mysql \
@@ -50,27 +32,37 @@ RUN apk add --no-cache \
     && apk del .build-deps \
     && rm -rf /var/cache/apk/*
 
-# Configuración PHP prod
 COPY docker/php/conf.d/opcache.prod.ini      /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platform.ini
 COPY docker/php/conf.d/www.conf              /usr/local/etc/php/php-fpm.d/zz-app.conf
 COPY docker/php/php.prod.ini                 /usr/local/etc/php/php.ini
 
+# Stage de composer usando la misma base (sin recompilar extensiones)
+FROM php_base AS composer_deps
+
+WORKDIR /app
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY backend/composer.json backend/composer.lock ./
+
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
+    --no-dev \
+    --no-interaction \
+    --prefer-dist \
+    --optimize-autoloader \
+    --no-scripts
+
+# Imagen final
+FROM php_base AS final
+
 WORKDIR /var/www/html
-
-# Código de la aplicación
 COPY backend/ .
-
-# vendor desde etapa composer_deps (sin dev deps, optimizado)
 COPY --from=composer_deps /app/vendor ./vendor
 
-# Permisos: www-data es el usuario de PHP-FPM (definido en www.conf)
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \
     && mkdir -p var/cache var/log \
     && chown -R www-data:www-data var/
 
-# Entrypoint
 COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 

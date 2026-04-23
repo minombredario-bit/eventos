@@ -639,14 +639,21 @@ export class Actividades {
     this.hydratedPreselectionKey.set(null);
 
     this.eventosApi
-      .getSeleccionParticipantes(eventId)
+      .getSeleccionParticipantesFull(eventId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (participantes) => {
+        next: (result) => {
+          const participantes = result.participantes;
           this.preselectedParticipants.set(this.toParticipantReferences(participantes));
           this.loadingPeople.set(false);
 
-          if (shouldLoadLegacyInscripcionesFallback(participantes)) {
+          if (Array.isArray(result.inscripciones) && result.inscripciones.length > 0) {
+            this.hydratedInscripcionId.set(null);
+            this.myInscriptions.set(result.inscripciones);
+            this.loadingInscriptions.set(false);
+            this.hydrateSelectionsFromExistingInscription();
+          } else if (shouldLoadLegacyInscripcionesFallback(participantes)) {
+            // Backend didn't include inscripciones snapshot: fall back to legacy collection fetch
             this.loadMyInscriptions();
           } else {
             this.myInscriptions.set([]);
@@ -687,12 +694,17 @@ export class Actividades {
 
   private refreshSelectionAfterMutation(eventId: string): void {
     this.eventosApi
-      .getSeleccionParticipantes(eventId)
+      .getSeleccionParticipantesFull(eventId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (participantes) => {
+        next: (result) => {
           this.hydratedPreselectionKey.set(null);
-          this.preselectedParticipants.set(this.toParticipantReferences(participantes));
+          this.preselectedParticipants.set(this.toParticipantReferences(result.participantes));
+          // If backend returned inscripciones snapshot, update myInscriptions
+          if (Array.isArray(result.inscripciones) && result.inscripciones.length > 0) {
+            this.hydratedInscripcionId.set(null);
+            this.myInscriptions.set(result.inscripciones);
+          }
           this.reconcileSelectedActivities();
         },
       });

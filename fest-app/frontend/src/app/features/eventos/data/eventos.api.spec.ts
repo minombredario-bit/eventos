@@ -137,3 +137,51 @@ describe('EventosApi guardarSeleccionParticipantes', () => {
     expect(savedCount).toBe(2);
   });
 });
+
+describe('EventosApi getEventosByDateRange parseCollection behavior', () => {
+  let api: EventosApi;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [EventosApi, EventosMapper, { provide: AuthService, useValue: { currentUserId: 'user-1' } }],
+    });
+
+    api = TestBed.inject(EventosApi);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('handles plain array response', (done) => {
+    const mock = [ { id: 'a', fechaEvento: '2026-04-01T00:00:00+02:00', titulo: 'A' } ];
+
+    api.getEventosByDateRange('2026-04-01', '2026-04-30').subscribe((res) => {
+      expect(Array.isArray(res)).toBeTrue();
+      expect(res.length).toBe(1);
+      expect(res[0].id).toBe('a');
+      done();
+    });
+
+    const req = httpMock.expectOne((r) => r.url.includes('/api/eventos'));
+    req.flush(mock);
+  });
+
+  it('handles hydra collection response', (done) => {
+    const mock = { 'hydra:member': [ { id: 'b', fechaEvento: '2026-04-02T00:00:00+02:00', titulo: 'B' } ] };
+
+    api.getEventosByDateRange('2026-04-01', '2026-04-30').subscribe((res) => {
+      expect(Array.isArray(res)).toBeTrue();
+      expect(res.length).toBe(1);
+      expect(res[0].id).toBe('b');
+      done();
+    });
+
+    const req = httpMock.expectOne((r) => r.url.includes('/api/eventos'));
+    req.flush(mock);
+  });
+});
+

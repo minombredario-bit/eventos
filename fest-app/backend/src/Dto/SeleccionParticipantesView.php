@@ -63,4 +63,13 @@ class SeleccionParticipantesView
 
     #[Groups(['seleccion_participantes_evento_endpoint:read'])]
     public ?string $updatedAt = null;
+
+    /**
+     * Inscripciones encontradas para los participantes del evento (se incluye para evitar llamadas adicionales desde
+     * el frontend). Estructura análoga a la salida de /api/inscripcions.
+     *
+     * @var list<array<string, mixed>>
+     */
+    #[Groups(['seleccion_participantes_evento_endpoint:read'])]
+    public array $inscripciones = [];
 }

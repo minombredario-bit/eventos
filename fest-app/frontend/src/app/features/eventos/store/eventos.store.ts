@@ -76,13 +76,13 @@ export class EventosStore {
     );
   }
 
-  loadUpcomingCurrentAndNextMonth(): Observable<void> {
-    const referenceDate = new Date();
+  loadUpcomingCurrentAndNextMonth(referenceDate?: Date): Observable<void> {
+    const referenceDateLocal = referenceDate ?? new Date();
 
-    const startDate = formatDateKey(referenceDate);
+    const startDate = formatDateKey(referenceDateLocal);
     const endOfSecondNextMonth = new Date(
-      referenceDate.getFullYear(),
-      referenceDate.getMonth() + 3,
+      referenceDateLocal.getFullYear(),
+      referenceDateLocal.getMonth() + 3,
       0,
     );
     const endDate = formatDateKey(endOfSecondNextMonth);
@@ -147,8 +147,14 @@ export class EventosStore {
     return this.api.getInvitadosByEvento(eventoId);
   }
 
-  getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccion[]> {
-    return this.api.getSeleccionParticipantes(eventoId);
+  getSeleccionParticipantes(eventoId?: string): Observable<ParticipanteSeleccion[]> {
+    if (!eventoId) {
+      return of([]);
+    }
+
+    return this.api.getSeleccionParticipantesFull(eventoId).pipe(
+      map((r) => r.participantes),
+    );
   }
 
   altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<Invitado> {

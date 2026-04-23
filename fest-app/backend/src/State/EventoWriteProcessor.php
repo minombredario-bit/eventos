@@ -7,6 +7,9 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\ActividadEvento;
 use App\Entity\Evento;
+use App\Enum\CompatibilidadPersonaActividadEnum;
+use App\Enum\FranjaComidaEnum;
+use App\Enum\TipoActividadEnum;
 use App\Repository\ActividadEventoRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -146,17 +149,17 @@ final class EventoWriteProcessor implements ProcessorInterface
         }
         if (isset($data['tipoActividad'])) {
             $actividad->setTipoActividad(
-                \App\Enum\TipoActividadEnum::from($data['tipoActividad'])
+                TipoActividadEnum::from($data['tipoActividad'])
             );
         }
         if (isset($data['franjaComida'])) {
             $actividad->setFranjaComida(
-                \App\Enum\FranjaComidaEnum::from($data['franjaComida'])
+                FranjaComidaEnum::from($data['franjaComida'])
             );
         }
         if (isset($data['compatibilidadPersona'])) {
             $actividad->setCompatibilidadPersona(
-                \App\Enum\CompatibilidadPersonaActividadEnum::from($data['compatibilidadPersona'])
+                CompatibilidadPersonaActividadEnum::from($data['compatibilidadPersona'])
             );
         }
         if (array_key_exists('esDePago', $data)) {

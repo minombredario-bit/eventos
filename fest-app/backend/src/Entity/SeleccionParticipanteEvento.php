@@ -10,6 +10,11 @@ use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Delete;
+use App\State\SeleccionParticipanteEventoPostProcessor;
+use App\State\SeleccionParticipantesEventoDeleteProcessor;
 
 #[ORM\Entity(repositoryClass: SeleccionParticipanteEventoRepository::class)]
 #[ORM\Table(
@@ -26,6 +31,32 @@ use Symfony\Component\Validator\Constraints as Assert;
     ]
 )]
 #[ORM\HasLifecycleCallbacks]
+#[ApiResource(
+    operations: [
+        new Post(
+            security: "is_granted('ROLE_USER')",
+            denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
+            normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
+            processor: SeleccionParticipanteEventoPostProcessor::class,
+        ),
+        // Nested POST for creating a selection under an evento: /eventos/{eventoId}/seleccion_participantes
+        new Post(
+            uriTemplate: '/eventos/{eventoId}/seleccion_participantes',
+            security: "is_granted('ROLE_USER')",
+            denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
+            normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
+            processor: SeleccionParticipanteEventoPostProcessor::class,
+        ),
+        // Nested DELETE for removing selections/inscripciones for the logged user in an evento
+        new Delete(
+            uriTemplate: '/eventos/{eventoId}/seleccion_participantes/{id}',
+            security: "is_granted('ROLE_USER')",
+            processor: SeleccionParticipantesEventoDeleteProcessor::class,
+        ),
+    ],
+    normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
+    denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
+)]
 class SeleccionParticipanteEvento
 {
     #[ORM\Id]

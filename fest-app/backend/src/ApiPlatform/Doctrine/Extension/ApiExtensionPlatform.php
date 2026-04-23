@@ -19,6 +19,7 @@ use App\Entity\Usuario;
 use App\Enum\EstadoEventoEnum;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
 #[AutoconfigureTag('api_platform.doctrine.orm.query_extension.collection')]
@@ -27,6 +28,7 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
 {
     public function __construct(
         private readonly Security $security,
+        private readonly RequestStack $requestStack,
     ) {
     }
 
@@ -37,7 +39,7 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
         ?Operation $operation = null,
         array $context = []
     ): void {
-        $this->addWhere($queryBuilder, $queryNameGenerator, $resourceClass, false);
+        $this->addWhere($queryBuilder, $queryNameGenerator, $resourceClass, false, $operation, $context);
     }
 
     public function applyToItem(
@@ -48,14 +50,16 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
         ?Operation $operation = null,
         array $context = []
     ): void {
-        $this->addWhere($queryBuilder, $queryNameGenerator, $resourceClass, true);
+        $this->addWhere($queryBuilder, $queryNameGenerator, $resourceClass, true, $operation, $context);
     }
 
     private function addWhere(
         QueryBuilder $queryBuilder,
         QueryNameGeneratorInterface $queryNameGenerator,
         string $resourceClass,
-        bool $isItemOperation = false
+        bool $isItemOperation = false,
+        ?Operation $operation = null,
+        array $context = []
     ): void {
         if ($this->security->isGranted('ROLE_SUPERADMIN')) {
             return;
@@ -102,7 +106,7 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
                 break;
 
             case Evento::class:
-                $this->addWhereEvento($queryBuilder, $rootAlias, $entidad);
+                $this->addWhereEvento($queryBuilder, $rootAlias, $entidad, $operation, $context);
                 break;
 
             case Cargo::class:
@@ -154,7 +158,9 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
     private function addWhereEvento(
         QueryBuilder $queryBuilder,
         string $rootAlias,
-        Entidad $entidad
+        Entidad $entidad,
+        ?Operation $operation = null,
+        array $context = []
     ): void {
         $parameterName = 'evento_entidad';
 
@@ -162,13 +168,52 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
             ->andWhere(sprintf('%s.entidad = :%s', $rootAlias, $parameterName))
             ->setParameter($parameterName, $entidad);
 
-        if (!$this->security->isGranted('ROLE_ADMIN_ENTIDAD')) {
+        // If the current user is not admin entidad we always restrict.
+        // If user is ROLE_ADMIN_ENTIDAD we still restrict when the call comes from the "user panel".
+        $isAdminEntidad = $this->security->isGranted('ROLE_ADMIN_ENTIDAD');
+        $calledFromAdminPanel = $this->isCalledFromAdminPanel($operation, $context);
+
+        if (!$isAdminEntidad || ($isAdminEntidad && !$calledFromAdminPanel)) {
             $queryBuilder
                 ->andWhere(sprintf('%s.estado != :%s_publicado', $rootAlias, $parameterName))
                 ->andWhere(sprintf('%s.visible = :%s_visible', $rootAlias, $parameterName))
                 ->setParameter(sprintf('%s_publicado', $parameterName), EstadoEventoEnum::BORRADOR)
                 ->setParameter(sprintf('%s_visible', $parameterName), true);
         }
+    }
+
+    /**
+     * Determina si la petición actual proviene del panel de administrador.
+     * Prioriza la cabecera HTTP 'X-Client-Panel: admin' pero, si el frontend
+     * no la envía, permite como fallback el query param '_panel=admin'.
+     */
+    private function isCalledFromAdminPanel(?Operation $operation, array $context): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+
+        if ($request === null) {
+            return false;
+        }
+
+        // Preferimos la cabecera explícita
+        $header = $request->headers->get('X-Client-Panel');
+        if ($header !== null) {
+            $value = strtolower($header);
+            if (stripos($value, 'panel') !== false || stripos($value, 'admin') !== false) {
+                return true;
+            }
+        }
+
+        // Fallback: query param (útil cuando el cliente no puede añadir cabeceras)
+        $panel = $request->query->get('_panel');
+        if ($panel !== null) {
+            $p = strtolower($panel);
+            if (stripos($p, 'panel') !== false || stripos($p, 'admin') !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function addWhereActividadEvento(

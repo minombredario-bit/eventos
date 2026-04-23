@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { parseCollection } from '../../../core/utils/collection-utils';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { catchError, map, Observable, of, switchMap, throwError } from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
@@ -63,8 +64,8 @@ export class EventosApi {
       .set('order[horaInicio]', 'asc');
 
     return this.http
-      .get<ApiCollection<EventoResumen>>(`${this.apiBaseUrl}/api/eventos`, { params })
-      .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
+      .get<ApiCollection<EventoResumen> | EventoResumen[]>(`${this.apiBaseUrl}/api/eventos`, { params })
+      .pipe(map((r) => parseCollection<EventoResumen>(r as unknown)));
   }
 
   getEventosAdmin(params: EventosAdminParams = {}): Observable<EventosPage> {
@@ -162,8 +163,8 @@ export class EventosApi {
   // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya actividades embebidas.
   getActividadesByEvento(eventoId: string): Observable<ActividadEvento[]> {
     return this.http
-      .get<ApiCollection<ActividadEvento>>(`${this.apiBaseUrl}/api/actividades?evento=${encodeURIComponent(eventoId)}`)
-      .pipe(map((r) => r.member ?? r['hydra:member'] ?? []));
+      .get<ApiCollection<ActividadEvento> | ActividadEvento[]>(`${this.apiBaseUrl}/api/actividades?evento=${encodeURIComponent(eventoId)}`)
+      .pipe(map((r) => parseCollection<ActividadEvento>(r as unknown)));
   }
 
   /**
@@ -192,6 +193,78 @@ export class EventosApi {
     );
   }
 
+  /**
+   * Crear de forma atómica una inscripción (línea) para una sola persona.
+   * Este helper envuelve el endpoint /api/eventos/{id}/inscribirme pero
+   * acepta un participante mínimo ({ id, origen }) y construye el payload
+   * reducido esperado por el backend. Se usa para inscribir "líneas"
+   * individuales en lugar de enviar un PUT con la colección completa.
+   */
+  inscribirParticipanteAtomico(
+    eventoId: string,
+    participante: { id: string; origen: 'familiar' | 'invitado'; actividadId?: string },
+  ): Observable<unknown> {
+    const normalizedId = this.extractResourceId(participante.id).trim();
+    if (!normalizedId) return of(void 0);
+
+    const personaPayload: Record<string, string> =
+      participante.origen === 'invitado'
+        ? { invitado: `/api/invitados/${normalizedId}` }
+        : { usuario: `/api/usuarios/${normalizedId}` };
+
+    // If an actividadId was provided, include it in the payload so the backend
+    // receives both participant and actividad when required by server-side validation.
+    if (participante.actividadId && String(participante.actividadId).trim()) {
+      personaPayload['actividad'] = `/api/actividades/${String(participante.actividadId).trim()}`;
+    }
+
+    return this.http.post(`${this.eventoBasePath(eventoId)}/inscribirme`, { personas: [personaPayload] });
+  }
+
+  /**
+   * Crea una selección de participante (SeleccionParticipanteEvento) para el evento.
+   * Endpoint: POST /api/eventos/{eventoId}/seleccion_participantes
+   */
+  crearSeleccionParticipante(eventoId: string, participante: { id: string; origen: 'familiar' | 'invitado' }): Observable<unknown> {
+    const normalizedId = this.extractResourceId(participante.id).trim();
+    if (!normalizedId) return of(void 0);
+
+    // If the id is a synthetic fallback id (starts with 'nf-'), there is no server
+    // resource to reference — skip the server call and let the client handle local fallback.
+    if (normalizedId.startsWith('nf-')) {
+      return of(void 0);
+    }
+
+    const payload: Record<string, string> =
+      participante.origen === 'invitado'
+        ? { invitado: `/api/invitados/${normalizedId}` }
+        : { usuario: `/api/usuarios/${normalizedId}` };
+
+    return this.http.post(`${this.eventoBasePath(eventoId)}/seleccion_participantes`, payload);
+  }
+
+  /**
+   * POST /api/seleccion_participante_eventos
+   * Inscribe un participante en el evento y devuelve la selección creada con su id.
+   */
+  postSeleccionParticipante(body: Record<string, string>): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(
+      `${this.apiBaseUrl}/api/seleccion_participante_eventos`,
+      body,
+      { headers: new HttpHeaders({ 'Content-Type': 'application/ld+json' }) },
+    );
+  }
+
+  /**
+   * DELETE /api/seleccion_participante_eventos/{id}
+   * Elimina la selección; el processor del backend cancela las líneas sin pago.
+   */
+  deleteSeleccionParticipante(seleccionId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiBaseUrl}/api/seleccion_participante_eventos/${encodeURIComponent(seleccionId)}`,
+    );
+  }
+
   getInscripcionesMias(): Observable<InscripcionResumen[]> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
@@ -201,9 +274,9 @@ export class EventosApi {
     const params = new HttpParams().set('usuario.id', currentUserId.trim());
 
     return this.http
-      .get<ApiCollection<InscripcionResumenCollectionItem>>(`${this.apiBaseUrl}/api/inscripcions`, { params })
+      .get<ApiCollection<InscripcionResumenCollectionItem> | InscripcionResumenCollectionItem[]>(`${this.apiBaseUrl}/api/inscripcions`, { params })
       .pipe(
-        map((r) => r.member ?? r['hydra:member'] ?? []),
+        map((r) => parseCollection<InscripcionResumenCollectionItem>(r as unknown)),
         map((items) => items
           .map((item) => this.toInscripcionResumen(item))
           .filter((item): item is InscripcionResumen => item !== null)),
@@ -219,12 +292,34 @@ export class EventosApi {
     const params = new HttpParams().set('usuario.id', currentUserId.trim());
 
     return this.http
-      .get<ApiCollection<InscripcionCollectionItem>>(`${this.apiBaseUrl}/api/inscripcions`, { params })
+      .get<ApiCollection<InscripcionCollectionItem> | InscripcionCollectionItem[]>(`${this.apiBaseUrl}/api/inscripcions`, { params })
       .pipe(
-        map((r) => r.member ?? r['hydra:member'] ?? []),
+        map((r) => parseCollection<InscripcionCollectionItem>(r as unknown)),
         map((items) => items
           .map((item) => this.toInscripcionCollection(item))
           .filter((item): item is Inscripcion => item !== null)),
+      );
+  }
+
+  /**
+   * Devuelve la respuesta completa de /seleccion_participantes incluyendo participantes
+   * e inscripciones encontradas. Útil para evitar múltiples llamadas desde el cliente.
+   */
+  getSeleccionParticipantesFull(eventoId: string): Observable<{ participantes: ParticipanteSeleccion[]; inscripciones: Inscripcion[] }> {
+    return this.http
+      .get<SeleccionParticipantesResponseApi & { inscripciones?: unknown }>(`${this.eventoBasePath(eventoId)}/seleccion_participantes`)
+      .pipe(
+        map((r) => {
+          const participantes = (Array.isArray(r.participantes) ? r.participantes : [])
+            .map((item) => this.normalizeParticipanteSeleccion(item))
+            .filter((item): item is ParticipanteSeleccion => item !== null);
+
+          const inscripciones = Array.isArray((r as any).inscripciones)
+            ? parseCollection<InscripcionCollectionItem>((r as any).inscripciones as unknown).map((it) => this.toInscripcionCollection(it)).filter((it): it is Inscripcion => it !== null)
+            : [];
+
+          return { participantes, inscripciones };
+        }),
       );
   }
 
@@ -261,14 +356,15 @@ export class EventosApi {
       .set('page', String(Math.max(1, page)));
 
     return this.http
-      .get<EventoApuntadosCollectionResponse>(`${this.eventoBasePath(eventoId)}/apuntados`, { params })
+      .get<EventoApuntadosCollectionResponse | any>(`${this.eventoBasePath(eventoId)}/apuntados`, { params })
       .pipe(map((r) => {
-        const apuntados = (r.member ?? r['hydra:member'] ?? []).map((item) => ({
+        const items = parseCollection<any>(r as unknown);
+        const apuntados = (items ?? []).map((item) => ({
           inscripcionId: String(item.inscripcionId ?? ''),
           nombreCompleto: String(item.nombreCompleto ?? '').trim(),
-          opciones: Array.isArray(item.opciones)
-            ? item.opciones.map((opcion) => String(opcion).trim()).filter(Boolean)
-            : [],
+            opciones: Array.isArray(item.opciones)
+              ? item.opciones.map((opcion: unknown) => String(opcion).trim()).filter(Boolean)
+              : [],
         }));
 
         return {
@@ -313,9 +409,9 @@ export class EventosApi {
 
   getInvitadosByEvento(eventoId: string): Observable<Invitado[]> {
     return this.http
-      .get<ApiCollection<Invitado>>(`${this.eventoBasePath(eventoId)}/invitados`)
+      .get<ApiCollection<Invitado> | Invitado[]>(`${this.eventoBasePath(eventoId)}/invitados`)
       .pipe(
-        map((r) => this.mapper.mapInvitadosList(r.member ?? r['hydra:member'] ?? [], eventoId)),
+        map((r) => this.mapper.mapInvitadosList(parseCollection<Invitado>(r as unknown), eventoId)),
         catchError(() =>
           of(this.mapper.mapInvitadosList(this.readInvitadosFromFallback(eventoId), eventoId)),
         ),
@@ -395,7 +491,7 @@ export class EventosApi {
       )
       .pipe(
         // El PUT puede devolver snapshot reducido; recargamos GET para mantener campos de relación (lineas/pagada).
-        switchMap(() => this.getSeleccionParticipantes(normalizedEventoId)),
+        switchMap(() => this.getSeleccionParticipantesFull(normalizedEventoId).pipe(map((r) => r.participantes))),
       );
   }
 
@@ -403,11 +499,11 @@ export class EventosApi {
 
   getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {
     return this.http
-      .get<ApiCollection<RelacionUsuarioCollectionItem>>(
+      .get<ApiCollection<RelacionUsuarioCollectionItem> | RelacionUsuarioCollectionItem[]>(
         `${this.apiBaseUrl}/api/usuarios/${usuarioId}/relaciones`,
       )
       .pipe(
-        map((r) => r.member ?? r['hydra:member'] ?? []),
+        map((r) => parseCollection<RelacionUsuarioCollectionItem>(r as unknown)),
         map((items) => items
           .map((item) => this.toRelacionUsuario(item))
           .filter((item): item is RelacionUsuario => item !== null)),
@@ -747,14 +843,39 @@ export class EventosApi {
     const usuarioOrigen = this.normalizeRelacionUsuarioNode(item.usuarioOrigen);
     const usuarioDestino = this.normalizeRelacionUsuarioNode(item.usuarioDestino);
 
-    if (!id || !usuarioOrigen.id || !usuarioDestino.id) {
+    // Allow relaciones even if the usuario nodes don't provide an id.
+    // Generate a synthetic id from nombreCompleto when necessary so the UI
+    // can render and track the user (non-persistent).
+    const ensureId = (node: RelacionUsuario['usuarioOrigen']) => {
+      if (node.id && String(node.id).trim().length) return node.id;
+      const name = (node.nombreCompleto ?? `${node.nombre ?? ''} ${node.apellidos ?? ''}`).trim();
+      if (!name) return '';
+      // simple slug: lowercase, remove diacritics, keep alnum and hyphens
+      const slug = name
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      return `nf-${slug}`;
+    };
+
+    const origenId = ensureId(usuarioOrigen);
+    const destinoId = ensureId(usuarioDestino);
+
+    if (!id) {
+      // If relación itself lacks an id, still allow rendering by creating one
+      // from the usuarios involved.
+    }
+
+    if (!origenId || !destinoId) {
       return null;
     }
 
     return {
-      id,
-      usuarioOrigen,
-      usuarioDestino,
+      id: id || `${origenId}--${destinoId}`,
+      usuarioOrigen: { ...usuarioOrigen, id: origenId },
+      usuarioDestino: { ...usuarioDestino, id: destinoId },
       tipoRelacion: String(item.tipoRelacion ?? '').trim() || 'familiar',
       createdAt: String(item.createdAt ?? '').trim(),
     };

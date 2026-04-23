@@ -26,7 +26,9 @@ import {
   toSelectedMemberKeys,
   uniqueParticipantsByKey
 } from '../../domain/detalle.utils';
-import {SelectionSaveRequest} from '../../domain/detalle.models';
+import { SelectionSaveRequest } from '../../domain/detalle.models';
+
+type EnrollmentStatusValue = 'enrolling' | 'removing' | 'enrolled' | 'error';
 
 @Component({
   selector: 'app-detalle',
@@ -77,6 +79,18 @@ export class Detalle {
     this.savingSelection() || this.deletingInvitadoId() !== null,
   );
 
+  /**
+   * Mapa: participantKey → estado de la operación en vuelo.
+   * 'enrolling'  → POST en curso
+   * 'removing'   → DELETE en curso
+   * 'enrolled'   → inscrito (confirmado por el servidor)
+   * 'error'      → la última operación falló
+   */
+  protected readonly enrollmentStatus = signal<Record<string, EnrollmentStatusValue>>({});
+
+  /** participantKey → id de SeleccionParticipanteEvento devuelto por el servidor */
+  protected readonly seleccionIds = signal<Record<string, string>>({});
+
   private readonly selectionSaveRequests$ = new Subject<SelectionSaveRequest>();
 
   // ── Form ──────────────────────────────────────────────────────────────
@@ -93,7 +107,7 @@ export class Detalle {
 
   // ── Derivados ─────────────────────────────────────────────────────────
   protected readonly usuarioLogado = computed<FamilyMember | null>(() => {
-    const user = this.authService.userSignal(); // ← llama al signal, no a getUser()
+    const user = this.authService.userSignal();
     if (!user) return null;
 
     const nombre = user.nombre ?? '';
@@ -127,7 +141,6 @@ export class Detalle {
 
       const activeLines = this.getActiveParticipantLines(inscrito);
       if (inscrito.inscripcionRelacion && activeLines.length === 0) {
-        // Si solo quedan líneas canceladas, el participante ya no debe figurar como inscrito.
         continue;
       }
 
@@ -477,13 +490,14 @@ export class Detalle {
   }
 
   protected participantActionLabel(member: FamilyMember): string {
-    if (this.inscripcionCerrada()) {
-      return '';
-    }
+    if (this.inscripcionCerrada()) return '';
+    if (this.isPaidEnrollmentLocked(member)) return '';
 
-    if (this.isPaidEnrollmentLocked(member)) {
-      return '';
-    }
+    const key    = this.participantKey(member);
+    const status = this.enrollmentStatus()[key];
+
+    if (status === 'enrolling') return 'Inscribiendo…';
+    if (status === 'removing')  return 'Quitando…';
 
     if (member.origin === 'invitado') {
       return this.isMemberSelected(member) ? 'Quitar' : 'Inscribir';
@@ -510,39 +524,36 @@ export class Detalle {
   }
 
   protected isParticipantActionDisabled(member: FamilyMember): boolean {
-    if (this.participantActionsLocked()) {
-      return true;
-    }
+    if (this.participantActionsLocked()) return true;
+    if (this.inscripcionCerrada())       return true;
+    if (this.isPaidEnrollmentLocked(member)) return true;
 
-    if (this.inscripcionCerrada()) {
-      return true;
-    }
-
-    if (this.isPaidEnrollmentLocked(member)) {
-      return true;
-    }
+    const key    = this.participantKey(member);
+    const status = this.enrollmentStatus()[key];
+    if (status === 'enrolling' || status === 'removing') return true;
 
     return member.origin === 'invitado' && this.isDeletingInvitado(member.id);
   }
 
-  protected toggleMemberSelection(member: FamilyMember): void {
-    if (this.inscripcionCerrada()) {
-      return;
-    }
-
-    if (this.isPaidEnrollmentLocked(member)) {
-      return;
-    }
-
-    if (member.origin === 'invitado' && !this.guestManagementEnabled()) {
-      return;
-    }
+  /**
+   * Punto de entrada desde el template cuando el usuario pulsa "Inscribir / Quitar".
+   * Si el miembro NO está seleccionado → POST  (inscribir)
+   * Si el miembro SÍ está seleccionado → DELETE (quitar)
+   */
+  protected toggleMemberEnrollment(member: FamilyMember): void {
+    if (this.inscripcionCerrada()) return;
+    if (this.isPaidEnrollmentLocked(member)) return;
+    if (member.origin === 'invitado' && !this.guestManagementEnabled()) return;
 
     const key = this.participantKey(member);
-    this.selectedMemberIds.update((current) =>
-      current.includes(key) ? current.filter((id) => id !== key) : [...current, key],
-    );
-    this.persistSelectedParticipants();
+    const status = this.enrollmentStatus()[key];
+    if (status === 'enrolling' || status === 'removing') return;
+
+    if (this.isMemberSelected(member)) {
+      this.removeParticipantEnrollment(member);
+    } else {
+      this.addParticipantEnrollment(member);
+    }
   }
 
   protected handleParticipantSecondaryAction(memberId: string): void {
@@ -722,7 +733,6 @@ export class Detalle {
   }
 
   private loadInvitados(eventId: string): void {
-
     this.loadingInvitados.set(true);
 
     this.eventosStore
@@ -930,6 +940,128 @@ export class Detalle {
     ).pipe(map(() => void 0));
   }
 
+  // ── Enrollment POST / DELETE ──────────────────────────────────────────
+
+  /**
+   * POST /api/seleccion_participante_eventos
+   * Inscribe al participante en el evento y actualiza el estado local.
+   */
+  private addParticipantEnrollment(member: FamilyMember): void {
+    const eventId = this.eventId();
+    if (!eventId) return;
+
+    // Ids sintéticos (nf-) solo existen en localStorage, no tienen recurso en el servidor
+    if (member.id.startsWith('nf-')) {
+      return;
+    }
+
+    const key = this.participantKey(member);
+    this.setEnrollmentStatus(key, 'enrolling');
+
+    // La entidad SeleccionParticipanteEvento espera los IRIs en los campos
+    // 'usuario' e 'invitado' — API Platform los hidrata automáticamente.
+    const body: Record<string, string> = {
+      evento: `/api/eventos/${eventId}`,
+    };
+
+    if (member.origin === 'invitado') {
+      body['invitado'] = `/api/invitados/${member.id}`;
+    } else {
+      body['usuario'] = `/api/usuarios/${member.id}`;
+    }
+
+    this.eventosApi
+      .postSeleccionParticipante(body)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (respuesta) => {
+          this.seleccionIds.update((current) => ({ ...current, [key]: respuesta.id }));
+          this.selectedMemberIds.update((current) =>
+            current.includes(key) ? current : [...current, key],
+          );
+          this.setEnrollmentStatus(key, 'enrolled');
+          this.errorMessage.set(null);
+        },
+        error: (error: unknown) => {
+          this.setEnrollmentStatus(key, 'error');
+          this.errorMessage.set(this.resolveSelectionErrorMessage(error));
+        },
+      });
+  }
+
+  /**
+   * DELETE /api/seleccion_participante_eventos/{id}
+   * El processor del backend cancela las InscripcionLineas activas sin pagos.
+   */
+  private removeParticipantEnrollment(member: FamilyMember): void {
+    const key         = this.participantKey(member);
+    const seleccionId = this.seleccionIds()[key];
+
+    if (!seleccionId) {
+      // Sin id de selección en memoria (p.ej. tras recarga), usamos el flujo legacy
+      this.toggleMemberSelection(member);
+      return;
+    }
+
+    this.setEnrollmentStatus(key, 'removing');
+
+    this.eventosApi
+      .deleteSeleccionParticipante(seleccionId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.selectedMemberIds.update((current) => current.filter((id) => id !== key));
+          this.seleccionIds.update((current) => {
+            const updated = { ...current };
+            delete updated[key];
+            return updated;
+          });
+          this.clearEnrollmentStatus(key);
+          this.errorMessage.set(null);
+        },
+        error: (error: unknown) => {
+          this.setEnrollmentStatus(key, 'error');
+          this.errorMessage.set(this.resolveSelectionErrorMessage(error));
+        },
+      });
+  }
+
+  private setEnrollmentStatus(key: string, status: EnrollmentStatusValue): void {
+    this.enrollmentStatus.update((current) => ({ ...current, [key]: status }));
+  }
+
+  private clearEnrollmentStatus(key: string): void {
+    this.enrollmentStatus.update((current) => {
+      const updated = { ...current };
+      delete updated[key];
+      return updated;
+    });
+  }
+
+  // ── toggleMemberSelection (flujo legacy, usado como fallback) ─────────
+
+  protected toggleMemberSelection(member: FamilyMember): void {
+    if (this.inscripcionCerrada()) {
+      return;
+    }
+
+    if (this.isPaidEnrollmentLocked(member)) {
+      return;
+    }
+
+    if (member.origin === 'invitado' && !this.guestManagementEnabled()) {
+      return;
+    }
+
+    const key = this.participantKey(member);
+    this.selectedMemberIds.update((current) =>
+      current.includes(key) ? current.filter((id) => id !== key) : [...current, key],
+    );
+    this.persistSelectedParticipants();
+  }
+
+  // ── Helpers privados ──────────────────────────────────────────────────
+
   private lineBelongsToParticipant(
     inscrito: ParticipanteSeleccion,
     usuarioId?: string,
@@ -998,12 +1130,7 @@ export class Detalle {
   }
 
   private isPaidEnrollmentLocked(member: FamilyMember): boolean {
-    const hasPaidLines = this.findInscritoHasPaidLines(member);
-    if (hasPaidLines) {
-      return true;
-    }
-
-    return false;
+    return this.findInscritoHasPaidLines(member);
   }
 
   private findInscritoHasPaidLines(member: FamilyMember): boolean {

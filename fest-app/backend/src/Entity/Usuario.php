@@ -853,7 +853,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
             $result[] = [
                 'id' => $otro->getId(),
                 'usuario_id' => $otro->getId(),
-                'usuario_nombre' => $otro->getNombre(),
+                'usuario_nombre' => $otro->getNombreCompleto(),
                 'tipoRelacion' => $rel->getTipoRelacion()->value,
             ];
         }

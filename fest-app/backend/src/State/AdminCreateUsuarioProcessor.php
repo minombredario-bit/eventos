@@ -15,6 +15,7 @@ use App\Enum\MetodoPagoEnum;
 use App\Enum\TipoPersonaEnum;
 use App\Enum\TipoRelacionEconomicaEnum;
 use App\Enum\TipoRelacionEnum;
+use App\Repository\TemporadaEntidadRepository;
 use App\Service\EmailQueueService;
 use App\Repository\CargoRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,7 +33,7 @@ final class AdminCreateUsuarioProcessor implements ProcessorInterface
         private readonly EmailQueueService $emailQueueService,
         private readonly string $appUri,
         private readonly CargoRepository $cargoRepository,
-        private readonly \App\Repository\TemporadaEntidadRepository $temporadaEntidadRepository,
+        private readonly TemporadaEntidadRepository $temporadaEntidadRepository,
     ) {
     }
 

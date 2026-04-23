@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { parseCollection } from '../../../core/utils/collection-utils';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
@@ -59,7 +60,7 @@ export class AdminApi {
       .get<ApiCollection<Usuario>>(`${this.apiBaseUrl}/api/usuarios`, { params })
       .pipe(
         map((response) => {
-          const items = response.member ?? response['hydra:member'] ?? [];
+          const items = parseCollection(response as unknown) as unknown as Usuario[];
 
           return {
             items,
@@ -123,8 +124,8 @@ export class AdminApi {
     }
 
     return this.http
-      .get<ApiCollection<EntidadCargo>>(`${this.apiBaseUrl}/api/entidad_cargos`, { params })
-      .pipe(map((response) => response.member ?? response['hydra:member'] ?? []));
+      .get<ApiCollection<EntidadCargo> | EntidadCargo[]>(`${this.apiBaseUrl}/api/entidad_cargos`, { params })
+      .pipe(map((response) => parseCollection<EntidadCargo>(response as unknown)));
   }
 
   getCargos(tipoPersona?: CargoTipoPersona): Observable<Cargo[]> {

@@ -85,7 +85,7 @@ final class ApiCorsSubscriber implements EventSubscriberInterface
         $requestedHeaders = $request->headers->get('Access-Control-Request-Headers');
         $response->headers->set(
             'Access-Control-Allow-Headers',
-            $requestedHeaders ?: 'Content-Type, Authorization, Accept, Origin, X-Requested-With'
+            $requestedHeaders ?: 'Content-Type, Authorization, Accept, Origin, X-Requested-With, X-Client-Panel'
         );
         $response->headers->set('Access-Control-Max-Age', '3600');
     }

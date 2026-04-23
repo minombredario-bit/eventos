@@ -31,7 +31,20 @@ export const adminGuard: CanActivateFn = () => {
   const isAdmin = roles.includes('ROLE_ADMIN_ENTIDAD') || roles.includes('ROLE_SUPERADMIN');
 
   if (isAdmin) {
+    // Marcar en sessionStorage que esta pestaña es panel admin antes de cargar
+    try {
+      sessionStorage.setItem('clientPanel', 'panel');
+    } catch {
+      // noop
+    }
     return true;
+  }
+
+  // Asegurar que no quede la marca si no es admin
+  try {
+    sessionStorage.removeItem('clientPanel');
+  } catch {
+    // noop
   }
 
   return router.createUrlTree(['/eventos/inicio']);
