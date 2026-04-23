@@ -24,7 +24,11 @@
 .content {
   width: min(100%, 720px);
   margin: 0 auto;
-  padding: 1rem 1rem 2rem;
+  /* Añadimos padding-bottom que incluye la altura del bottom nav para
+     evitar que elementos finales (ej. botón Guardar) queden bajo el footer
+     fijo. Usamos la variable global --bottom-nav-height definida en
+     src/styles.scss. */
+  padding: 1rem 1rem calc(var(--bottom-nav-height, 68px) + 1.25rem);
 }
 
 .panel {
@@ -616,7 +620,8 @@ form {
 @media (min-width: 900px) {
   .content {
     width: min(100%, 1100px);
-    padding: 0.75rem 1.5rem 3rem;
+    /* Mantener un padding-bottom suficiente en pantallas grandes también */
+    padding: 0.75rem 1.5rem calc(var(--bottom-nav-height, 68px) + 1.5rem);
   }
 
   .panel {
@@ -688,7 +693,8 @@ form {
 
 @media (max-width: 640px) {
   .content {
-    padding: 0.5rem 0.85rem 1.5rem;
+    /* Ajuste para móviles: evitar que el CTA quede bajo la navegación inferior */
+    padding: 0.5rem 0.85rem calc(var(--bottom-nav-height, 68px) + 0.75rem);
   }
 
   .panel {
