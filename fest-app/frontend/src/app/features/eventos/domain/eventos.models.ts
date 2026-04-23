@@ -373,6 +373,7 @@ export interface EventosAdminParams {
   search?: string;
   monthOnly?: boolean;
   monthKey?: string;   // formato "YYYY-MM"
+  pagination?: boolean;
   page?: number;
   itemsPerPage?: number;
 }

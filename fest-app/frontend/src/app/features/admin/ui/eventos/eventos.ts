@@ -23,7 +23,7 @@ import { EventoAdminListado, EventosPage } from '../../../eventos/domain/eventos
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminEventos {
-  private static readonly PAGE_SIZE = 10;
+  private static readonly PAGE_SIZE = 5;
 
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
@@ -232,6 +232,7 @@ export class AdminEventos {
         search: this.searchTerm(),
         monthOnly: this.monthOnly(),
         monthKey: this.monthOnly() ? getCurrentMonthKey() : undefined,
+        pagination: true,
         page,
         itemsPerPage: AdminEventos.PAGE_SIZE,
       })

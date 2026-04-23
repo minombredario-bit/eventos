@@ -98,7 +98,8 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
     normalizationContext: ['groups' => ['evento:read'], 'enable_max_depth' => 1],
     denormalizationContext: ['groups' => ['evento:write']],
     order: ['fechaEvento' => 'ASC'],
-    paginationClientEnabled: true
+    paginationClientEnabled: true,
+    paginationEnabled: true,
 )]
 #[ApiFilter(DateFilter::class, properties: ['fechaEvento' => DateFilter::EXCLUDE_NULL])]
 #[ApiFilter(SearchFilter::class, properties: [

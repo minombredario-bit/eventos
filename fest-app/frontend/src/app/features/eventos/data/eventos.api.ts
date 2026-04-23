@@ -72,6 +72,7 @@ export class EventosApi {
   getEventosAdmin(params: EventosAdminParams = {}): Observable<EventosPage> {
     const {
       page = 1,
+      pagination = true,
       itemsPerPage = 10,
       search,
       monthOnly,
@@ -79,6 +80,7 @@ export class EventosApi {
     } = params;
 
     let httpParams = new HttpParams()
+      .set('pagination', String(pagination))
       .set('page', String(page))
       .set('itemsPerPage', String(itemsPerPage))
       .set('order[fechaEvento]', 'asc')
@@ -88,32 +90,31 @@ export class EventosApi {
       httpParams = httpParams.set('titulo', search.trim());
     }
 
-    // Filtro por mes en servidor usando DateFilter de API Platform
     if (monthOnly && monthKey) {
       const [year, month] = monthKey.split('-');
       const lastDay = new Date(Number(year), Number(month), 0).getDate();
+
       httpParams = httpParams
-        .set('fechaEvento[after]',  `${monthKey}-01`)
+        .set('fechaEvento[after]', `${monthKey}-01`)
         .set('fechaEvento[before]', `${monthKey}-${String(lastDay).padStart(2, '0')}`);
     }
 
     return this.http
-      .get<EventoListAdminResponse>(`${environment.apiUrl}/eventos`, { params: httpParams })
+      .get<ApiCollection<EventoAdminListado>>(`${environment.apiUrl}/eventos`, {
+        params: httpParams,
+      })
       .pipe(
         map((response) => {
-          const totalItems = Number(
-            (response as unknown as Record<string, unknown>)['hydra:totalItems'] ?? 0
-          );
-          const items = (response.member ?? response['hydra:member'] ?? [])
+          const items = (parseCollection(response as unknown) as EventoAdminListado[])
             .map((item) => this.normalizeEventoListado(item));
 
           return {
             items,
-            totalItems,
+            totalItems: Number(response['hydra:totalItems'] ?? items.length),
             page,
             itemsPerPage,
-            hasNext: page * itemsPerPage < totalItems,
-            hasPrevious: page > 1,
+            hasNext: Boolean(response['hydra:view']?.['hydra:next']),
+            hasPrevious: Boolean(response['hydra:view']?.['hydra:previous']),
           } satisfies EventosPage;
         }),
       );
