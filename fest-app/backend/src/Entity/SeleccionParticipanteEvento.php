@@ -34,17 +34,17 @@ use App\State\SeleccionParticipantesEventoDeleteProcessor;
 #[ApiResource(
     operations: [
         new Post(
-            security: "is_granted('ROLE_USER')",
-            denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
             normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
+            denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
+            security: "is_granted('ROLE_USER')",
             processor: SeleccionParticipanteEventoPostProcessor::class,
         ),
         // Nested POST for creating a selection under an evento: /eventos/{eventoId}/seleccion_participantes
         new Post(
             uriTemplate: '/eventos/{eventoId}/seleccion_participantes',
-            security: "is_granted('ROLE_USER')",
-            denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
             normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
+            denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
+            security: "is_granted('ROLE_USER')",
             processor: SeleccionParticipanteEventoPostProcessor::class,
         ),
         // Nested DELETE for removing selections/inscripciones for the logged user in an evento

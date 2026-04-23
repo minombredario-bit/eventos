@@ -31,7 +31,6 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Get(security: "is_granted('EVENTO_VIEW', object.getEvento())"),
         new GetCollection(security: "is_granted('ROLE_USER')"),
 
-        # explicit uriTemplates (legacy /actividad_eventos)
         new Get(
             uriTemplate: '/actividad_eventos/{id}',
             security: "is_granted('EVENTO_VIEW', object.getEvento())"

@@ -1,16 +1,16 @@
 import { Injectable, computed, signal } from '@angular/core';
-import {AuthUser, JwtPayload, LoginResponse, PersistedAuthState} from '../models/auth.models';
+import {
+  AuthUser,
+  JwtPayload,
+  LoginResponse,
+  PersistedAuthState,
+} from '../models/auth.models';
 
 type SessionResponse = Pick<LoginResponse, 'token'> & { user?: AuthUser };
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private readonly storageKey = 'auth.session';
-
-  // claves legacy, solo para migración/limpieza
-  private readonly legacyStorageKey = 'auth.token';
-  private readonly legacyStorageTokenKey = 'auth.session.token';
-  private readonly legacyStorageUserKey = 'auth.session.user';
 
   private readonly _token = signal<string | null>(null);
   private readonly _user = signal<AuthUser | null>(null);
@@ -19,7 +19,8 @@ export class AuthStore {
   readonly user = computed(() => this._user());
   readonly isAuthenticated = computed(() => {
     const token = this._token();
-    return Boolean(token && !this.isTokenExpired(token));
+    const user = this._user();
+    return Boolean(token && user && !this.isTokenExpired(token));
   });
 
   constructor() {
@@ -32,8 +33,7 @@ export class AuthStore {
       return;
     }
 
-    const user = response.user ?? this.decodeUserFromToken(response.token);
-
+    const user = this.resolveUser(response.token, response.user);
     if (!user) {
       this.logout();
       return;
@@ -72,6 +72,10 @@ export class AuthStore {
     return this._token();
   }
 
+  private resolveUser(token: string, user?: AuthUser | null): AuthUser | null {
+    return user ?? this.decodeUserFromToken(token);
+  }
+
   private decodeJwtPayload(token: string): JwtPayload | null {
     try {
       const payloadPart = token.split('.')[1];
@@ -81,9 +85,11 @@ export class AuthStore {
 
       const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
       const padding = '='.repeat((4 - (base64.length % 4)) % 4);
-      const decoded = atob(base64 + padding);
+      const binary = atob(base64 + padding);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      const json = new TextDecoder().decode(bytes);
 
-      return JSON.parse(decoded) as JwtPayload;
+      return JSON.parse(json) as JwtPayload;
     } catch {
       return null;
     }
@@ -121,8 +127,6 @@ export class AuthStore {
       debeCambiarPassword: Boolean(decoded.debeCambiarPassword ?? false),
       fechaNacimiento: normalizeNullableString(decoded.fechaNacimiento),
       roles: normalizeStringArray(decoded.roles),
-      nombreEntidad: undefined,
-      tipoEntidad: undefined,
     };
   }
 
@@ -132,77 +136,34 @@ export class AuthStore {
     }
 
     const rawState = localStorage.getItem(this.storageKey);
-
-    if (rawState) {
-      try {
-        const state = JSON.parse(rawState) as PersistedAuthState;
-
-        if (!state.token || this.isTokenExpired(state.token)) {
-          this.logout();
-          return;
-        }
-
-        this._token.set(state.token);
-        this._user.set(state.user);
-        return;
-      } catch {
-        this.removeFromStorage();
-        return;
-      }
-    }
-
-    // migración desde formato antiguo
-    const rawLegacyState = localStorage.getItem(this.legacyStorageKey);
-    const rawLegacyToken = localStorage.getItem(this.legacyStorageTokenKey);
-    const rawLegacyUser = localStorage.getItem(this.legacyStorageUserKey);
-
-    if (!rawLegacyState && !rawLegacyToken) {
+    if (!rawState) {
+      this.logout();
       return;
     }
 
     try {
-      let state: PersistedAuthState | null = null;
+      const state = JSON.parse(rawState) as Partial<PersistedAuthState>;
 
-      if (rawLegacyState) {
-        const parsed = JSON.parse(rawLegacyState) as Partial<PersistedAuthState>;
-
-        if (
-          typeof parsed.token === 'string' &&
-          parsed.token &&
-          parsed.user &&
-          typeof parsed.user === 'object'
-        ) {
-          state = {
-            token: parsed.token,
-            user: parsed.user as AuthUser,
-          };
-        }
+      if (!state.token || this.isTokenExpired(state.token)) {
+        this.logout();
+        return;
       }
 
-      if (!state && rawLegacyToken && rawLegacyUser) {
-        state = {
-          token: rawLegacyToken,
-          user: JSON.parse(rawLegacyUser) as AuthUser,
-        };
-      }
-
-      if (!state || !state.token || this.isTokenExpired(state.token)) {
+      const user = state.user ?? this.decodeUserFromToken(state.token);
+      if (!user) {
         this.logout();
         return;
       }
 
       this._token.set(state.token);
-      this._user.set(state.user);
+      this._user.set(user);
 
-      // migrar a la nueva clave única
-      this.persistToStorage(state);
-
-      // limpiar claves antiguas
-      localStorage.removeItem(this.legacyStorageKey);
-      localStorage.removeItem(this.legacyStorageTokenKey);
-      localStorage.removeItem(this.legacyStorageUserKey);
+      this.persistToStorage({
+        token: state.token,
+        user,
+      });
     } catch {
-      this.removeFromStorage();
+      this.logout();
     }
   }
 
@@ -212,11 +173,6 @@ export class AuthStore {
     }
 
     localStorage.setItem(this.storageKey, JSON.stringify(state));
-
-    // limpieza defensiva de claves antiguas
-    localStorage.removeItem(this.legacyStorageKey);
-    localStorage.removeItem(this.legacyStorageTokenKey);
-    localStorage.removeItem(this.legacyStorageUserKey);
   }
 
   private removeFromStorage(): void {
@@ -225,9 +181,6 @@ export class AuthStore {
     }
 
     localStorage.removeItem(this.storageKey);
-    localStorage.removeItem(this.legacyStorageKey);
-    localStorage.removeItem(this.legacyStorageTokenKey);
-    localStorage.removeItem(this.legacyStorageUserKey);
   }
 
   private isTokenExpired(token: string): boolean {

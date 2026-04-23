@@ -108,7 +108,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
         $response = new SeleccionParticipantesView();
         $response->eventoId = $evento->getId();
-        $response->participantes = $this->buildParticipantesSeleccionResponse($evento->getId(), $participantes, $evento, $user, $inscripcionesPorUsuario, $inscripcionesPorInvitado);
+        $response->participantes = $this->buildParticipantesSeleccionResponse($participantes, $evento, $user, $inscripcionesPorUsuario, $inscripcionesPorInvitado);
         $response->updatedAt = $this->resolveUpdatedAtFromGranular($seleccionGranular);
 
         // Include current user's inscripcion snapshot (if any)
@@ -206,8 +206,13 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
      * @param array<string, Inscripcion> $inscripcionesPorUsuario
      * @param array<string, Inscripcion> $inscripcionesPorInvitado
      */
-    private function buildParticipantesSeleccionResponse(string $eventoId, array $participantes, Evento $evento, Usuario $user, array $inscripcionesPorUsuario = [], array $inscripcionesPorInvitado = []): array
-    {
+    private function buildParticipantesSeleccionResponse(
+        array $participantes,
+        Evento $evento,
+        Usuario $user,
+        array $inscripcionesPorUsuario = [],
+        array $inscripcionesPorInvitado = []
+    ): array {
         $response = [];
 
         foreach ($participantes as $participante) {
@@ -217,6 +222,9 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
             $origen = $this->normalizeOrigen($participante['origen'] ?? null);
             $participanteId = $this->normalizeParticipanteId($participante['id'] ?? null);
+            $seleccionId = is_string($participante['seleccionId'] ?? null)
+                ? trim((string) $participante['seleccionId'])
+                : null;
 
             if ($participanteId === '') {
                 continue;
@@ -225,6 +233,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             $item = [
                 'id' => $participanteId,
                 'origen' => $origen,
+                'seleccionId' => $seleccionId !== '' ? $seleccionId : null,
             ];
 
             if ($origen === 'familiar') {

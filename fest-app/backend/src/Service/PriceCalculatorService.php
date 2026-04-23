@@ -11,7 +11,6 @@ use App\Enum\EstadoValidacionEnum;
 class PriceCalculatorService
 {
     /**
-     * Compatibilidad legacy (ES):
      * Mantiene firma histórica calcularPrecio(ActividadEvento, Usuario).
      */
     public function calcularPrecio(ActividadEvento $actividad, Usuario $usuario): float
@@ -105,8 +104,6 @@ class PriceCalculatorService
     }
 
     /**
-     * Compatibilidad legacy (ES):
-     * Acepta líneas en formato de test legacy:
      * [ ['actividad' => ActividadEvento, 'persona' => Usuario], ... ]
      *
      * También soporta líneas de dominio con métodos getEstadoLinea/getPrecioUnitario.
@@ -116,7 +113,6 @@ class PriceCalculatorService
         $total = 0.0;
 
         foreach ($lineas as $linea) {
-            // Formato legacy de tests
             if (is_array($linea) && isset($linea['actividad'], $linea['persona'])
                 && $linea['actividad'] instanceof ActividadEvento
                 && $linea['persona'] instanceof Usuario

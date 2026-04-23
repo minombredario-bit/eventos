@@ -36,24 +36,7 @@ class InscripcionServicePayloadAliasTest extends TestCase
         $service->crearInscripcion('evento-1', 'user-1', [[
             'usuario' => '/api/usuarios/user-1',
             'actividad' => '/api/actividad_eventos/actividad-prioritaria',
-            'menu' => '/api/actividad_eventos/actividad-legacy',
-        ]]);
-    }
-
-    public function testCrearInscripcionAcceptsLegacyMenuPayloadWhenActividadIsMissing(): void
-    {
-        $actividadRepo = $this->createMock(ActividadEventoRepository::class);
-        $actividadRepo->expects($this->never())
-            ->method('find');
-
-        $service = $this->buildService($actividadRepo);
-
-        $this->expectException(BadRequestHttpException::class);
-        $this->expectExceptionMessage('Se requiere usuario/invitado y actividad');
-
-        $service->crearInscripcion('evento-1', 'user-1', [[
-            'usuario' => '/api/usuarios/user-1',
-            'menu' => '/api/actividad_eventos/actividad-legacy',
+            'menu' => '/api/actividad_eventos/actividad',
         ]]);
     }
 
@@ -73,24 +56,7 @@ class InscripcionServicePayloadAliasTest extends TestCase
         $service->crearInscripcion('evento-1', 'user-1', [[
             'usuario' => '/api/usuarios/user-1',
             'actividad_id' => 'actividad-id-prioritaria',
-            'menu_id' => 'actividad-id-legacy',
-        ]]);
-    }
-
-    public function testCrearInscripcionAcceptsLegacyMenuIdPayloadWhenActividadIdIsMissing(): void
-    {
-        $actividadRepo = $this->createMock(ActividadEventoRepository::class);
-        $actividadRepo->expects($this->never())
-            ->method('find');
-
-        $service = $this->buildService($actividadRepo);
-
-        $this->expectException(BadRequestHttpException::class);
-        $this->expectExceptionMessage('Se requiere usuario/invitado y actividad');
-
-        $service->crearInscripcion('evento-1', 'user-1', [[
-            'usuario' => '/api/usuarios/user-1',
-            'menu_id' => 'actividad-id-legacy',
+            'menu_id' => 'actividad-id',
         ]]);
     }
 
@@ -110,7 +76,7 @@ class InscripcionServicePayloadAliasTest extends TestCase
         $service->crearInscripcion('evento-1', 'user-1', [[
             'usuario' => '/api/usuarios/user-1',
             'actividad' => '/api/actividad_eventos/actividad-prioritaria',
-            'menu_id' => 'actividad-id-legacy',
+            'menu_id' => 'actividad-id',
         ]]);
     }
 

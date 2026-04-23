@@ -1,6 +1,4 @@
-import {Injectable, signal} from '@angular/core';
-
-export type TipoEntidad = 'Falla' | 'Comparsa';
+export type TipoEntidad = 'falla' | 'comparsa';
 
 export interface AuthUser {
   id?: string | number;
@@ -41,6 +39,7 @@ export interface PersistedAuthState {
 }
 
 export interface JwtPayload {
+  iat?: number;
   exp?: number;
   sub?: string;
   id?: string | number;
@@ -56,4 +55,6 @@ export interface JwtPayload {
   debeCambiarPassword?: boolean;
   fechaNacimiento?: string | null;
   roles?: string[];
+  nombreEntidad?: string;
+  tipoEntidad?: TipoEntidad | null;
 }

@@ -9,7 +9,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
  * Voter para controlar acceso a Entidades.
- * 
+ *
  * Atributos:
  * - VIEW: Ver entidad
  * - EDIT: Editar entidad (solo superadmin)
@@ -21,19 +21,13 @@ class EntidadVoter extends Voter
     public const EDIT = 'ENTIDAD_EDIT';
     public const DELETE = 'ENTIDAD_DELETE';
 
-    private const LEGACY_VIEW = 'VIEW';
-    private const LEGACY_EDIT = 'EDIT';
-    private const LEGACY_DELETE = 'DELETE';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
         return in_array($attribute, [
             self::VIEW,
             self::EDIT,
-            self::DELETE,
-            self::LEGACY_VIEW,
-            self::LEGACY_EDIT,
-            self::LEGACY_DELETE,
+            self::DELETE
         ], true)
             && $subject instanceof Entidad;
     }
@@ -41,7 +35,7 @@ class EntidadVoter extends Voter
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
     {
         $user = $token->getUser();
-        
+
         if (!$user instanceof Usuario) {
             return false;
         }
@@ -50,9 +44,9 @@ class EntidadVoter extends Voter
         $entidad = $subject;
 
         return match ($attribute) {
-            self::VIEW, self::LEGACY_VIEW => $this->canView($entidad, $user),
-            self::EDIT, self::LEGACY_EDIT => $this->canEdit($entidad, $user),
-            self::DELETE, self::LEGACY_DELETE => $this->canDelete($entidad, $user),
+            self::VIEW => $this->canView($entidad, $user),
+            self::EDIT => $this->canEdit($entidad, $user),
+            self::DELETE => $this->canDelete($entidad, $user),
             default => false,
         };
     }

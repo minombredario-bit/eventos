@@ -606,33 +606,6 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
         $linea->setInscripcionLinea($data['inscripcionLinea']);
     }
 
-    /**
-     * @param list<SeleccionParticipanteEvento> $selecciones
-     * @return list<array{id: string, origen: string}>
-     */
-    private function buildLegacySnapshotFromPrincipal(array $selecciones): array
-    {
-        $participantes = [];
-
-        foreach ($selecciones as $seleccion) {
-            $origen = $seleccion->getInvitado() !== null ? 'invitado' : 'familiar';
-            $participanteId = $origen === 'invitado'
-                ? (string) $seleccion->getInvitado()?->getId()
-                : (string) $seleccion->getUsuario()?->getId();
-
-            if ($participanteId === '') {
-                continue;
-            }
-
-            $participantes[] = [
-                'id' => $participanteId,
-                'origen' => $origen,
-            ];
-        }
-
-        return $participantes;
-    }
-
     private function buildPrincipalKeyFromEntity(SeleccionParticipanteEvento $seleccion): string
     {
         $origen = $seleccion->getInvitado() !== null ? 'invitado' : 'familiar';

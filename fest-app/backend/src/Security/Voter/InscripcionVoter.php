@@ -31,10 +31,6 @@ class InscripcionVoter extends Voter
     public const EDIT = 'INSCRIPCION_EDIT';
     public const DELETE = 'INSCRIPCION_DELETE';
 
-    private const LEGACY_VIEW = 'VIEW';
-    private const LEGACY_EDIT = 'EDIT';
-    private const LEGACY_DELETE = 'DELETE';
-
     protected function supports(string $attribute, mixed $subject): bool
     {
         return $subject instanceof Inscripcion
@@ -58,9 +54,9 @@ class InscripcionVoter extends Voter
         $isSuperadmin = in_array('ROLE_SUPERADMIN', $roles, true);
 
         return match ($normalizedAttribute) {
-            self::VIEW, self::LEGACY_VIEW => $this->canView($inscripcion, $user, $isAdminEntidad || $isSuperadmin),
-            self::EDIT, self::LEGACY_EDIT => $this->canEdit($isAdminEntidad || $isSuperadmin),
-            self::DELETE, self::LEGACY_DELETE => $this->canDelete($isAdminEntidad || $isSuperadmin),
+            self::VIEW => $this->canView($inscripcion, $user, $isAdminEntidad || $isSuperadmin),
+            self::EDIT => $this->canEdit($isAdminEntidad || $isSuperadmin),
+            self::DELETE => $this->canDelete($isAdminEntidad || $isSuperadmin),
             default => false,
         };
     }
@@ -164,9 +160,6 @@ class InscripcionVoter extends Voter
             self::VIEW => self::VIEW,
             self::EDIT => self::EDIT,
             self::DELETE => self::DELETE,
-            self::LEGACY_VIEW => self::LEGACY_VIEW,
-            self::LEGACY_EDIT => self::LEGACY_EDIT,
-            self::LEGACY_DELETE => self::LEGACY_DELETE,
             default => null,
         };
     }

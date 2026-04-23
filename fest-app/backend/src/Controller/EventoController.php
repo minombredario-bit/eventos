@@ -34,7 +34,7 @@ class EventoController extends AbstractController
     /**
      * Get activities for an event (legacy endpoint name preserved).
      */
-    #[Route('/actividad_eventos', name: 'api_actividad_eventos_by_evento', methods: ['GET'])]
+//    #[Route('/actividad_eventos', name: 'api_actividad_eventos_by_evento', methods: ['GET'])]
     public function actividades(Request $request): JsonResponse
     {
         $eventoId = $request->query->get('evento');
@@ -162,14 +162,6 @@ class EventoController extends AbstractController
         ]);
     }
 
-    /**
-     * Alias legacy: mantener temporalmente para clientes antiguos.
-     */
-    public function getInvitadosLegacyAlias(string $id): JsonResponse
-    {
-        return $this->getInvitados($id);
-    }
-
     public function getParticipantesExternos(string $id): JsonResponse
     {
         return $this->getInvitados($id);
@@ -234,8 +226,6 @@ class EventoController extends AbstractController
 
         return preg_replace('/\s+/', ' ', $nombreCompleto) ?? '';
     }
-
-    // Legacy payload detection removed — only canonical payload keys accepted now.
 
     /**
      * @return list<array{inscripcionId: string, nombreCompleto: string, opciones: list<string>}>

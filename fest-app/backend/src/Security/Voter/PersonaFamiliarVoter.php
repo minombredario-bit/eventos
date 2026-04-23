@@ -21,26 +21,12 @@ class PersonaFamiliarVoter extends Voter
     public const EDIT = 'RELACION_EDIT';
     public const DELETE = 'RELACION_DELETE';
 
-    private const LEGACY_PERSONA_VIEW = 'PERSONA_FAMILIAR_VIEW';
-    private const LEGACY_PERSONA_EDIT = 'PERSONA_FAMILIAR_EDIT';
-    private const LEGACY_PERSONA_DELETE = 'PERSONA_FAMILIAR_DELETE';
-
-    private const LEGACY_VIEW = 'VIEW';
-    private const LEGACY_EDIT = 'EDIT';
-    private const LEGACY_DELETE = 'DELETE';
-
     protected function supports(string $attribute, mixed $subject): bool
     {
         return in_array($attribute, [
             self::VIEW,
             self::EDIT,
-            self::DELETE,
-            self::LEGACY_PERSONA_VIEW,
-            self::LEGACY_PERSONA_EDIT,
-            self::LEGACY_PERSONA_DELETE,
-            self::LEGACY_VIEW,
-            self::LEGACY_EDIT,
-            self::LEGACY_DELETE,
+            self::DELETE
         ], true)
             && $subject instanceof RelacionUsuario;
     }
@@ -57,9 +43,9 @@ class PersonaFamiliarVoter extends Voter
         $relacion = $subject;
 
         return match ($attribute) {
-            self::VIEW, self::LEGACY_PERSONA_VIEW, self::LEGACY_VIEW => $this->canView($relacion, $user),
-            self::EDIT, self::LEGACY_PERSONA_EDIT, self::LEGACY_EDIT => $this->canEdit($relacion, $user),
-            self::DELETE, self::LEGACY_PERSONA_DELETE, self::LEGACY_DELETE => $this->canDelete($relacion, $user),
+            self::VIEW => $this->canView($relacion, $user),
+            self::EDIT => $this->canEdit($relacion, $user),
+            self::DELETE => $this->canDelete($relacion, $user),
             default => false,
         };
     }
