@@ -50,6 +50,22 @@ if [ $MIGRATION_EXIT -ne 0 ]; then
     echo "[entrypoint] AVISO: migraciones fallaron (exit $MIGRATION_EXIT) — continuando"
 fi
 
+# ── JWT keys ─────────────────────────────────────
+echo "[entrypoint] Verificando claves JWT..."
+
+mkdir -p config/jwt
+
+if [ ! -f config/jwt/private.pem ] || [ ! -f config/jwt/public.pem ]; then
+    echo "[entrypoint] Generando claves JWT..."
+
+    run_as_www_data 'php bin/console lexik:jwt:generate-keypair --skip-if-exists --no-interaction'
+else
+    echo "[entrypoint] Claves JWT OK"
+fi
+
+chown -R www-data:www-data config/jwt
+chmod 640 config/jwt/*.pem 2>/dev/null || true
+
 # ── Superadmin ────────────────────────────────────────────────
 echo "[entrypoint] Verificando superadmin..."
 set +e

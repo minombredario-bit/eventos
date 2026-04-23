@@ -57,8 +57,9 @@ COPY --from=composer_deps /app/vendor ./vendor
 
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \
-    && mkdir -p var/cache var/log \
-    && chown -R www-data:www-data var/
+    && mkdir -p var/cache var/log config/jwt \
+    && chown -R www-data:www-data var/ config/jwt \
+    && chmod 775 config/jwt
 
 COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

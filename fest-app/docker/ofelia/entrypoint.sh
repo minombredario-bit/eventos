@@ -36,5 +36,5 @@ fi
 echo "[ofelia] Config generada — alertas de error → ${MAIL_TO}"
 echo "[ofelia] SMTP: ${SMTP_HOST}:${SMTP_PORT}"
 
-exec /usr/local/bin/ofelia daemon --docker --config "${CONFIG_FILE}"
+exec ofelia daemon --docker --config "${CONFIG_FILE}"
 
