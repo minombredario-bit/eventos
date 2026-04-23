@@ -34,7 +34,7 @@ class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('No autenticado.');
         }
 
-        // ── 1. Resolver Evento ────────────────────────────────────────────
+        // 1. Resolver Evento
         // API Platform hidrata getEvento() cuando el cliente envía el IRI.
         // Para la ruta anidada /eventos/{eventoId}/seleccion_participantes
         // leemos el id de uriVariables como fallback.
@@ -53,20 +53,20 @@ class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
             $data->setEvento($evento);
         }
 
-        // ── 2. Verificar entidad ──────────────────────────────────────────
+        // 2. Verificar entidad
         if ($evento->getEntidad()->getId() !== $user->getEntidad()->getId()) {
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        // ── 3. Verificar inscripción abierta ──────────────────────────────
+        // 3. Verificar inscripción abierta
         if (!$evento->estaInscripcionAbierta()) {
             throw new BadRequestHttpException('La inscripción para este evento está cerrada.');
         }
 
-        // ── 4. Forzar inscritoPorUsuario al usuario autenticado ───────────
+        // 4. Forzar inscritoPorUsuario al usuario autenticado
         $data->setInscritoPorUsuario($user);
 
-        // ── 5. Validar participante único ─────────────────────────────────
+        // 5. Validar participante único
         // API Platform hidrata getUsuario() / getInvitado() desde el IRI enviado
         // en el cuerpo antes de llamar al processor.
         $tieneUsuario  = $data->getUsuario() !== null;
@@ -80,7 +80,7 @@ class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
             throw new BadRequestHttpException('Solo se puede indicar un participante por selección.');
         }
 
-        // ── 6. Verificar pertenencia del participante ─────────────────────
+        // 6. Verificar pertenencia del participante
         if ($tieneUsuario) {
             if ($data->getUsuario()->getEntidad()->getId() !== $user->getEntidad()->getId()) {
                 throw new AccessDeniedHttpException('No tienes acceso a este participante.');
@@ -93,7 +93,7 @@ class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
             }
         }
 
-        // ── 7. Persistir ──────────────────────────────────────────────────
+        // 7. Persistir
         $this->entityManager->persist($data);
         $this->entityManager->flush();
 

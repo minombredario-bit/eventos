@@ -423,9 +423,12 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             }
 
             $seen[$clave] = true;
+            // Include the SeleccionParticipanteEvento id so the frontend can
+            // reference the exact selection resource for DELETE operations.
             $participantes[] = [
                 'id' => $participanteId,
                 'origen' => $origen,
+                'seleccionId' => $seleccion->getId(),
             ];
         }
 

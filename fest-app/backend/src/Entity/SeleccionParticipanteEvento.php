@@ -73,7 +73,6 @@ class SeleccionParticipanteEvento
     #[ORM\ManyToOne(targetEntity: Usuario::class)]
     #[ORM\JoinColumn(name: 'inscrito_por_usuario_id', nullable: false, onDelete: 'RESTRICT')]
     #[Groups(['seleccion_participante_evento:read', 'seleccion_participante_evento:write'])]
-    #[Assert\NotNull]
     private Usuario $inscritoPorUsuario;
 
     #[ORM\ManyToOne(targetEntity: Usuario::class)]

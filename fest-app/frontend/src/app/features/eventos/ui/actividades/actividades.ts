@@ -908,47 +908,70 @@ export class Actividades {
       .map<ParticipantReference>((item) => {
         const nombreCompleto = `${item.nombre ?? ''} ${item.apellidos ?? ''}`.trim();
 
+        // Prefer actividadesSeleccionadas provided in the participante payload
+        // to build relationLines used for hydrating selected activities in the UI.
+        const actividadesSeleccionadas = (item as any).actividadesSeleccionadas;
+
+        const relationLinesSource = Array.isArray(actividadesSeleccionadas) && actividadesSeleccionadas.length > 0
+          ? actividadesSeleccionadas.map((act: any) => ({
+            // synthetic line id to track client-side selection
+            id: act.id ?? '',
+            actividadId: act.id ?? '',
+            nombreActividadSnapshot: act.nombre ?? '',
+            franjaComidaSnapshot: act.franjaComida ?? null,
+            estadoLinea: act.inscrito ? 'pendiente' : 'pendiente',
+            pagada: Boolean(act.pagada ?? false),
+            precioUnitario: act.price ?? 0,
+            usuarioId: item.origen === 'familiar' ? item.id : null,
+            invitadoId: item.origen === 'invitado' ? item.id : null,
+          }))
+          : (item.inscripcionRelacion?.lineas ?? []);
+
+        const relationSummary = item.inscripcionRelacion
+          ? {
+            id: String(item.inscripcionRelacion.id ?? '').trim(),
+            codigo: String(item.inscripcionRelacion.codigo ?? '').trim(),
+            estadoPago: String(item.inscripcionRelacion.estadoPago ?? '').trim() || 'pendiente',
+            totalLineas: Number(item.inscripcionRelacion.totalLineas ?? 0),
+            totalPagado: Number(item.inscripcionRelacion.totalPagado ?? 0),
+          }
+          : undefined;
+
+        const relationLines = (relationLinesSource ?? [])
+          .filter((linea: any) => {
+            const usuarioLinea = String((linea as { usuarioId?: string }).usuarioId ?? '').trim();
+            const invitadoLinea = String((linea as { invitadoId?: string }).invitadoId ?? '').trim();
+
+            if (!usuarioLinea && !invitadoLinea) {
+              return true;
+            }
+
+            return item.origen === 'invitado'
+              ? invitadoLinea === item.id
+              : usuarioLinea === item.id;
+          })
+          .map((linea: any) => ({
+            lineId: String(linea.id ?? linea.lineId ?? '').trim(),
+            inscripcionId: String(item.inscripcionRelacion?.id ?? linea.inscripcionId ?? '').trim(),
+            actividadId: String(linea.actividadId ?? linea.actividadId ?? '').trim(),
+            actividadLabel: String(linea.nombreActividadSnapshot ?? linea.nombre ?? '').trim(),
+            slot: this.normalizeMealSlot(linea.franjaComidaSnapshot ?? linea.franjaComida ?? undefined),
+            estadoLinea: String(linea.estadoLinea ?? '').trim(),
+            pagada: Boolean((linea as { pagada?: unknown }).pagada),
+            price: Number(linea.precioUnitario ?? linea.price ?? 0),
+          }))
+          .filter((linea): linea is ParticipantRelationLine =>
+            Boolean(linea.lineId && linea.actividadId && linea.slot),
+          );
+
         return {
           id: item.id,
           origin: item.origen === 'invitado' ? 'invitado' : 'familiar',
           name: nombreCompleto || undefined,
           personType: item.tipoPersona === 'infantil' ? 'infantil' : 'adulto',
           enrollment: this.toEnrollmentFromRelacion(item),
-          relationSummary: item.inscripcionRelacion
-            ? {
-              id: String(item.inscripcionRelacion.id ?? '').trim(),
-              codigo: String(item.inscripcionRelacion.codigo ?? '').trim(),
-              estadoPago: String(item.inscripcionRelacion.estadoPago ?? '').trim() || 'pendiente',
-              totalLineas: Number(item.inscripcionRelacion.totalLineas ?? 0),
-              totalPagado: Number(item.inscripcionRelacion.totalPagado ?? 0),
-            }
-            : undefined,
-          relationLines: (item.inscripcionRelacion?.lineas ?? [])
-            .filter((linea) => {
-              const usuarioLinea = String((linea as { usuarioId?: string }).usuarioId ?? '').trim();
-              const invitadoLinea = String((linea as { invitadoId?: string }).invitadoId ?? '').trim();
-
-              if (!usuarioLinea && !invitadoLinea) {
-                return true;
-              }
-
-              return item.origen === 'invitado'
-                ? invitadoLinea === item.id
-                : usuarioLinea === item.id;
-            })
-            .map((linea) => ({
-              lineId: String(linea.id ?? '').trim(),
-              inscripcionId: String(item.inscripcionRelacion?.id ?? '').trim(),
-              actividadId: String(linea.actividadId ?? '').trim(),
-              actividadLabel: String(linea.nombreActividadSnapshot ?? '').trim(),
-              slot: this.normalizeMealSlot(linea.franjaComidaSnapshot),
-              estadoLinea: String(linea.estadoLinea ?? '').trim(),
-              pagada: Boolean((linea as { pagada?: unknown }).pagada),
-              price: Number(linea.precioUnitario ?? 0),
-            }))
-            .filter((linea): linea is ParticipantRelationLine =>
-              Boolean(linea.lineId && linea.actividadId && linea.slot),
-            ),
+          relationSummary,
+          relationLines,
         };
       })
       .filter((p) => {
@@ -1169,6 +1192,10 @@ export class Actividades {
     for (const participant of this.preselectedParticipants()) {
       for (const line of participant.relationLines ?? []) {
         if (line.estadoLinea === 'cancelada') continue;
+        // Ignore client-only/synthetic lines that don't belong to a persisted inscripcion.
+        // Those lines can carry actividad ids for client tracking and must not be
+        // considered "existing" server-side lines to be deleted/updated.
+        if (!line.inscripcionId) continue;
         keys.set(
           this.buildSelectionKey(participant.id, participant.origin, line.slot, line.actividadId),
           { inscripcionId: line.inscripcionId, lineId: line.lineId, actividadId: line.actividadId },

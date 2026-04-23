@@ -102,7 +102,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['usuario:read', 'usuario:list', 'usuario:collection'])]
+    #[Groups(['usuario:read', 'usuario:list', 'usuario:collection', 'relacion:read'])]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: Entidad::class, inversedBy: 'usuarios')]

@@ -10,7 +10,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, concatMap, distinctUntilChanged, filter, finalize, forkJoin, map, of, Subject, tap } from 'rxjs';
+import { catchError, concatMap, distinctUntilChanged, filter, finalize, forkJoin, map, of, Subject, tap, Observable } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { MemberRow } from '../../../shared/components/member-row/member-row';
@@ -541,13 +541,30 @@ export class Detalle {
    * Si el miembro SÍ está seleccionado → DELETE (quitar)
    */
   protected toggleMemberEnrollment(member: FamilyMember): void {
-    if (this.inscripcionCerrada()) return;
-    if (this.isPaidEnrollmentLocked(member)) return;
-    if (member.origin === 'invitado' && !this.guestManagementEnabled()) return;
+    console.log('[toggleMemberEnrollment]', member.id, {
+      inscripcionCerrada: this.inscripcionCerrada(),
+      isPaidEnrollmentLocked: this.isPaidEnrollmentLocked(member),
+      guestManagementEnabled: this.guestManagementEnabled(),
+      origin: member.origin,
+      enrollmentStatus: this.enrollmentStatus()[this.participantKey(member)],
+      isMemberSelected: this.isMemberSelected(member),
+      savingSelection: this.savingSelection(),
+      participantActionsLocked: this.participantActionsLocked(),
+    });
+
+    if (this.inscripcionCerrada()) { console.warn('[toggleMemberEnrollment] BLOCKED: inscripcionCerrada'); return; }
+    if (this.isPaidEnrollmentLocked(member)) { console.warn('[toggleMemberEnrollment] BLOCKED: isPaidEnrollmentLocked'); return; }
+    if (member.origin === 'invitado' && !this.guestManagementEnabled()) { console.warn('[toggleMemberEnrollment] BLOCKED: invitado sin guestManagement'); return; }
 
     const key = this.participantKey(member);
     const status = this.enrollmentStatus()[key];
-    if (status === 'enrolling' || status === 'removing') return;
+    if (status === 'enrolling' || status === 'removing') { console.warn('[toggleMemberEnrollment] BLOCKED: status en vuelo', status); return; }
+
+    // Participante sin id de servidor: mostrar error en lugar de bloquear silenciosamente
+    if (member.id.startsWith('nf-')) {
+      this.errorMessage.set('Este participante no tiene un perfil validado en el servidor y no puede inscribirse.');
+      return;
+    }
 
     if (this.isMemberSelected(member)) {
       this.removeParticipantEnrollment(member);
@@ -763,6 +780,18 @@ export class Detalle {
       .subscribe({
         next: (inscritos) => {
           this.inscritos.set(inscritos);
+          // Populate seleccionIds map from server-provided seleccionId when available
+          this.seleccionIds.update((current) => {
+            const updated = { ...current } as Record<string, string>;
+            for (const participante of inscritos) {
+              const key = `${participante.origen}:${participante.id}`;
+              const sid = (participante as any).seleccionId ?? '';
+              if (typeof sid === 'string' && sid.trim()) {
+                updated[key] = sid.trim();
+              }
+            }
+            return updated;
+          });
           this.selectedMemberIds.set(toSelectedMemberKeys(inscritos));
           this.inscritosLoaded.set(true);
           this.loadingInscritos.set(false);
@@ -903,6 +932,7 @@ export class Detalle {
   private cancelRemovedParticipantLines(selectedKeys: string[]) {
     const selectedSet = new Set(selectedKeys);
     const cancellableLines: Array<{ inscripcionId: string; lineId: string }> = [];
+    const cancellableSelections: string[] = [];
 
     for (const inscrito of this.inscritos()) {
       const participantKey = this.inscritoKey(inscrito);
@@ -915,6 +945,28 @@ export class Detalle {
         continue;
       }
 
+      // If any active line for this participant is paid, skip deletion for safety.
+      const hasPaidActiveLine = relation.lineas.some((linea) =>
+        linea.estadoLinea !== 'cancelada' && this.lineBelongsToParticipant(inscrito, linea.usuarioId, linea.invitadoId) && Boolean((linea as { pagada?: unknown }).pagada)
+      );
+
+      if (hasPaidActiveLine) {
+        continue;
+      }
+
+      // Prefer deleting the SeleccionParticipanteEvento resource if we have its id.
+      const seleccionIdFromMap = this.seleccionIds()[participantKey];
+      const seleccionIdFromServer = (inscrito as any).seleccionId;
+      const seleccionId = typeof seleccionIdFromServer === 'string' && seleccionIdFromServer.trim()
+        ? seleccionIdFromServer.trim()
+        : seleccionIdFromMap;
+
+      if (seleccionId && String(seleccionId).trim()) {
+        cancellableSelections.push(String(seleccionId).trim());
+        continue;
+      }
+
+      // Fall back to deleting individual inscripcion lines if we don't have a seleccionId.
       for (const linea of relation.lineas) {
         if (!linea.id || linea.estadoLinea === 'cancelada' || Boolean((linea as { pagada?: unknown }).pagada)) {
           continue;
@@ -931,13 +983,20 @@ export class Detalle {
       }
     }
 
-    if (!cancellableLines.length) {
+    if (!cancellableLines.length && !cancellableSelections.length) {
       return of(void 0);
     }
 
-    return forkJoin(
-      cancellableLines.map((line) => this.eventosApi.cancelarLineaInscripcion(line.inscripcionId, line.lineId)),
-    ).pipe(map(() => void 0));
+    const calls: Array<Observable<unknown>> = [];
+    if (cancellableSelections.length) {
+      calls.push(...cancellableSelections.map((sid) => this.eventosApi.deleteSeleccionParticipante(sid)));
+    }
+
+    if (cancellableLines.length) {
+      calls.push(...cancellableLines.map((line) => this.eventosApi.cancelarLineaInscripcion(line.inscripcionId, line.lineId)));
+    }
+
+    return forkJoin(calls).pipe(map(() => void 0));
   }
 
   // ── Enrollment POST / DELETE ──────────────────────────────────────────
@@ -949,11 +1008,6 @@ export class Detalle {
   private addParticipantEnrollment(member: FamilyMember): void {
     const eventId = this.eventId();
     if (!eventId) return;
-
-    // Ids sintéticos (nf-) solo existen en localStorage, no tienen recurso en el servidor
-    if (member.id.startsWith('nf-')) {
-      return;
-    }
 
     const key = this.participantKey(member);
     this.setEnrollmentStatus(key, 'enrolling');

@@ -5,6 +5,7 @@ namespace App\State;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\InscripcionLinea;
+use App\Service\InscripcionService;
 use App\Entity\SeleccionParticipanteEvento;
 use App\Entity\Usuario;
 use App\Enum\EstadoLineaInscripcionEnum;
@@ -18,6 +19,7 @@ class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
     public function __construct(
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
+        private readonly InscripcionService $inscripcionService,
     ) {
     }
 
@@ -61,8 +63,11 @@ class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
                 }
             }
 
-            // ── 4. Cancelar las líneas activas del participante ───────────
-            foreach ($inscripcion->getLineas() as $linea) {
+            // ── 4. Eliminar (cancelar) físicamente las líneas del participante
+            //      que pertenecen a esta selección usando el servicio central
+            //      para aplicar las mismas reglas y recálculos.
+            $errors = [];
+            foreach ($inscripcion->getLineas()->toArray() as $linea) {
                 if ($linea->getEstadoLinea() === EstadoLineaInscripcionEnum::CANCELADA) {
                     continue;
                 }
@@ -71,12 +76,19 @@ class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
                     continue;
                 }
 
-                $linea->setEstadoLinea(EstadoLineaInscripcionEnum::CANCELADA);
+                // InscripcionService::cancelarLineaInscripcion lanzará si la línea
+                // no puede eliminarse (p. ej. pagada o inscripción cerrada).
+                try {
+                    $this->inscripcionService->cancelarLineaInscripcion($inscripcion, $linea);
+                } catch (\Throwable $e) {
+                    // Collect error messages to report a friendly response later.
+                    $errors[] = $e->getMessage();
+                }
             }
 
-            // ── 5. Recalcular totales de la inscripción padre ─────────────
-            $inscripcion->setImporteTotal($inscripcion->calcularImporteTotal());
-            $inscripcion->actualizarEstadoPago();
+            if ($errors !== []) {
+                throw new ConflictHttpException('No se pudo eliminar la selección: ' . implode(' | ', $errors));
+            }
         }
 
         // ── 6. Eliminar la selección ──────────────────────────────────────

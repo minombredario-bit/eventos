@@ -32,7 +32,9 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Get(security: "is_granted('INSCRIPCION_VIEW', object.getInscripcion())"),
         new Delete(
-            security: "is_granted('INSCRIPCION_VIEW', object.getInscripcion()) and object.getInscripcion().getEvento().estaInscripcionAbierta()",
+            // Only allow deleting a line when the caller can view the parent inscripcion,
+            // the event still accepts changes (inscription open) and the line is not paid.
+            security: "is_granted('INSCRIPCION_VIEW', object.getInscripcion()) and object.getInscripcion().getEvento().estaInscripcionAbierta() and not object.isPagada()",
             processor: InscripcionLineaDeleteProcessor::class,
         ),
         new Patch(

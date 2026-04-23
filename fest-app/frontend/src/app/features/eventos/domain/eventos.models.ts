@@ -319,6 +319,8 @@ export interface ParticipanteSeleccion {
     totalPagado?: number;
     lineas: ParticipanteSeleccionLinea[];
   };
+  // id de la entidad SeleccionParticipanteEvento asociada (opcional)
+  seleccionId?: string;
 }
 
 export interface MetodoPagoOption {

@@ -8,6 +8,7 @@ use App\Enum\CensadoViaEnum;
 use App\Enum\EstadoValidacionEnum;
 use App\Enum\TipoEntidadEnum;
 use App\Entity\TipoEntidad as TipoEntidadEntity;
+use App\Enum\TipoPersonaEnum;
 use App\Enum\TipoRelacionEconomicaEnum;
 use App\Repository\EntidadRepository;
 use App\Repository\UsuarioRepository;
@@ -101,6 +102,7 @@ class EnsureSuperadminCommand extends Command
         $superadmin->setRoles(['ROLE_SUPERADMIN']);
         $superadmin->setActivo(true);
         $superadmin->setCensadoVia(CensadoViaEnum::MANUAL);
+        $superadmin->setTipoPersona(TipoPersonaEnum::ADULTO);
 
         $this->entityManager->persist($superadmin);
         $this->entityManager->flush();
