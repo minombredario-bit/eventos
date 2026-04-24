@@ -313,17 +313,17 @@
                       </label>
                     </div>
 
-                                    <div class="field" *ngIf="actividad.controls.esDePago.value">
-                                      <input
-                                        id="actividad-precio-{{ i }}"
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        formControlName="precioBase"
-                                        placeholder=" "
-                                      />
-                                      <label [attr.for]="'actividad-precio-' + i">Precio base</label>
-                                    </div>
+                    <div class="field" *ngIf="actividad.controls.esDePago.value">
+                      <input
+                        id="actividad-precio-{{ i }}"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        formControlName="precioBase"
+                        placeholder=" "
+                      />
+                      <label [attr.for]="'actividad-precio-' + i">Precio base</label>
+                    </div>
 
                     <!-- Agregar campos de precio al formulario de actividades -->
                     <div class="field" *ngIf="actividad.controls.esDePago.value">
@@ -331,19 +331,19 @@
                         id="actividad-precio-infantil-{{ i }}"
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="0.5"
                         formControlName="precioInfantil"
                         placeholder=" "
                       />
                       <label [attr.for]="'actividad-precio-infantil-' + i">Precio infantil</label>
                     </div>
 
-                    <div class="field" *ngIf="actividad.controls.esDePago.value && actividad.controls.permiteInvitados.value && showPreciosExternos()">
+                    <div class="field" *ngIf="actividad.controls.permiteInvitados.value && showPreciosExternos()">
                       <input
                         id="actividad-precio-invitado-infantil-{{ i }}"
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="0.5"
                         formControlName="precioInfantilExterno"
                         placeholder=" "
                       />
@@ -355,19 +355,19 @@
                         id="actividad-precio-adulto-interno-{{ i }}"
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="0.5"
                         formControlName="precioAdultoInterno"
                         placeholder=" "
                       />
                       <label [attr.for]="'actividad-precio-adulto-interno-' + i">Precio adulto</label>
                     </div>
 
-                    <div class="field" *ngIf="actividad.controls.esDePago.value && actividad.controls.permiteInvitados.value && showPreciosExternos()">
+                    <div class="field" *ngIf="actividad.controls.permiteInvitados.value && showPreciosExternos()">
                       <input
                         id="actividad-precio-adulto-externo-{{ i }}"
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="0.5"
                         formControlName="precioAdultoExterno"
                         placeholder=" "
                       />

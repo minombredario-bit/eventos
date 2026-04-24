@@ -126,8 +126,8 @@ export class EventosMapper {
       price: actividad.precioBase ?? 0,
       precioAdultoInterno: actividad.precioAdultoInterno ?? actividad.precioBase ?? 0,
       precioAdultoExterno: actividad.precioAdultoExterno ?? actividad.precioBase ?? 0,
-      precioInfantilExterno: actividad.precioInfantilExterno ?? actividad.precioBase ?? 0,
       precioInfantil: actividad.precioInfantil ?? actividad.precioBase ?? 0,
+      precioInfantilExterno: actividad.precioInfantilExterno ?? actividad.precioInfantil ?? actividad.precioBase ?? 0,
       isPaid: actividad.esDePago ?? false,
     };
   }

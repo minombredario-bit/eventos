@@ -621,9 +621,9 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     const applyExternalState = () => {
       const showGlobal = this.showPreciosExternos();
       const allowsActivity = Boolean(group.controls.permiteInvitados.value);
-      const isPaid = Boolean(group.controls.esDePago.value);
+      // Eliminado: const isPaid = Boolean(group.controls.esDePago.value);
 
-      const shouldEnable = showGlobal && allowsActivity && isPaid;
+      const shouldEnable = showGlobal && allowsActivity;
 
       if (shouldEnable) {
         group.controls.precioInfantilExterno.enable({ emitEvent: false });
@@ -631,15 +631,21 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       } else {
         group.controls.precioInfantilExterno.disable({ emitEvent: false });
         group.controls.precioAdultoExterno.disable({ emitEvent: false });
-        // Normalizar a cero cuando no esté permitido
         try {
           group.controls.precioInfantilExterno.setValue('0', { emitEvent: false });
           group.controls.precioAdultoExterno.setValue('0', { emitEvent: false });
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) { /* ignore */ }
       }
     };
+
+// También quitar la suscripción a esDePago ya que ya no afecta a los externos
+    group.controls.permiteInvitados.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => applyExternalState());
+
+    this.form.controls.permiteInvitados.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => applyExternalState());
 
     // Suscripciones para re-evaluar cuando cambie el estado global o por-actividad
     group.controls.permiteInvitados.valueChanges
@@ -704,9 +710,9 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
         precioBase: actividadEsDePago ? String(control.controls.precioBase.value) : '0',
         precioInfantil: actividadEsDePago ? String(control.controls.precioInfantil.value) : '0',
         // Si no se permiten invitados en el evento/actividad, forzamos precios externos a '0'
-        precioInfantilExterno: actividadEsDePago && actividadPermiteInvitados ? String(control.controls.precioInfantilExterno.value) : '0',
+        precioInfantilExterno: actividadPermiteInvitados ? String(control.controls.precioInfantilExterno.value) : '0',
+        precioAdultoExterno: actividadPermiteInvitados ? String(control.controls.precioAdultoExterno.value) : '0',
         precioAdultoInterno: actividadEsDePago ? String(control.controls.precioAdultoInterno.value) : '0',
-        precioAdultoExterno: actividadEsDePago && actividadPermiteInvitados ? String(control.controls.precioAdultoExterno.value) : '0',
         permiteInvitados: actividadPermiteInvitados,
         ordenVisualizacion: index,
         activo: this.getActividadActivo(control),
@@ -726,8 +732,8 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       const precioInfExt = control.controls.precioInfantilExterno;
       const precioAdultExt = control.controls.precioAdultoExterno;
       const actividadAllows = Boolean(control.controls.permiteInvitados?.value);
-      const actividadIsPaid = Boolean(control.controls.esDePago?.value);
-      const shouldEnable = enabled && actividadAllows && actividadIsPaid;
+      // Ya no se condiciona a esDePago — si permite invitados, los campos están activos
+      const shouldEnable = enabled && actividadAllows;
 
       if (shouldEnable) {
         precioInfExt.enable({ emitEvent: false });
@@ -735,13 +741,10 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       } else {
         precioInfExt.disable({ emitEvent: false });
         precioAdultExt.disable({ emitEvent: false });
-        // Normalizar a cero cuando no esté permitido para evitar valores huérfanos
         try {
           precioInfExt.setValue('0', { emitEvent: false });
           precioAdultExt.setValue('0', { emitEvent: false });
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) { /* ignore */ }
       }
     });
   }

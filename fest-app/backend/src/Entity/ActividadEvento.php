@@ -407,13 +407,12 @@ class ActividadEvento
 
     public function getPrecioInfantilExterno(): ?float
     {
-        return $this->precioInfantilExterno;
+        return $this->precioInfantilExterno !== null ? (float) $this->precioInfantilExterno : null;
     }
 
     public function setPrecioInfantilExterno(?float $precioInfantilExterno): static
     {
-        $this->precioInfantilExterno = $precioInfantilExterno;
-
+        $this->precioInfantilExterno = $precioInfantilExterno !== null ? (string) $precioInfantilExterno : null;
         return $this;
     }
 }
