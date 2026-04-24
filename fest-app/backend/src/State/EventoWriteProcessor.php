@@ -208,19 +208,27 @@ final class EventoWriteProcessor implements ProcessorInterface
             $actividad->setObservacionesInternas($data['observacionesInternas']);
         }
 
-        // Normalizar precios según reglas: si la actividad no es de pago, forzar a 0.
+        // Normalizar precios según reglas: si la actividad no es de pago,
+        // forzar a 0 solo los precios internos. Los externos se conservan
+        // porque los invitados pueden tener precio aunque internos no paguen.
         if (!$actividad->isEsDePago()) {
             $actividad->setPrecioBase(0.0);
             $actividad->setPrecioAdultoInterno(0.0);
-            $actividad->setPrecioAdultoExterno(0.0);
             $actividad->setPrecioInfantil(0.0);
-            $actividad->setPrecioInfantilExterno(0.0);
+            // precioAdultoExterno y precioInfantilExterno NO se tocan
         }
 
         // Si la actividad no permite invitados, forzar precios externos a 0
         if (method_exists($actividad, 'isPermiteInvitados') && !$actividad->isPermiteInvitados()) {
             $actividad->setPrecioAdultoExterno(0.0);
             $actividad->setPrecioInfantilExterno(0.0);
+        }
+
+
+        if (array_key_exists('precioInfantilExterno', $data)) {
+            $actividad->setPrecioInfantilExterno(
+                $data['precioInfantilExterno'] !== null ? (float) $data['precioInfantilExterno'] : null
+            );
         }
     }
 }
