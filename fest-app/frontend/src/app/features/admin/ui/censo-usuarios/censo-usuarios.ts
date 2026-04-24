@@ -12,7 +12,7 @@ import { ImportResult, Usuario, UsuariosFiltro, UsuariosPage } from '../../domai
   standalone: true,
   imports: [MobileHeader, RouterLink],
   templateUrl: './censo-usuarios.html',
-  styleUrl: './censo-usuarios.scss',
+  styleUrls: ['./censo-usuarios.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminCensoUsuarios {
@@ -32,6 +32,7 @@ export class AdminCensoUsuarios {
   protected readonly filtro = signal<UsuariosFiltro>('censado');
   protected readonly usuariosPage = signal<UsuariosPage>({
     items: [],
+    totalPages: 0,
     totalItems: 0,
     page: 1,
     itemsPerPage: AdminCensoUsuarios.PAGE_SIZE,
@@ -150,6 +151,7 @@ export class AdminCensoUsuarios {
           this.usuariosPage.set({
             items: [],
             totalItems: 0,
+            totalPages: 0,
             page: 1,
             itemsPerPage: AdminCensoUsuarios.PAGE_SIZE,
             hasNext: false,
