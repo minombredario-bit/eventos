@@ -54,9 +54,18 @@ export class Login {
       .authenticate({ email, password })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: () => {
-          if (Boolean(this.authStore.user()?.['debeCambiarPassword'])) {
+        next: (response) => {
+          // response is the normalized LoginResponse from AuthService
+          const user = response.user;
+
+          if (Boolean(user?.debeCambiarPassword)) {
             void this.router.navigateByUrl('/auth/cambiar-password');
+            return;
+          }
+
+          // If the user hasn't accepted the LOPD, redirect to the LOPD screen as the first/only view
+          if (!Boolean(user?.aceptoLopd)) {
+            void this.router.navigate(['/lopd'], { queryParams: { userId: user?.id } });
             return;
           }
 

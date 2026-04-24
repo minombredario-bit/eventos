@@ -1,7 +1,7 @@
 export type TipoEntidad = 'falla' | 'comparsa';
 
 export interface AuthUser {
-  id?: string | number;
+  id?: string;
   email: string;
   nombre?: string;
   apellidos?: string;
@@ -14,6 +14,8 @@ export interface AuthUser {
   roles?: string[];
   nombreEntidad?: string;
   tipoEntidad?: TipoEntidad | null;
+  aceptoLopd?: boolean;
+  aceptoLopdAt?: string | null;
   [key: string]: unknown;
 }
 
@@ -57,4 +59,6 @@ export interface JwtPayload {
   roles?: string[];
   nombreEntidad?: string;
   tipoEntidad?: TipoEntidad | null;
+  aceptoLopd?: boolean;
+  aceptoLopdAt?: string | null;
 }

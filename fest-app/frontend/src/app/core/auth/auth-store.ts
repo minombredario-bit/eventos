@@ -1,15 +1,18 @@
-import { Injectable, computed, signal } from '@angular/core';
+import {Injectable, computed, signal, inject} from '@angular/core';
 import {
   AuthUser,
   JwtPayload,
   LoginResponse,
   PersistedAuthState,
 } from '../models/auth.models';
+import {Router} from '@angular/router';
 
 type SessionResponse = Pick<LoginResponse, 'token'> & { user?: AuthUser };
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
+  private readonly router = inject(Router);
+
   private readonly storageKey = 'auth.session';
 
   private readonly _token = signal<string | null>(null);
@@ -52,6 +55,7 @@ export class AuthStore {
     this._token.set(null);
     this._user.set(null);
     this.removeFromStorage();
+    this.router.navigateByUrl('/auth/login');
   }
 
   setUser(user: AuthUser): void {
@@ -116,7 +120,7 @@ export class AuthStore {
         : [];
 
     return {
-      id: decoded.id ?? decoded.sub,
+      id: normalizeString(decoded.id ?? decoded.sub, ''),
       email: normalizeString(decoded.email ?? decoded.username ?? decoded.sub, ''),
       nombre: normalizeString(decoded.nombre ?? decoded.name, ''),
       apellidos: normalizeString(decoded.apellidos, ''),
@@ -127,6 +131,8 @@ export class AuthStore {
       debeCambiarPassword: Boolean(decoded.debeCambiarPassword ?? false),
       fechaNacimiento: normalizeNullableString(decoded.fechaNacimiento),
       roles: normalizeStringArray(decoded.roles),
+      aceptoLopd: Boolean(decoded.aceptoLopd ?? false),
+      aceptoLopdAt: typeof decoded.aceptoLopdAt === 'string' ? String(decoded.aceptoLopdAt) : null,
     };
   }
 
@@ -195,5 +201,18 @@ export class AuthStore {
 
     const nowInSeconds = Math.floor(Date.now() / 1000);
     return decoded.exp <= nowInSeconds;
+  }
+
+  patchLocalUser(partial: Partial<AuthUser>): void {
+    const current = this._user();
+    if (!current) return;
+
+    const updated = { ...current, ...partial };
+    this._user.set(updated);
+
+    const token = this._token();
+    if (token) {
+      this.persistToStorage({ token, user: updated });
+    }
   }
 }

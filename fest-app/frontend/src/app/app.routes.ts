@@ -8,6 +8,13 @@ export const routes: Routes = [
       import('./auth/login/login').then((m) => m.Login),
   },
   {
+    path: 'lopd',
+    canActivate: [authGuard],
+    // LOPD screen should be publicly reachable immediately after login
+    loadComponent: () =>
+      import('./lopd/lopd.component').then((m) => m.LopdComponent),
+  },
+  {
     path: 'auth/cambiar-password',
     canActivate: [authGuard],
     loadComponent: () =>

@@ -11,6 +11,8 @@ import { AuthService } from '../../../../core/auth/auth';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MobileHeader {
+  readonly lopdMode = input(false);
+
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   readonly title = input.required<string>();
@@ -68,6 +70,7 @@ export class MobileHeader {
   }
 
   protected canOpenAdmin(): boolean {
+    if (this.lopdMode()) return false;
     const roles = this.authService.userSignal()?.roles ?? [];
     return Array.isArray(roles) && (roles.includes('ROLE_ADMIN_ENTIDAD') || roles.includes('ROLE_SUPERADMIN'));
   }

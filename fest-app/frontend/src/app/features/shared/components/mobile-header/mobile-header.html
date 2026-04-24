@@ -46,9 +46,11 @@
                     {{ viewSwitchLabel() }}
                   </a>
                 }
-                <a class="user-menu__item" role="menuitem" [routerLink]="['/eventos/perfil']" (click)="closeUserMenu()">
-                  Perfil
-                </a>
+                @if (!lopdMode()) {
+                  <a class="user-menu__item" role="menuitem" [routerLink]="['/eventos/perfil']" (click)="closeUserMenu()">
+                    Perfil
+                  </a>
+                }
                 @if (isLogoutAction()) {
                   <button type="button" class="user-menu__item" role="menuitem" (click)="onUserMenuSelect()">
                     Salir

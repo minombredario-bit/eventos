@@ -3,4 +3,10 @@
   <p>Cargando...</p>
 </div>
 
-<router-outlet *ngIf="!loading"></router-outlet>
+<ng-container *ngIf="!loading">
+  <ng-container *ngIf="authStore.user() as user">
+    <app-lopd *ngIf="!user.aceptoLopd"></app-lopd>
+    <router-outlet *ngIf="user.aceptoLopd"></router-outlet>
+  </ng-container>
+  <router-outlet *ngIf="!authStore.user()"></router-outlet>
+</ng-container>

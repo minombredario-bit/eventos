@@ -1,25 +1,45 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import {CanActivateFn, Router, UrlTree} from '@angular/router';
 import { AuthStore } from './auth-store';
 
-export const authGuard: CanActivateFn = (_, state) => {
+export const authGuard: CanActivateFn = (): boolean | UrlTree => {
   const authStore = inject(AuthStore);
   const router = inject(Router);
 
-  if (authStore.isAuthenticated()) {
-    const user = authStore.user();
-    if (Boolean(user?.['debeCambiarPassword']) && state.url !== '/auth/cambiar-password') {
-      return router.createUrlTree(['/auth/cambiar-password']);
-    }
+  const token = authStore.getToken();
 
-    return true;
+  if (!token) {
+    return router.createUrlTree(['/auth/login']);
   }
 
-  return router.createUrlTree(['/auth/login'], {
-    queryParams: {
-      returnUrl: state.url,
-    },
-  });
+  if (isTokenExpired(token)) {
+    authStore.logout();
+    return router.createUrlTree(['/auth/login']);
+  }
+
+  return true;
+};
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = token.split('.')[1];
+
+    if (!payload) {
+      return true;
+    }
+
+    const decoded = JSON.parse(atob(payload)) as { exp?: number };
+
+    if (typeof decoded.exp !== 'number') {
+      return false;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+
+    return decoded.exp <= now;
+  } catch {
+    return true;
+  }
 };
 
 export const adminGuard: CanActivateFn = () => {
