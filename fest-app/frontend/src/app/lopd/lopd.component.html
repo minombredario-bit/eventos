@@ -1,0 +1,22 @@
+<div *ngIf="loading">Cargando condiciones...</div>
+
+<div *ngIf="!loading && !acepto">
+  <h2>Condiciones de uso / LOPD</h2>
+
+  <div *ngIf="textoLopd; else noTexto">
+    <div [innerHTML]="textoLopd"></div>
+  </div>
+  <ng-template #noTexto>
+    <p>No se ha definido texto legal para la entidad. Lee y acepta las condiciones para continuar.</p>
+  </ng-template>
+
+  <div style="margin-top: 16px">
+    <button (click)="aceptar()">Aceptar</button>
+    <button (click)="declinar()">Declinar</button>
+  </div>
+</div>
+
+<div *ngIf="!loading && acepto">
+  <!-- nothing to show if already accepted -->
+</div>
+
