@@ -1,24 +1,20 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import {environment} from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class LopdService {
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
-  // Get user by id (expects usuario:read to include aceptoLopd)
-  getUsuario(userId: string): Observable<any> {
-    return this.http.get(`/api/usuarios/${userId}`);
+  getLopd(): Observable<string | null> {
+    return this.http.get<{ textoLopd: string | null }>(`${environment.apiUrl}/entidad/lopd`).pipe(
+      map((response) => response.textoLopd ?? null),
+    );
   }
 
-  // Patch acepto flag
-  patchAcepto(userId: string, acepto: boolean) {
-    return this.http.patch(`/api/usuarios/${userId}/lopd`, { acepto });
-  }
-
-  // Get entidad LOPD text (by entidad id)
-  getEntidad(entidadId: string) {
-    return this.http.get(`/api/entidads/${entidadId}`);
+  patchAcepto(userId: string, acepto: boolean): Observable<any> {
+    return this.http.patch(`${environment.apiUrl}/usuarios/${userId}/lopd`, { acepto });
   }
 }
-

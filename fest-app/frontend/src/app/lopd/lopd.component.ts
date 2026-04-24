@@ -1,66 +1,75 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+
 import { LopdService } from './lopd.service';
+import { AuthStore } from '../core/auth/auth-store';
+import { MobileHeader } from '../features/shared/components/mobile-header/mobile-header';
 
 @Component({
   selector: 'app-lopd',
+  standalone: true,
+  imports: [CommonModule, MobileHeader],
   templateUrl: './lopd.component.html',
-  styleUrls: ['./lopd.component.scss']
+  styleUrls: ['./lopd.component.scss'],
 })
 export class LopdComponent implements OnInit {
-  @Input() userId?: string;
-  @Input() entidadId?: string;
+  private readonly lopdService = inject(LopdService);
+  private readonly authStore = inject(AuthStore);
+  private readonly router = inject(Router);
 
-  acepto = false;
   loading = true;
+  accepting = false;
   textoLopd: string | null = null;
 
-  constructor(private lopd: LopdService) {}
-
   ngOnInit(): void {
-    if (!this.userId) {
-      console.warn('LopdComponent: userId not provided');
-      this.loading = false;
+    this.lopdService.getLopd().subscribe({
+      next: (textoLopd) => {
+        this.textoLopd = textoLopd;
+        this.loading = false;
+      },
+      error: () => {
+        this.textoLopd = null;
+        this.loading = false;
+      },
+    });
+  }
+
+  aceptar(): void {
+    const user = this.authStore.user();
+
+    if (!user?.id || this.accepting) {
       return;
     }
 
-    this.lopd.getUsuario(this.userId).subscribe((u: any) => {
-      this.acepto = !!u.aceptoLopd;
-      this.loading = false;
-      // if entidadId not provided try from user
-      if (!this.entidadId && u.entidad && u.entidad['@id']) {
-        // extract id from iri
-        const iri = u.entidad['@id'];
-        const parts = iri.split('/');
-        this.entidadId = parts[parts.length - 1];
-      }
+    this.accepting = true;
 
-      if (this.entidadId) {
-        this.lopd.getEntidad(this.entidadId).subscribe((e: any) => {
-          this.textoLopd = e.textoLopd || null;
-        }, () => this.textoLopd = null);
-      }
-    }, () => {
-      this.loading = false;
+    this.lopdService.patchAcepto(user.id, true).subscribe({
+      next: () => {
+        this.authStore.patchLocalUser({ aceptoLopd: true });
+
+        if (user.debeCambiarPassword) {
+          void this.router.navigateByUrl('/auth/cambiar-password');
+          return;
+        }
+
+        void this.router.navigateByUrl('/inicio');
+      },
+      error: () => {
+        this.accepting = false;
+      },
     });
   }
 
-  aceptar() {
-    if (!this.userId) { return; }
-    this.lopd.patchAcepto(this.userId, true).subscribe(() => {
-      this.acepto = true;
-      // optionally emit event or reload app state
-      window.location.reload();
-    });
-  }
+  declinar(): void {
+    const user = this.authStore.user();
 
-  declinar() {
-    if (!this.userId) { return; }
-    this.lopd.patchAcepto(this.userId, false).subscribe(() => {
-      this.acepto = false;
-      // log out or redirect
-      alert('Has declinado las condiciones. No podrás usar la aplicación.');
-      // implement a proper logout flow in your app
+    if (!user?.id) {
+      return;
+    }
+
+    this.lopdService.patchAcepto(user.id, false).subscribe({
+      next: () => this.authStore.logout(),
     });
   }
 }
-
