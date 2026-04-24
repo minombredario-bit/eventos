@@ -15,8 +15,8 @@ final class LopdAcceptanceSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        // high priority to run before other listeners
-        return [KernelEvents::REQUEST => ['onKernelRequest', 8]];
+        // run after other listeners; mirror ForcePasswordChangeSubscriber behavior
+        return [KernelEvents::REQUEST => ['onKernelRequest', -5]];
     }
 
     public function onKernelRequest(RequestEvent $event): void
@@ -38,11 +38,26 @@ final class LopdAcceptanceSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $route = $request->attributes->get('_route');
-        $method = $request->getMethod();
+        $path = $request->getPathInfo();
+        $method = strtoupper($request->getMethod());
 
-        // Allow the specific PATCH endpoint to accept the LOPD
-        if ($route === 'api_usuario_lopd' && strtoupper($method) === 'PATCH') {
+        // Only enforce for API calls
+        if (!str_starts_with($path, '/api/')) {
+            return;
+        }
+
+        // Allow login and password-change endpoints (they must remain accessible)
+        if ($path === '/api/login' || $path === '/api/me/cambiar-password') {
+            return;
+        }
+
+        // Allow the LOPD text endpoint
+        if ($method === 'GET' && $path === '/api/entidad/lopd') {
+            return;
+        }
+
+        // Allow the specific PATCH endpoint to accept the LOPD: /api/usuarios/{id}/lopd
+        if ($method === 'PATCH' && preg_match('#^/api/usuarios/[^/]+/lopd$#', $path)) {
             return;
         }
 

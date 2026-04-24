@@ -35,24 +35,33 @@ final class LopdController extends AbstractController
         }
 
         // Allow user to update their own acceptance, or admins to update any
-        $isAdmin = in_array('ROLE_ADMIN', $user->getRoles(), true)
-            || in_array('ROLE_ADMIN_ENTIDAD', $user->getRoles(), true)
-            || in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+        $isAdmin = $security->isGranted('ROLE_ADMIN') || $security->isGranted('ROLE_ADMIN_ENTIDAD') || $security->isGranted('ROLE_SUPERADMIN');
 
-        if (!$isAdmin && (string)$user->getId() !== (string)$target->getId()) {
+        if (!$isAdmin && (string) $user->getId() !== (string) $target->getId()) {
             throw new AccessDeniedHttpException('No tienes permisos para modificar este usuario.');
         }
 
-        $data = json_decode($request->getContent(), true);
+        // Parse JSON safely; Request::toArray() throws BadRequestHttpException on invalid JSON
+        $data = $request->toArray();
         if (!is_array($data) || !array_key_exists('acepto', $data)) {
             throw new BadRequestHttpException('Campo "acepto" requerido.');
         }
 
-        $acepto = (bool) $data['acepto'];
+        // Normalize and validate boolean-ish values
+        $raw = $data['acepto'];
+        if (is_bool($raw)) {
+            $acepto = $raw;
+        } else {
+            // Accept strings/numeric like 'true','false','1','0'
+            $acepto = filter_var($raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($acepto === null) {
+                throw new BadRequestHttpException('Campo "acepto" debe ser booleano.');
+            }
+        }
 
-        $target->setAceptoLopd($acepto);
+        $target->setAceptoLopd((bool) $acepto);
 
-        $em->persist($target);
+        // $target is managed by the EntityManager (retrieved with find()), so only flush is needed
         $em->flush();
 
         $payload = $serializer->serialize($target, 'json', ['groups' => ['usuario:read', 'read_user_admin']]);
