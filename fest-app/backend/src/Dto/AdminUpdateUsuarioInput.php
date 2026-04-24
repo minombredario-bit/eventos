@@ -42,6 +42,9 @@ final class AdminUpdateUsuarioInput
     #[Groups(['admin_usuario_update'])]
     public ?string $motivoBajaCenso = null;
 
+    #[Groups(['admin_usuario_update'])]
+    public ?bool $aceptoLopd = null;
+
     /**
      * @var array<int, array{usuario?: string, tipoRelacion?: string}>|null
      */

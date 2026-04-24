@@ -27,6 +27,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(security: "is_granted('ENTIDAD_VIEW', object)"),
+        new Get(security: "is_granted('ROLE_USER')"),
+        new Get(
+            uriTemplate: '/entidad/lopd',
+            normalizationContext: ['groups' => ['lopd:read']]
+        ),
         new GetCollection(security: "is_granted('ROLE_USER')"),
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
         new Patch(security: "is_granted('ROLE_SUPERADMIN')"),
@@ -71,6 +76,10 @@ class Entidad
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['entidad:read', 'entidad:write'])]
     private ?string $descripcion = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Groups(['entidad:read', 'entidad:write', 'lopd:read'])]
+    private ?string $textoLopd = null;
 
     #[ORM\ManyToOne(targetEntity: TipoEntidad::class)]
     #[ORM\JoinColumn(name: 'tipo_entidad_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
@@ -226,6 +235,18 @@ class Entidad
     public function setDescripcion(?string $descripcion): static
     {
         $this->descripcion = $descripcion;
+
+        return $this;
+    }
+
+    public function getTextoLopd(): ?string
+    {
+        return $this->textoLopd;
+    }
+
+    public function setTextoLopd(?string $textoLopd): static
+    {
+        $this->textoLopd = $textoLopd;
 
         return $this;
     }

@@ -123,6 +123,9 @@ final class AdminUpdateUsuarioProcessor implements ProcessorInterface
             if ($data->debeCambiarPassword !== null) {
                 $usuario->setDebeCambiarPassword((bool) $data->debeCambiarPassword);
             }
+            if ($data->aceptoLopd !== null) {
+                $usuario->setAceptoLopd((bool) $data->aceptoLopd);
+            }
             if ($data->roles !== null) {
                 $usuario->setRoles($this->normalizeRoles($data->roles));
             }

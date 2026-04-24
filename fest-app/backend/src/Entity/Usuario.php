@@ -210,6 +210,14 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['usuario:read', 'usuario:write', 'read_user_admin'])]
     private ?\DateTimeImmutable $fechaNacimiento = null;
 
+    #[ORM\Column(type: Types::BOOLEAN)]
+    #[Groups(['usuario:read', 'read_user_admin'])]
+    private bool $aceptoLopd = false;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    #[Groups(['usuario:read', 'read_user_admin'])]
+    private ?\DateTimeImmutable $aceptoLopdAt = null;
+
     /** @var Collection<int, RelacionUsuario> */
     #[ORM\OneToMany(targetEntity: RelacionUsuario::class, mappedBy: 'usuarioOrigen', cascade: ['persist', 'remove'])]
     private Collection $relacionesOrigen;
@@ -693,6 +701,35 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     public function setFechaNacimiento(?\DateTimeImmutable $fechaNacimiento): static
     {
         $this->fechaNacimiento = $fechaNacimiento;
+        return $this;
+    }
+
+    public function isAceptoLopd(): bool
+    {
+        return $this->aceptoLopd;
+    }
+
+    public function setAceptoLopd(bool $acepto): static
+    {
+        $this->aceptoLopd = $acepto;
+        if ($acepto) {
+            $this->aceptoLopdAt = new \DateTimeImmutable();
+        } else {
+            $this->aceptoLopdAt = null;
+        }
+
+        return $this;
+    }
+
+    public function getAceptoLopdAt(): ?\DateTimeImmutable
+    {
+        return $this->aceptoLopdAt;
+    }
+
+    public function setAceptoLopdAt(?\DateTimeImmutable $aceptoLopdAt): static
+    {
+        $this->aceptoLopdAt = $aceptoLopdAt;
+        $this->aceptoLopd = $aceptoLopdAt !== null;
         return $this;
     }
 

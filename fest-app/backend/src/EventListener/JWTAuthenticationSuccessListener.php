@@ -25,12 +25,12 @@ class JWTAuthenticationSuccessListener
             'fechaNacimiento' => $user->getFechaNacimiento()?->format('d-m-Y'),
             'telefono' => $user->getTelefono(),
             'formaPagoPreferida' => $user->getFormaPagoPreferida()?->value,
-            'antiguedad' => $user->getAntiguedad(),
-            'antiguedadReal' => $user->getAntiguedadReal(),
             'debeCambiarPassword' => $user->isDebeCambiarPassword(),
             'roles' => $user->getRoles(),
             'nombreEntidad' => $user->getEntidad()->getNombre(),
             'tipoEntidad' => mb_strtolower($user->getEntidad()->getTipoEntidad()?->getNombre() ?? ''),
+            'aceptoLopd' => $user->isAceptoLopd(),
+            'aceptoLopdAt' => $user->getAceptoLopdAt()?->format(DATE_ATOM),
         ];
 
         $event->setData($data);
