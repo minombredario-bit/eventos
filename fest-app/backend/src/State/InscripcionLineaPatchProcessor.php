@@ -86,15 +86,26 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
 
     private function calculatePriceForInvitado(ActividadEvento $actividad): float
     {
-        if (!$actividad->isEsDePago()) {
+        // If activity does not allow invitados, price for invitados is zero
+        if (!$actividad->isPermiteInvitados()) {
             return 0.0;
         }
 
+        // If the activity admits invitados, show the corresponding external price (if any).
+        // Prefer explicit external prices, then fall back to internal price(s) and finally to base price.
         if ($actividad->getTipoActividad() === TipoActividadEnum::INFANTIL) {
-            return (float) ($actividad->getPrecioInfantil() ?? $actividad->getPrecioBase());
+            return (float) (
+                $actividad->getPrecioInfantilExterno() ??
+                $actividad->getPrecioInfantil() ??
+                $actividad->getPrecioBase()
+            );
         }
 
-        return (float) ($actividad->getPrecioAdultoExterno() ?? $actividad->getPrecioBase());
+        return (float) (
+            $actividad->getPrecioAdultoExterno() ??
+            $actividad->getPrecioAdultoInterno() ??
+            $actividad->getPrecioBase()
+        );
     }
 }
 
