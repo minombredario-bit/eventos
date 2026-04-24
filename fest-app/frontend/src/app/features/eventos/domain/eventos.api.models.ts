@@ -129,7 +129,7 @@ export interface EventoWritePayload {
   titulo: string;
   descripcion: string;
   fechaEvento: string;
-  tipoEvento: string;
+  tipoEvento?: string; // opcional: frontend ya no lo envía, backend asignará un valor por defecto si falta
   horaInicio?: string | undefined;
   horaFin?: string | undefined;
   lugar: string;
@@ -148,11 +148,15 @@ export interface EventoActividadWritePayload {
   id?: string | null;
   nombre: string;
   descripcion: string;
-  tipoActividad: string;
   franjaComida: MealSlot;
   compatibilidadPersona: ActivityCompatibility;
   esDePago: boolean;
+  permiteInvitados?: boolean;
   precioBase: string;
+  precioInfantil?: string;
+  precioInfantilExterno?: string;
+  precioAdultoInterno?: string;
+  precioAdultoExterno?: string;
   ordenVisualizacion: number;
   activo: boolean;
 }

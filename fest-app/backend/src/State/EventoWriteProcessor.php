@@ -112,6 +112,10 @@ final class EventoWriteProcessor implements ProcessorInterface
                 $actividad = new ActividadEvento();
                 $actividad->setEvento($evento);
                 $this->applyFields($data, $actividad);
+                // Si no se envió permiteInvitados en payload, heredar del evento
+                if (!array_key_exists('permiteInvitados', $data)) {
+                    $actividad->setPermiteInvitados($evento->isPermiteInvitados());
+                }
                 $this->em->persist($actividad);
                 $evento->addActividad($actividad);
             }
@@ -165,6 +169,9 @@ final class EventoWriteProcessor implements ProcessorInterface
         if (array_key_exists('esDePago', $data)) {
             $actividad->setEsDePago((bool) $data['esDePago']);
         }
+        if (array_key_exists('permiteInvitados', $data)) {
+            $actividad->setPermiteInvitados((bool) $data['permiteInvitados']);
+        }
         if (array_key_exists('precioBase', $data)) {
             $actividad->setPrecioBase((float) $data['precioBase']);
         }
@@ -199,6 +206,21 @@ final class EventoWriteProcessor implements ProcessorInterface
         }
         if (array_key_exists('observacionesInternas', $data)) {
             $actividad->setObservacionesInternas($data['observacionesInternas']);
+        }
+
+        // Normalizar precios según reglas: si la actividad no es de pago, forzar a 0.
+        if (!$actividad->isEsDePago()) {
+            $actividad->setPrecioBase(0.0);
+            $actividad->setPrecioAdultoInterno(0.0);
+            $actividad->setPrecioAdultoExterno(0.0);
+            $actividad->setPrecioInfantil(0.0);
+            $actividad->setPrecioInfantilExterno(0.0);
+        }
+
+        // Si la actividad no permite invitados, forzar precios externos a 0
+        if (method_exists($actividad, 'isPermiteInvitados') && !$actividad->isPermiteInvitados()) {
+            $actividad->setPrecioAdultoExterno(0.0);
+            $actividad->setPrecioInfantilExterno(0.0);
         }
     }
 }

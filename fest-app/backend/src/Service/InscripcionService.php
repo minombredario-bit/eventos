@@ -119,6 +119,10 @@ class InscripcionService
                 throw new BadRequestHttpException('La actividad seleccionada no está activa');
             }
 
+            if ($isInvitado && !$actividad->isPermiteInvitados()) {
+                throw new BadRequestHttpException('La actividad seleccionada no permite invitados');
+            }
+
             $tipoPersona = $this->resolveParticipanteTipoPersona($invitado, $usuarioParticipante);
 
             if (!$actividad->esCompatibleConTipoPersona($tipoPersona)) {

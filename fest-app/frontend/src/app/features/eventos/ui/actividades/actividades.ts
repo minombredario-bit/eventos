@@ -154,6 +154,11 @@ export class Actividades {
     this.preselectedParticipants().some((participant) => Boolean(participant.relationSummary)),
   );
 
+  // Indica si el evento actual permite invitados y además tiene actividades activas
+  protected readonly canUseGuestParticipants = computed(() =>
+    Boolean(this.event()?.permiteInvitados && this.hasActiveActividadesFromEvent(this.event())),
+  );
+
   protected readonly existingInscriptionRows = computed<ExistingInscriptionRowView[]>(() => {
     const rowsFromSelection = this.buildRowsFromSelectionContract();
     if (rowsFromSelection.length > 0) {
@@ -166,6 +171,12 @@ export class Actividades {
     const rows = new Map<string, ExistingInscriptionRowView>();
 
     for (const linea of inscription.lineas.filter((linea) => linea.estadoLinea !== 'cancelada')) {
+      // Si el evento no permite invitados, omitimos líneas de invitados
+      const participantId = linea.usuarioId ?? linea.invitadoId;
+      if (!participantId) continue;
+      const origin: ParticipantOrigin = linea.usuarioId ? 'familiar' : 'invitado';
+      if (origin === 'invitado' && !this.canUseGuestParticipants()) continue;
+
       const memberName = linea.nombrePersonaSnapshot.trim() || 'Participante';
       const memberRowKey = `${memberName}::${linea.tipoPersonaSnapshot ?? 'sin_tipo'}`;
       const row = rows.get(memberRowKey) ?? {
@@ -1033,6 +1044,9 @@ export class Actividades {
         };
       })
       .filter((p) => {
+        // Si el evento no permite invitados, filtramos participantes de tipo 'invitado'
+        if (p.origin === 'invitado' && !this.canUseGuestParticipants()) return false;
+
         const key = this.participantKey(p.id, p.origin);
         if (seen.has(key)) return false;
         seen.add(key);
@@ -1228,6 +1242,14 @@ export class Actividades {
     return null;
   }
 
+  private hasActiveActividadesFromEvent(event: EventoDetalle | null): boolean {
+    if (!event || !Array.isArray(event.actividades)) {
+      return false;
+    }
+
+    return event.actividades.some((actividad) => actividad.activo !== false);
+  }
+
   private resolveExistingInscriptionId(): string | null {
     const fromCollection = this.selectedInscription()?.id?.trim();
     if (fromCollection) {
@@ -1281,6 +1303,9 @@ export class Actividades {
       if (!participantId) continue;
 
       const origin: ParticipantOrigin = line.usuarioId ? 'familiar' : 'invitado';
+      // Si el evento no permite invitados, no consideramos líneas de invitados
+      if (origin === 'invitado' && !this.canUseGuestParticipants()) continue;
+
       keys.set(
         this.buildSelectionKey(participantId, origin, slot, actividadId),
         { inscripcionId: fallback.id, lineId: line.id, actividadId },

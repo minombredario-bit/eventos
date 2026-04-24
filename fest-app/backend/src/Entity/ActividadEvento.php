@@ -126,6 +126,10 @@ class ActividadEvento
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private bool $esDePago = true;
 
+    #[ORM\Column(type: Types::BOOLEAN)]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write', 'actividad-evento:evento:item:min'])]
+    private bool $permiteInvitados = true;
+
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     // Allow serializer to accept numeric values (int/float) or strings coming from JSON
@@ -278,6 +282,17 @@ class ActividadEvento
     public function setEsDePago(bool $esDePago): static
     {
         $this->esDePago = $esDePago;
+        return $this;
+    }
+
+    public function isPermiteInvitados(): bool
+    {
+        return $this->permiteInvitados;
+    }
+
+    public function setPermiteInvitados(bool $permiteInvitados): static
+    {
+        $this->permiteInvitados = $permiteInvitados;
         return $this;
     }
 

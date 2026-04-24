@@ -2,6 +2,7 @@ import {CommonModule} from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   DestroyRef,
@@ -45,12 +46,13 @@ type EventoActividadFormGroup = UntypedFormGroup & {
     id: FormControl<string | null>;
     nombre: FormControl<string>;
     descripcion: FormControl<string>;
-    tipoActividad: FormControl<string>;
     franjaComida: FormControl<MealSlot>;
     compatibilidadPersona: FormControl<ActivityCompatibility>;
     esDePago: FormControl<boolean>;
+    permiteInvitados: FormControl<boolean>;
     precioBase: FormControl<string>;
     precioInfantil: FormControl<string>;
+    precioInfantilExterno: FormControl<string>;
     precioAdultoInterno: FormControl<string>;
     precioAdultoExterno: FormControl<string>;
     ordenVisualizacion: FormControl<number>;
@@ -69,7 +71,6 @@ type EventoFormGroup = UntypedFormGroup & {
     aforo: FormControl<number | null>;
     fechaInicioInscripcion: FormControl<string>;
     fechaFinInscripcion: FormControl<string>;
-    tipoEvento: FormControl<string>;
     visible: FormControl<boolean>;
     admitePago: FormControl<boolean>;
     permiteInvitados: FormControl<boolean>;
@@ -96,6 +97,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
   private readonly eventosApi = inject(EventosApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   protected readonly submitMode = signal<SubmitMode>('normal');
 
@@ -112,13 +114,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     {value: 'cerrado', label: 'Cerrado'},
     {value: 'finalizado', label: 'Finalizado'},
     {value: 'cancelado', label: 'Cancelado'},
-  ];
-
-  protected readonly tipoActividadOptions = [
-    {value: 'adulto', label: 'Adulto'},
-    {value: 'infantil', label: 'Infantil'},
-    {value: 'especial', label: 'Especial'},
-    {value: 'libre', label: 'Libre'},
   ];
 
   protected readonly franjaOptions = [
@@ -199,7 +194,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     titulo: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(3)]),
     descripcion: this.fb.nonNullable.control(''),
     fechaEvento: this.fb.nonNullable.control('', [Validators.required]),
-    tipoEvento: this.fb.nonNullable.control('comida', [Validators.required]),
+    // tipoEvento eliminado: ya no se usa en frontend
     horaInicio: this.fb.nonNullable.control(''),
     horaFin: this.fb.nonNullable.control(''),
     lugar: this.fb.nonNullable.control(''),
@@ -216,6 +211,9 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
   protected get actividades(): FormArray<EventoActividadFormGroup> {
     return this.form.controls.actividades;
   }
+
+  /** Señal que indica si se deben mostrar los precios externos (cuando el evento permite invitados) */
+  protected readonly showPreciosExternos = signal<boolean>(this.form.controls.permiteInvitados.value ?? true);
 
   constructor() {
     this.route.paramMap
@@ -255,6 +253,16 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
               this.errorMessage.set('No se pudo cargar el evento.');
             },
           });
+      });
+
+    // Mantener la señal y reaccionar a cambios en permiteInvitados para mostrar/ocultar
+    this.showPreciosExternos.set(Boolean(this.form.controls.permiteInvitados.value));
+    this.form.controls.permiteInvitados.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((val) => {
+        const enabled = Boolean(val);
+        this.showPreciosExternos.set(enabled);
+        this.updateActividadExternalPriceControls(enabled);
       });
   }
 
@@ -307,7 +315,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       titulo: value.titulo.trim(),
       descripcion: value.descripcion.trim(),
       fechaEvento: value.fechaEvento,
-      tipoEvento: value.tipoEvento,
       horaInicio: this.normalizeOptionalString(value.horaInicio),
       horaFin: this.normalizeOptionalString(value.horaFin),
       lugar: value.lugar.trim(),
@@ -318,7 +325,9 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       admitePago: value.admitePago,
       permiteInvitados: value.permiteInvitados,
       estado: value.estado,
-      requiereVerificacionAcceso: value.requiereVerificacionAcceso,
+      // `requiereVerificacionAcceso` is not present in the form controls anymore;
+      // default to false to satisfy the strict EventoWritePayload typing.
+      requiereVerificacionAcceso: Boolean((value as any).requiereVerificacionAcceso),
       actividades: this.buildActividadesPayload(),
     };
 
@@ -464,7 +473,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
   }
 
   protected actividadSubtitle(control: EventoActividadFormGroup): string {
-    return `${this.tipoActividadLabel(this.getActividadTipo(control))} · ${this.franjaLabel(this.getActividadFranja(control))} · ${this.compatibilidadLabel(this.getActividadCompatibilidad(control))}`;
+    return `${this.franjaLabel(this.getActividadFranja(control))} · ${this.compatibilidadLabel(this.getActividadCompatibilidad(control))}`;
   }
 
   protected franjaLabel(value: string | null | undefined): string {
@@ -479,13 +488,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       (item) => item.value === (value ?? '').trim().toLowerCase()
     );
     return option?.label ?? 'Compatibilidad pendiente';
-  }
-
-  protected tipoActividadLabel(value: string | null | undefined): string {
-    const option = this.tipoActividadOptions.find(
-      (item) => item.value === (value ?? '').trim().toLowerCase()
-    );
-    return option?.label ?? 'Tipo pendiente';
   }
 
   private updateSubmitBarMode(): void {
@@ -522,7 +524,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       titulo: '',
       descripcion: '',
       fechaEvento: '',
-      tipoEvento: 'comida',
+      // tipoEvento eliminado
       horaInicio: '',
       horaFin: '',
       lugar: '',
@@ -536,6 +538,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     });
 
     this.populateActividades([]);
+    this.updateActividadExternalPriceControls(this.showPreciosExternos());
   }
 
   private patchForm(evento: EventoDetalle): void {
@@ -543,7 +546,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
       titulo: evento.titulo ?? '',
       descripcion: evento.descripcion ?? '',
       fechaEvento: this.toDateInputValue(evento.fechaEvento),
-      tipoEvento: String(evento.tipoEvento ?? 'comida').trim().toLowerCase(),
+      // tipoEvento eliminado
       horaInicio: this.toTimeInputValue(evento.horaInicio),
       horaFin: this.toTimeInputValue(evento.horaFin),
       lugar: evento.lugar ?? '',
@@ -559,6 +562,7 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     });
 
     this.populateActividades(Array.isArray(evento.actividades) ? evento.actividades : []);
+    this.updateActividadExternalPriceControls(this.showPreciosExternos());
   }
 
   private populateActividades(actividades: ActividadEvento[]): void {
@@ -576,13 +580,14 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
 
     this.syncActividadOrdenes();
     queueMicrotask(() => this.updateSubmitBarMode());
+    this.updateActividadExternalPriceControls(this.showPreciosExternos());
   }
 
   private createActividadFormGroup(
     ordenVisualizacion: number,
-    value: Partial<EventoActividadFormValue> = {},
+    value: any = {},
   ): EventoActividadFormGroup {
-    return this.fb.group({
+    const group = this.fb.group({
       uiId: this.fb.nonNullable.control(value.uiId ?? this.createUiId()),
       id: this.fb.control<string | null>(value.id ?? null),
       nombre: this.fb.nonNullable.control(value.nombre ?? '', [
@@ -590,9 +595,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
         Validators.minLength(2),
       ]),
       descripcion: this.fb.nonNullable.control(value.descripcion ?? ''),
-      tipoActividad: this.fb.nonNullable.control(value.tipoActividad ?? 'libre', [
-        Validators.required,
-      ]),
       franjaComida: this.fb.nonNullable.control(value.franjaComida ?? 'comida', [
         Validators.required,
       ]),
@@ -601,29 +603,77 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
         [Validators.required]
       ),
       esDePago: this.fb.nonNullable.control(value.esDePago ?? true),
+      permiteInvitados: this.fb.nonNullable.control(
+        (value as any).permiteInvitados ?? Boolean(this.form.controls.permiteInvitados.value)
+      ),
       precioBase: this.fb.nonNullable.control(value.precioBase ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
       precioInfantil: this.fb.nonNullable.control(value.precioInfantil ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
+      precioInfantilExterno: this.fb.nonNullable.control(value.precioInfantilExterno ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
       precioAdultoInterno: this.fb.nonNullable.control(value.precioAdultoInterno ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
       precioAdultoExterno: this.fb.nonNullable.control(value.precioAdultoExterno ?? '0', [Validators.pattern(/^\d+(\.\d{1,2})?$/)]),
       ordenVisualizacion: this.fb.nonNullable.control(
         value.ordenVisualizacion ?? ordenVisualizacion
       ),
       activo: this.fb.nonNullable.control(value.activo ?? true),
-    }) as EventoActividadFormGroup;
+    } as any) as EventoActividadFormGroup;
+
+    // Inicializar estado de controles externos según el valor global y por-actividad
+    const applyExternalState = () => {
+      const showGlobal = this.showPreciosExternos();
+      const allowsActivity = Boolean(group.controls.permiteInvitados.value);
+      const isPaid = Boolean(group.controls.esDePago.value);
+
+      const shouldEnable = showGlobal && allowsActivity && isPaid;
+
+      if (shouldEnable) {
+        group.controls.precioInfantilExterno.enable({ emitEvent: false });
+        group.controls.precioAdultoExterno.enable({ emitEvent: false });
+      } else {
+        group.controls.precioInfantilExterno.disable({ emitEvent: false });
+        group.controls.precioAdultoExterno.disable({ emitEvent: false });
+        // Normalizar a cero cuando no esté permitido
+        try {
+          group.controls.precioInfantilExterno.setValue('0', { emitEvent: false });
+          group.controls.precioAdultoExterno.setValue('0', { emitEvent: false });
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+
+    // Suscripciones para re-evaluar cuando cambie el estado global o por-actividad
+    group.controls.permiteInvitados.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => applyExternalState());
+
+    group.controls.esDePago.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => applyExternalState());
+
+    // También escuchar cambios globales de permiteInvitados del evento
+    this.form.controls.permiteInvitados.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => applyExternalState());
+
+    // Aplicar estado inicial
+    applyExternalState();
+
+    return group;
   }
 
-  private mapActividadToFormValue(actividad: ActividadEvento): Partial<EventoActividadFormValue> {
+  private mapActividadToFormValue(actividad: ActividadEvento): any {
     return {
       uiId: this.createUiId(),
       id: actividad.id,
       nombre: actividad.nombre ?? '',
       descripcion: actividad.descripcion ?? '',
-      tipoActividad: String(actividad.tipoActividad ?? 'libre').trim().toLowerCase(),
       franjaComida: this.normalizeFranja(actividad.franjaComida),
       compatibilidadPersona: this.normalizeCompatibilidad(actividad.compatibilidadPersona),
       esDePago: Boolean(actividad.esDePago),
+      permiteInvitados: typeof (actividad as any).permiteInvitados === 'boolean' ? (actividad as any).permiteInvitados : Boolean(this.form.controls.permiteInvitados.value),
       precioBase: String(this.toNumber(actividad.precioBase)),
       precioInfantil: this.toNumber(actividad.precioInfantil),
+      precioInfantilExterno: this.toNumber(actividad.precioInfantilExterno),
       precioAdultoInterno: this.toNumber(actividad.precioAdultoInterno),
       precioAdultoExterno: this.toNumber(actividad.precioAdultoExterno),
       ordenVisualizacion: this.toNumber(actividad.ordenVisualizacion),
@@ -634,6 +684,8 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
   private buildActividadesPayload(): EventoWritePayload['actividades'] {
     return this.actividades.controls.map((control, index) => {
       const actividadId = this.getActividadId(control);
+      const actividadPermiteInvitados = Boolean(control.controls.permiteInvitados.value);
+      const actividadEsDePago = Boolean(control.controls.esDePago.value);
       return {
         // Si tiene id (viene del backend), enviar el IRI para que API Platform
         // identifique la entidad existente y la actualice en vez de crear una nueva.
@@ -643,16 +695,19 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
           : {}),
         nombre: this.getActividadNombre(control),
         descripcion: this.normalizeOptionalString(this.getActividadDescripcion(control)),
-        tipoActividad: this.getActividadTipo(control),
         franjaComida: this.normalizeFranja(this.getActividadFranja(control)),
         compatibilidadPersona: this.normalizeCompatibilidad(
           this.getActividadCompatibilidad(control)
         ),
-        esDePago: this.getActividadEsDePago(control),
-        precioBase: String(control.controls.precioBase.value),
-        precioInfantil: String(control.controls.precioInfantil.value),
-        precioAdultoInterno: String(control.controls.precioAdultoInterno.value),
-        precioAdultoExterno: String(control.controls.precioAdultoExterno.value),
+        esDePago: actividadEsDePago,
+        // Si la actividad no es de pago, forzamos precios a '0'
+        precioBase: actividadEsDePago ? String(control.controls.precioBase.value) : '0',
+        precioInfantil: actividadEsDePago ? String(control.controls.precioInfantil.value) : '0',
+        // Si no se permiten invitados en el evento/actividad, forzamos precios externos a '0'
+        precioInfantilExterno: actividadEsDePago && actividadPermiteInvitados ? String(control.controls.precioInfantilExterno.value) : '0',
+        precioAdultoInterno: actividadEsDePago ? String(control.controls.precioAdultoInterno.value) : '0',
+        precioAdultoExterno: actividadEsDePago && actividadPermiteInvitados ? String(control.controls.precioAdultoExterno.value) : '0',
+        permiteInvitados: actividadPermiteInvitados,
         ordenVisualizacion: index,
         activo: this.getActividadActivo(control),
       };
@@ -662,6 +717,32 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
   private syncActividadOrdenes(): void {
     this.actividades.controls.forEach((control, index) => {
       control.controls.ordenVisualizacion.setValue(index, {emitEvent: false});
+    });
+  }
+
+  /** Habilita o deshabilita los campos de precio externo en cada actividad según `enabled`. */
+  private updateActividadExternalPriceControls(enabled: boolean): void {
+    this.actividades.controls.forEach((control) => {
+      const precioInfExt = control.controls.precioInfantilExterno;
+      const precioAdultExt = control.controls.precioAdultoExterno;
+      const actividadAllows = Boolean(control.controls.permiteInvitados?.value);
+      const actividadIsPaid = Boolean(control.controls.esDePago?.value);
+      const shouldEnable = enabled && actividadAllows && actividadIsPaid;
+
+      if (shouldEnable) {
+        precioInfExt.enable({ emitEvent: false });
+        precioAdultExt.enable({ emitEvent: false });
+      } else {
+        precioInfExt.disable({ emitEvent: false });
+        precioAdultExt.disable({ emitEvent: false });
+        // Normalizar a cero cuando no esté permitido para evitar valores huérfanos
+        try {
+          precioInfExt.setValue('0', { emitEvent: false });
+          precioAdultExt.setValue('0', { emitEvent: false });
+        } catch (e) {
+          // ignore
+        }
+      }
     });
   }
 
@@ -752,10 +833,6 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     return control.controls.descripcion.value?.trim() ?? '';
   }
 
-  private getActividadTipo(control: EventoActividadFormGroup): string {
-    return control.controls.tipoActividad.value?.trim().toLowerCase() ?? 'libre';
-  }
-
   private getActividadFranja(control: EventoActividadFormGroup): string {
     return control.controls.franjaComida.value?.trim().toLowerCase() ?? 'comida';
   }
@@ -795,6 +872,70 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
   private getEventoAdmitePago(evento: EventoDetalle): boolean {
     const value = (evento as EventoDetalle & { admitePago?: boolean }).admitePago;
     return typeof value === 'boolean' ? value : true;
+  }
+
+  /** Toggle a control inside an actividad form group and re-evaluate external-price controls. */
+  protected toggleActividadControl(index: number, controlName: 'esDePago' | 'activo' | 'permiteInvitados'): void {
+    if (index < 0 || index >= this.actividades.length) return;
+    const group = this.actividades.at(index) as EventoActividadFormGroup;
+    const ctrl: any = (group.controls as any)[controlName];
+    if (!ctrl) return;
+    const next = !Boolean(ctrl.value);
+    // ensure subscribers run
+    ctrl.setValue(next, { emitEvent: true });
+
+    // Re-evaluate enabling/disabling of external price controls across activities.
+    this.updateActividadExternalPriceControls(this.showPreciosExternos());
+    // Force a synchronous view update to ensure *ngIf reacts immediately under OnPush
+    try {
+      this.cdr.detectChanges();
+    } catch (e) {
+      try { this.cdr.markForCheck(); } catch (e2) { /* ignore */ }
+    }
+  }
+
+  protected toggleGlobalPermiteInvitados(): void {
+    const current = Boolean(this.form.controls.permiteInvitados.value);
+    this.form.controls.permiteInvitados.setValue(!current);
+    // keep signal in sync
+    this.showPreciosExternos.set(!current);
+    // Propagate the global setting to each actividad's permiteInvitados control
+    this.actividades.controls.forEach((group) => {
+      try {
+        group.controls.permiteInvitados.setValue(!current, { emitEvent: true });
+      } catch (e) {
+        // ignore if control missing
+      }
+    });
+
+    this.updateActividadExternalPriceControls(!current);
+    try {
+      this.cdr.markForCheck();
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  protected toggleGlobalAdmitePago(): void {
+    const current = Boolean(this.form.controls.admitePago.value);
+    this.form.controls.admitePago.setValue(!current);
+
+    // Propagate to each actividad.esDePago so activity chips reflect global state
+    this.actividades.controls.forEach((group) => {
+      try {
+        group.controls.esDePago.setValue(!current, { emitEvent: true });
+      } catch (e) {
+        // ignore
+      }
+    });
+
+    // Re-evaluate external price controls after changing esDePago flags
+    this.updateActividadExternalPriceControls(this.showPreciosExternos());
+    try {
+      this.cdr.markForCheck();
+    } catch (e) {
+      // ignore
+    }
   }
 }
 

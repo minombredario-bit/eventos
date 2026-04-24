@@ -200,6 +200,35 @@
   margin-top: 1rem;
 }
 
+.chips-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.5rem;
+  /* Place chips on their own row; allow chips to wrap inside that row. */
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip {
+  white-space: nowrap;
+  flex: 0 0 auto; /* don't grow or shrink; keep intrinsic size */
+}
+
+.chip--active {
+  background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface));
+  color: var(--brand-primary-strong);
+  border-color: color-mix(in srgb, var(--brand-primary) 20%, var(--border-soft));
+}
+
 .field-grid--activity {
   margin-top: 0.9rem;
 }
@@ -377,6 +406,7 @@
   grid-column: 1 / -1;
   display: flex;
   gap: 0.6rem;
+  /* Activity chips should occupy their own row and wrap as needed */
   flex-wrap: wrap;
 }
 
@@ -386,6 +416,11 @@
   background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface));
   color: var(--brand-primary-strong);
   font-weight: 700;
+}
+
+/* Ensure activity controls area (chips inside activity card) always occupies its own row */
+.activity-controls {
+  grid-column: 1 / -1;
 }
 
 .activity-chip--muted {

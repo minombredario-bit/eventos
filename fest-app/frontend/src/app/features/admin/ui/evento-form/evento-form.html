@@ -52,7 +52,7 @@
               <label for="descripcion">Descripción</label>
             </div>
 
-            <div class="field">
+            <div class="field field--full">
               <input id="fechaEvento" type="date" formControlName="fechaEvento" placeholder=" " />
               <label for="fechaEvento">
                 Fecha del evento <span class="field-required" aria-hidden="true">*</span>
@@ -121,20 +121,40 @@
               </label>
             </div>
 
-            <label class="checkbox-row">
-              <input type="checkbox" formControlName="visible" />
-              <span>Visible</span>
-            </label>
+            <div class="chips-row">
+              <button
+                type="button"
+                class="chip"
+                [class.chip--active]="form.controls.visible.value"
+                (click)="form.controls.visible.setValue(!form.controls.visible.value)"
+                [attr.aria-pressed]="form.controls.visible.value"
+                aria-label="Visible"
+              >
+                Visible
+              </button>
 
-            <label class="checkbox-row">
-              <input type="checkbox" formControlName="admitePago" />
-              <span>Admite pago</span>
-            </label>
+              <button
+                type="button"
+                class="chip"
+                [class.chip--active]="form.controls.admitePago.value"
+                (click)="toggleGlobalAdmitePago()"
+                [attr.aria-pressed]="form.controls.admitePago.value"
+                aria-label="Admite pago"
+              >
+                Admite pago
+              </button>
 
-            <label class="checkbox-row">
-              <input type="checkbox" formControlName="permiteInvitados" />
-              <span>Permite invitados</span>
-            </label>
+              <button
+                type="button"
+                class="chip"
+                [class.chip--active]="form.controls.permiteInvitados.value"
+                (click)="toggleGlobalPermiteInvitados()"
+                [attr.aria-pressed]="form.controls.permiteInvitados.value"
+                aria-label="Permite invitados"
+              >
+                Permite invitados
+              </button>
+            </div>
           </div>
         </section>
 
@@ -267,18 +287,6 @@
                     </div>
 
                     <div class="field">
-                      <select id="actividad-tipo-{{ i }}" formControlName="tipoActividad">
-                        @for (tipo of tipoActividadOptions; track tipo.value) {
-                          <option [value]="tipo.value">{{ tipo.label }}</option>
-                        }
-                      </select>
-                      <label [attr.for]="'actividad-tipo-' + i">
-                        Tipo de actividad
-                        <span class="field-required" aria-hidden="true">*</span>
-                      </label>
-                    </div>
-
-                    <div class="field">
                       <select id="actividad-franja-{{ i }}" formControlName="franjaComida">
                         @for (franja of franjaOptions; track franja.value) {
                           <option [value]="franja.value">{{ franja.label }}</option>
@@ -305,20 +313,20 @@
                       </label>
                     </div>
 
-                    <div class="field">
-                      <input
-                        id="actividad-precio-{{ i }}"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        formControlName="precioBase"
-                        placeholder=" "
-                      />
-                      <label [attr.for]="'actividad-precio-' + i">Precio base</label>
-                    </div>
+                                    <div class="field" *ngIf="actividad.controls.esDePago.value">
+                                      <input
+                                        id="actividad-precio-{{ i }}"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        formControlName="precioBase"
+                                        placeholder=" "
+                                      />
+                                      <label [attr.for]="'actividad-precio-' + i">Precio base</label>
+                                    </div>
 
                     <!-- Agregar campos de precio al formulario de actividades -->
-                    <div class="field">
+                    <div class="field" *ngIf="actividad.controls.esDePago.value">
                       <input
                         id="actividad-precio-infantil-{{ i }}"
                         type="number"
@@ -330,7 +338,19 @@
                       <label [attr.for]="'actividad-precio-infantil-' + i">Precio infantil</label>
                     </div>
 
-                    <div class="field">
+                    <div class="field" *ngIf="actividad.controls.esDePago.value && actividad.controls.permiteInvitados.value && showPreciosExternos()">
+                      <input
+                        id="actividad-precio-invitado-infantil-{{ i }}"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        formControlName="precioInfantilExterno"
+                        placeholder=" "
+                      />
+                      <label [attr.for]="'actividad-precio-invitado-infantil-' + i">Precio invitado infantil</label>
+                    </div>
+
+                    <div class="field" *ngIf="actividad.controls.esDePago.value">
                       <input
                         id="actividad-precio-adulto-interno-{{ i }}"
                         type="number"
@@ -339,10 +359,10 @@
                         formControlName="precioAdultoInterno"
                         placeholder=" "
                       />
-                      <label [attr.for]="'actividad-precio-adulto-interno-' + i">Precio adulto interno</label>
+                      <label [attr.for]="'actividad-precio-adulto-interno-' + i">Precio adulto</label>
                     </div>
 
-                    <div class="field" *ngIf="form.controls.permiteInvitados.value">
+                    <div class="field" *ngIf="actividad.controls.esDePago.value && actividad.controls.permiteInvitados.value && showPreciosExternos()">
                       <input
                         id="actividad-precio-adulto-externo-{{ i }}"
                         type="number"
@@ -351,18 +371,45 @@
                         formControlName="precioAdultoExterno"
                         placeholder=" "
                       />
-                      <label [attr.for]="'actividad-precio-adulto-externo-' + i">Precio adulto externo</label>
+                      <label [attr.for]="'actividad-precio-adulto-externo-' + i">Precio invitado adulto</label>
                     </div>
 
-                    <label class="checkbox-row">
-                      <input type="checkbox" formControlName="esDePago" />
-                      <span>Es de pago</span>
-                    </label>
+                    <div class="activity-controls">
+                      <div class="chips-row">
+                        <button
+                          type="button"
+                          class="chip"
+                          [class.chip--active]="actividad.controls.esDePago.value"
+                          (click)="toggleActividadControl(i, 'esDePago')"
+                          [attr.aria-pressed]="actividad.controls.esDePago.value"
+                          aria-label="Es de pago"
+                        >
+                          Es de pago
+                        </button>
 
-                    <label class="checkbox-row">
-                      <input type="checkbox" formControlName="activo" />
-                      <span>Actividad activa</span>
-                    </label>
+                        <button
+                          type="button"
+                          class="chip"
+                          [class.chip--active]="actividad.controls.activo.value"
+                          (click)="toggleActividadControl(i, 'activo')"
+                          [attr.aria-pressed]="actividad.controls.activo.value"
+                          aria-label="Actividad activa"
+                        >
+                          Actividad activa
+                        </button>
+
+                        <button
+                          type="button"
+                          class="chip"
+                          [class.chip--active]="actividad.controls.permiteInvitados.value"
+                          (click)="toggleActividadControl(i, 'permiteInvitados')"
+                          [attr.aria-pressed]="actividad.controls.permiteInvitados.value"
+                          aria-label="Permite invitados"
+                        >
+                          Permite invitados
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 }
               </article>

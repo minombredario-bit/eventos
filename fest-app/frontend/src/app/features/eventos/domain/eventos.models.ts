@@ -142,7 +142,6 @@ export interface EventoAdminListado {
 export interface EventoFormValue {
   titulo: string;
   descripcion: string;
-  tipoEvento: string;
   fechaEvento: string;
   horaInicio: string | null;
   horaFin: string | null;
@@ -163,12 +162,13 @@ export interface EventoActividadFormValue {
   id?: string | null;
   nombre: string;
   descripcion: string;
-  tipoActividad: string;
   franjaComida: MealSlot;
   compatibilidadPersona: ActivityCompatibility;
   esDePago: boolean;
+  permiteInvitados: boolean;
   precioBase: string;
   precioInfantil: number;
+  precioInfantilExterno: number;
   precioAdultoInterno: number;
   precioAdultoExterno: number;
   ordenVisualizacion: number;

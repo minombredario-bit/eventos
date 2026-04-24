@@ -22,7 +22,7 @@ export class AppComponent implements OnInit {
       const user = this.authStore.user();
       const entidad = typeof user?.nombreEntidad === 'string' ? user.nombreEntidad.trim() : '';
 
-      this.title.setTitle(entidad ? `FestApp - ${entidad}` : 'FestApp');
+      this.title.setTitle(entidad ? `Festiva - ${entidad}` : 'Festiva');
     });
   }
 
