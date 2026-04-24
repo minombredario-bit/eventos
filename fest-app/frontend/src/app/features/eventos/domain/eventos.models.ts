@@ -1,5 +1,3 @@
-import {Usuario} from '../../admin/domain/admin.models';
-
 export type EventStatus = 'abierto' | 'ultimas_plazas' | 'cerrado';
 export type PersonType = 'adulto' | 'infantil';
 export type ParticipantOrigin = 'familiar' | 'invitado';
@@ -81,19 +79,20 @@ export interface MemberEnrollment {
   paymentStatusRaw: string;
 }
 
-export interface ActivityOption {
-  id: string;
+export interface ActivityOption {id: string;
   label: string;
-  description: string;
   slot: MealSlot;
-  compatibility: ActivityCompatibility;
-  isPaid?: boolean;
-  price: number;
+  compatibility: 'ambos' | 'infantil' | 'adulto';
+  price: number;           // precio base / fallback
+  precioAdultoInterno: number;
+  precioAdultoExterno: number;
+  precioInfantilExterno: number;
+  precioInfantil: number;
+  isPaid: boolean;
   disabled?: boolean;
 }
 
-export interface ActividadEvento {
-  id: string;
+export interface ActividadEvento {id: string;
   evento?: string | { id?: string };
   nombre: string;
   descripcion?: string | null;
@@ -106,6 +105,7 @@ export interface ActividadEvento {
   precioAdultoInterno?: number;
   precioAdultoExterno?: number;
   ordenVisualizacion?: number;
+  precioInfantilExterno?: number;
   activo?: boolean;
 }
 
@@ -363,6 +363,7 @@ export interface CredentialData {
 export interface EventosPage {
   items: EventoAdminListado[];
   totalItems: number;
+  totalPages: number;
   page: number;
   itemsPerPage: number;
   hasNext: boolean;

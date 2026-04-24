@@ -106,6 +106,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
     'estado' => 'exact',
     'visible' => 'exact',
     'entidad' => 'exact',
+    'titulo' => 'partial',
 ])]
 #[ApiFilter(
     OrderFilter::class, properties: ['fechaEvento', 'horaInicio', 'createdAt'],

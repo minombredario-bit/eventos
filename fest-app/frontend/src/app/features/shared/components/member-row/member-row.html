@@ -3,7 +3,7 @@
     <span class="avatar" aria-hidden="true">{{ member().avatarInitial }}</span>
     <div class="identity-copy">
       <div class="title-row">
-        <h3>{{ member().name }}</h3>
+        <h3>{{ member().name }} - {{ member().personType }}</h3>
         @if (relationLabel()) {
           <span class="role">{{ relationLabel() }}</span>
         }
@@ -38,9 +38,21 @@
           (change)="onActividadChange($event)"
         >
           <option value="">No incluir en la inscripción</option>
+
           @for (actividad of selectorOptions(); track actividad.id) {
-            <option [value]="actividad.id" [selected]="actividad.id === selectedActividadId()" [disabled]="actividad.disabled ?? false">
-              {{ actividad.label }}@if (actividad.price > 0) { · {{ actividad.price | currency: 'EUR' : 'symbol' : '1.0-0' }} }
+            <option
+              [value]="actividad.id"
+              [selected]="actividad.id === selectedActividadId()"
+              [disabled]="actividad.disabled ?? false"
+            >
+              {{ actividad.label }}
+
+              @if (getActivityPrice(member(), actividad) > 0) {
+                · {{
+                  getActivityPrice(member(), actividad)
+                    | currency:'EUR':'symbol':'1.2-2'
+                }}
+              }
             </option>
           }
         </select>

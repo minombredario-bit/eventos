@@ -95,7 +95,7 @@ export class Inscripciones {
 
   protected cierreEventoHint(inscripcion: Inscripcion): string {
     if (!this.isEventoCerrado(inscripcion)) {
-      return 'Podés gestionar tu inscripción.';
+      return 'Puedes gestionar tu inscripción.';
     }
 
     const fechaLimite = inscripcion.evento.fechaLimiteInscripcion?.trim();

@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Inscripcion;
 use App\Entity\Evento;
 use App\Entity\Usuario;
+use App\Entity\InscripcionLinea;
 use App\Enum\EstadoInscripcionEnum;
 use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\FranjaComidaEnum;
@@ -217,5 +218,73 @@ class InscripcionRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
 
         return (int) $result > 0;
+    }
+
+    /**
+     * Busca una línea activa de inscripción para un usuario participante en una franja.
+     */
+    public function findLineaActivaUsuarioEnFranja(
+        string $usuarioId,
+        string $eventoId,
+        string $usuarioParticipanteId,
+        FranjaComidaEnum $franjaComida,
+    ): ?InscripcionLinea {
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select('l')
+            ->from(InscripcionLinea::class, 'l')
+            ->join('l.inscripcion', 'i')
+            ->join('i.usuario', 'owner')
+            ->join('l.usuario', 'up')
+            ->join('l.actividad', 'm')
+            ->join('i.evento', 'e')
+            ->where('owner.id = :usuarioId')
+            ->andWhere('e.id = :eventoId')
+            ->andWhere('up.id = :usuarioParticipanteId')
+            ->andWhere('m.franjaComida = :franjaComida')
+            ->andWhere('l.estadoLinea != :lineaCancelada')
+            ->andWhere('i.estadoInscripcion != :cancelada')
+            ->setParameter('usuarioId', $usuarioId)
+            ->setParameter('eventoId', $eventoId)
+            ->setParameter('usuarioParticipanteId', $usuarioParticipanteId)
+            ->setParameter('franjaComida', $franjaComida)
+            ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
+            ->setMaxResults(1);
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    /**
+     * Busca una línea activa de inscripción para un invitado en una franja.
+     */
+    public function findLineaActivaInvitadoEnFranja(
+        string $usuarioId,
+        string $eventoId,
+        string $invitadoId,
+        FranjaComidaEnum $franjaComida,
+    ): ?InscripcionLinea {
+        $qb = $this->getEntityManager()->createQueryBuilder()
+            ->select('l')
+            ->from(InscripcionLinea::class, 'l')
+            ->join('l.inscripcion', 'i')
+            ->join('i.usuario', 'owner')
+            ->join('l.invitado', 'inv')
+            ->join('l.actividad', 'm')
+            ->join('i.evento', 'e')
+            ->where('owner.id = :usuarioId')
+            ->andWhere('e.id = :eventoId')
+            ->andWhere('inv.id = :invitadoId')
+            ->andWhere('m.franjaComida = :franjaComida')
+            ->andWhere('l.estadoLinea != :lineaCancelada')
+            ->andWhere('i.estadoInscripcion != :cancelada')
+            ->setParameter('usuarioId', $usuarioId)
+            ->setParameter('eventoId', $eventoId)
+            ->setParameter('invitadoId', $invitadoId)
+            ->setParameter('franjaComida', $franjaComida)
+            ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
+            ->setMaxResults(1);
+
+        return $qb->getQuery()->getOneOrNullResult();
     }
 }

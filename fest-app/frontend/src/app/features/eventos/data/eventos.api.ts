@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { parseCollection } from '../../../core/utils/collection-utils';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
-import { catchError, map, Observable, of, switchMap, throwError } from 'rxjs';
+import {catchError, map, Observable, of, switchMap, tap, throwError} from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
 import { AuthService } from '../../../core/auth/auth';
 import {
@@ -72,7 +72,6 @@ export class EventosApi {
   getEventosAdmin(params: EventosAdminParams = {}): Observable<EventosPage> {
     const {
       page = 1,
-      pagination = true,
       itemsPerPage = 10,
       search,
       monthOnly,
@@ -80,9 +79,8 @@ export class EventosApi {
     } = params;
 
     let httpParams = new HttpParams()
-      .set('pagination', String(pagination))
-      .set('page', String(page))
-      .set('itemsPerPage', String(itemsPerPage))
+      .set('page', page)
+      .set('itemsPerPage', itemsPerPage)
       .set('order[fechaEvento]', 'asc')
       .set('order[horaInicio]', 'asc');
 
@@ -100,21 +98,27 @@ export class EventosApi {
     }
 
     return this.http
-      .get<ApiCollection<EventoAdminListado>>(`${environment.apiUrl}/eventos`, {
-        params: httpParams,
-      })
+      .get<ApiCollection<EventoAdminListado>>(`${environment.apiUrl}/eventos`, { params: httpParams })
       .pipe(
         map((response) => {
-          const items = (parseCollection(response as unknown) as EventoAdminListado[])
-            .map((item) => this.normalizeEventoListado(item));
+          const raw = response as unknown as Record<string, any>;
+
+          const members = (raw['member'] ?? raw['hydra:member'] ?? []) as EventoAdminListado[];
+          const items = members.map((item) => this.normalizeEventoListado(item));
+
+          const totalItems = Number(raw['totalItems'] ?? raw['hydra:totalItems'] ?? items.length);
+          const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+          const view = raw['view'] ?? raw['hydra:view'];
 
           return {
             items,
-            totalItems: Number(response['hydra:totalItems'] ?? items.length),
+            totalItems,
+            totalPages,
             page,
             itemsPerPage,
-            hasNext: Boolean(response['hydra:view']?.['hydra:next']),
-            hasPrevious: Boolean(response['hydra:view']?.['hydra:previous']),
+            hasNext: Boolean(view?.['next'] ?? view?.['hydra:next']),
+            hasPrevious: Boolean(view?.['previous'] ?? view?.['hydra:previous']),
           } satisfies EventosPage;
         }),
       );
@@ -187,11 +191,11 @@ export class EventosApi {
 
   crearInscripcion(
     eventoId: string,
-    personas: Array<{ usuario: string; actividad: string; observaciones?: string }>,
+    persona: { usuario: string; actividad: string; observaciones?: string },
   ): Observable<CrearInscripcionResponse> {
     return this.http.post<CrearInscripcionResponse>(
       `${this.eventoBasePath(eventoId)}/inscribirme`,
-      { personas },
+      { persona },
     );
   }
 

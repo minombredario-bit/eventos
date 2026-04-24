@@ -53,7 +53,7 @@ export class AdminApi {
     if (search) {
       params = params.set(
         search.includes('@') ? 'email' : 'nombreCompleto',
-        search
+        search,
       );
     }
 
@@ -61,17 +61,26 @@ export class AdminApi {
       .get<ApiCollection<Usuario>>(`${environment.apiUrl}/usuarios`, { params })
       .pipe(
         map((response) => {
-          const items = parseCollection(response as unknown) as unknown as Usuario[];
+          const raw = response as unknown as Record<string, any>;
+
+          const members = (raw['member'] ?? raw['hydra:member'] ?? []) as Usuario[];
+          const items = members;
+
+          const totalItems = Number(raw['totalItems'] ?? raw['hydra:totalItems'] ?? items.length);
+          const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+          const view = raw['view'] ?? raw['hydra:view'];
 
           return {
             items,
-            totalItems: Number(response['hydra:totalItems'] ?? items.length),
+            totalItems,
+            totalPages,
             page,
             itemsPerPage,
-            hasNext: Boolean(response['hydra:view']?.['hydra:next']),
-            hasPrevious: Boolean(response['hydra:view']?.['hydra:previous']),
-          };
-        })
+            hasNext: Boolean(view?.['next'] ?? view?.['hydra:next']),
+            hasPrevious: Boolean(view?.['previous'] ?? view?.['hydra:previous']),
+          } satisfies UsuariosPage;
+        }),
       );
   }
 

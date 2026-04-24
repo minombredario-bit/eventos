@@ -249,7 +249,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
 
                 $item['nombre'] = $usuario->getNombre();
                 $item['apellidos'] = $usuario->getApellidos();
-                $item['tipoPersona'] = 'adulto';
+                $item['tipoPersona'] = $usuario->getTipoPersona()->value;
 
                 $inscripcion = $inscripcionesPorUsuario[$usuario->getId()] ?? null;
                 $inscripcionRelacion = $this->buildInscripcionRelacion(

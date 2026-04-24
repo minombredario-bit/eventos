@@ -28,6 +28,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     request.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`,
+        Accept: 'application/ld+json',
       },
     }),
   ).pipe(

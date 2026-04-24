@@ -170,6 +170,10 @@ class ActividadEvento
     #[Groups(['actividad-evento:read'])]
     private \DateTimeImmutable $updatedAt;
 
+    #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2, nullable: true)]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
+    private string|float|null $precioInfantilExterno = null;
+
     public function __construct()
     {
         $this->id = Uuid::uuid4();
@@ -260,7 +264,8 @@ class ActividadEvento
     {
         return match ($this->compatibilidadPersona) {
             CompatibilidadPersonaActividadEnum::AMBOS => true,
-            CompatibilidadPersonaActividadEnum::ADULTO => $tipoPersona === TipoPersonaEnum::ADULTO,
+            CompatibilidadPersonaActividadEnum::ADULTO,
+            CompatibilidadPersonaActividadEnum::CADETE => $tipoPersona === TipoPersonaEnum::ADULTO,
             CompatibilidadPersonaActividadEnum::INFANTIL => $tipoPersona === TipoPersonaEnum::INFANTIL,
         };
     }
@@ -383,5 +388,17 @@ class ActividadEvento
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function getPrecioInfantilExterno(): ?float
+    {
+        return $this->precioInfantilExterno;
+    }
+
+    public function setPrecioInfantilExterno(?float $precioInfantilExterno): static
+    {
+        $this->precioInfantilExterno = $precioInfantilExterno;
+
+        return $this;
     }
 }

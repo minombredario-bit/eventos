@@ -10,7 +10,7 @@ import {
   PaymentBadgeStatus,
   PersonaFamiliar,
   RelacionUsuario,
-  InvitadoDelete,
+  InvitadoDelete, MealSlot,
 } from '../domain/eventos.models';
 
 @Injectable({ providedIn: 'root' })
@@ -121,11 +121,14 @@ export class EventosMapper {
     return {
       id: actividad.id,
       label: actividad.nombre,
-      description: actividad.descripcion ?? '',
-      slot: actividad.franjaComida,
-      compatibility: actividad.compatibilidadPersona,
-      isPaid: actividad.esDePago,
-      price: actividad.precioBase,
+      slot: actividad.franjaComida as MealSlot,
+      compatibility: actividad.compatibilidadPersona as 'ambos' | 'infantil' | 'adulto',
+      price: actividad.precioBase ?? 0,
+      precioAdultoInterno: actividad.precioAdultoInterno ?? actividad.precioBase ?? 0,
+      precioAdultoExterno: actividad.precioAdultoExterno ?? actividad.precioBase ?? 0,
+      precioInfantilExterno: actividad.precioInfantilExterno ?? actividad.precioBase ?? 0,
+      precioInfantil: actividad.precioInfantil ?? actividad.precioBase ?? 0,
+      isPaid: actividad.esDePago ?? false,
     };
   }
 

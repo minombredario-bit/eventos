@@ -21,7 +21,7 @@
     } @else if (!inscripciones().length) {
       <article class="panel empty-card">
         <p class="eyebrow">Sin inscripciones</p>
-        <h2>Todavía no tenés eventos registrados</h2>
+        <h2>Todavía no tienes eventos registrados</h2>
         <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a las actividades.</p>
       </article>
     } @else {
@@ -55,7 +55,7 @@
                 <div class="inscription-meta">
                   <span>{{ lineasLabel(inscripcion) }}</span>
                   <span>{{ estadoPagoLabel(inscripcion.estadoPago) }}</span>
-                  <small>{{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.0-0' }}</small>
+                  <small>{{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.2-2' }}</small>
                 </div>
               </a>
 

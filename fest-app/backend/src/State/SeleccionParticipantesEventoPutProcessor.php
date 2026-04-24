@@ -179,7 +179,7 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
 
         $response = new SeleccionParticipantesView();
         $response->eventoId = $evento->getId();
-        $response->participantes = $this->buildLegacySnapshotFromPrincipal($seleccionesPrincipales);
+        $response->participantes = $this->buildSnapshotFromPrincipal($seleccionesPrincipales);
         $response->updatedAt = $updatedAt?->format('c');
 
         // Build inscripciones snapshot for the selected participants (avoid duplicates)
@@ -604,6 +604,33 @@ class SeleccionParticipantesEventoPutProcessor implements ProcessorInterface
         $linea->setInvitado($data['invitado']);
         $linea->setActividad($data['actividad']);
         $linea->setInscripcionLinea($data['inscripcionLinea']);
+    }
+
+    /**
+     * @param list<SeleccionParticipanteEvento> $selecciones
+     * @return list<array{id: string, origen: string}>
+     */
+    private function buildSnapshotFromPrincipal(array $selecciones): array
+    {
+        $participantes = [];
+
+        foreach ($selecciones as $seleccion) {
+            $origen = $seleccion->getInvitado() !== null ? 'invitado' : 'familiar';
+            $participanteId = $origen === 'invitado'
+                ? (string) $seleccion->getInvitado()?->getId()
+                : (string) $seleccion->getUsuario()?->getId();
+
+            if ($participanteId === '') {
+                continue;
+            }
+
+            $participantes[] = [
+                'id' => $participanteId,
+                'origen' => $origen,
+            ];
+        }
+
+        return $participantes;
     }
 
     private function buildPrincipalKeyFromEntity(SeleccionParticipanteEvento $seleccion): string

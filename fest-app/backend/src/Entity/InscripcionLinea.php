@@ -177,7 +177,7 @@ class InscripcionLinea
     {
         if ($this->usuario !== null) {
             $this->nombrePersonaSnapshot          = $this->usuario->getNombreCompleto();
-            $this->tipoPersonaSnapshot            = 'adulto';
+            $this->tipoPersonaSnapshot            = $this->usuario->getTipoPersona()->value;
             $this->tipoRelacionEconomicaSnapshot  = $this->usuario->getTipoUsuarioEconomico()->value;
             $this->estadoValidacionSnapshot       = $this->usuario->getEstadoValidacion()->value;
         } elseif ($this->invitado !== null) {

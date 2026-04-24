@@ -57,7 +57,7 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
             throw new BadRequestHttpException('La actividad seleccionada no está activa.');
         }
 
-        $tipoPersona = $data->getInvitado()?->getTipoPersona() ?? TipoPersonaEnum::ADULTO;
+        $tipoPersona = $data->getInvitado()?->getTipoPersona() ?? $data->getUsuario()?->getTipoPersona();
         if (!$actividad->esCompatibleConTipoPersona($tipoPersona)) {
             throw new BadRequestHttpException('La actividad seleccionada no es compatible con el tipo de persona.');
         }

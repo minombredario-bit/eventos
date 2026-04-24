@@ -154,6 +154,7 @@ export interface UsuarioRelacionadoSeleccionado {
 
 export interface UsuariosPage {
   items: Usuario[];
+  totalPages: number;
   totalItems: number;
   page: number;
   itemsPerPage: number;

@@ -69,11 +69,11 @@
               @if (existingInscriptionTotals(); as totals) {
                 <div class="total-line">
                   <span>Total líneas informadas</span>
-                  <strong>{{ totals.totalLineas | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                  <strong>{{ totals.totalLineas | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong>
                 </div>
                 <div class="total-line">
                   <span>Total pagado</span>
-                  <strong>{{ totals.totalPagado | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                  <strong>{{ totals.totalPagado | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong>
                 </div>
               }
 
@@ -99,7 +99,7 @@
                               <small>
                                 {{ linea.stateLabel }}
                                 · {{ linea.slot ? slotLabel(linea.slot) : 'Franja sin definir' }}
-                                · {{ linea.price | currency: 'EUR' : 'symbol' : '1.0-0' }}
+                                · {{ linea.price | currency: 'EUR' : 'symbol' : '1.2-2' }}
                               </small>
                             </div>
                             @if (canModifyExistingInscription() && canRemoveExistingLine(linea)) {
@@ -123,7 +123,7 @@
           } @else {
             <article class="panel error-card">
               <h2>Sin inscripción en este evento</h2>
-              <p>Elegí uno de tus eventos inscritos para ver usuarios y actividades.</p>
+              <p>Elige uno de tus eventos inscritos para ver usuarios y actividades.</p>
             </article>
           }
 
@@ -134,7 +134,7 @@
           @if (!membersInScope().length) {
             <article class="panel error-card">
               <h2>No hay participantes para mostrar</h2>
-              <p>Volvé al detalle del evento y marcá al menos un familiar para continuar.</p>
+              <p>Vuelve al detalle del evento y marca al menos un familiar para continuar.</p>
             </article>
           }
 
@@ -144,7 +144,7 @@
                 <h2>Usuarios quitados</h2>
                 <span class="inline-count">{{ removedMembers().length }}</span>
               </div>
-              <p class="summary">Si te equivocaste, podés volver a incluirlos en esta misma pantalla.</p>
+              <p class="summary">Si te equivocaste, puedes volver a incluirlos en esta misma pantalla.</p>
               <div class="participants-list">
                 @for (member of removedMembers(); track trackMember(member)) {
                   <div class="participant-item">
@@ -185,7 +185,7 @@
                   [selectedActividadId]="getSelectedActivity(member, slot)"
                   [emptyMessage]="'Sin actividad compatible para esta franja'"
                   [disabled]="submitting() || !event()?.inscripcionAbierta || isSelectorLocked(member, slot)"
-                  (actividadChanged)="updateActividad($event)"
+                  (activityChanged)="updateActividad($event)"
                 />
               }
             </article>
@@ -208,22 +208,22 @@
                   <span>
                     {{ slotLabel(slot.slot) }} · {{ slot.selections }} {{ slot.selections === 1 ? 'selección' : 'selecciones' }}
                   </span>
-                  <strong>{{ slot.total | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                  <strong>{{ slot.total | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong>
                 </div>
               }
               @if (!allActiveLinesPaid() && totalAlreadyPaid() > 0) {
                 <div class="total-line">
                   <span>Ya pagado</span>
-                  <strong>{{ totalAlreadyPaid() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                  <strong>{{ totalAlreadyPaid() | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong>
                 </div>
                 <div class="total-line">
                   <span>Pendiente</span>
-                  <strong>{{ totalPending() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                  <strong>{{ totalPending() | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong>
                 </div>
               }
               <p class="grand-total">
                 <span>{{ allActiveLinesPaid() ? 'Pagado' : (totalAlreadyPaid() > 0 ? 'Pendiente' : 'Total') }}</span>
-                <strong>{{ (allActiveLinesPaid() || totalAlreadyPaid() <= 0 ? totalPrice() : totalPending()) | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong>
+                <strong>{{ (allActiveLinesPaid() || totalAlreadyPaid() <= 0 ? totalPrice() : totalPending()) | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong>
               </p>
             </article>
           } @else {

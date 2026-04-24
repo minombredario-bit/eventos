@@ -38,6 +38,7 @@ export class AdminEventos {
   protected readonly monthOnly = signal(false);
   protected readonly eventosPage = signal<EventosPage>({
     items: [],
+    totalPages: 0,
     totalItems: 0,
     page: 1,
     itemsPerPage: AdminEventos.PAGE_SIZE,
@@ -246,6 +247,7 @@ export class AdminEventos {
           this.eventosPage.set({
             items: [],
             totalItems: 0,
+            totalPages: 0,
             page: 1,
             itemsPerPage: AdminEventos.PAGE_SIZE,
             hasNext: false,

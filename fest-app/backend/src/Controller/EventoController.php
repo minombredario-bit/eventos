@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use ApiPlatform\Metadata\IriConverterInterface;
 use App\Entity\Evento;
 use App\Entity\SeleccionParticipanteEvento;
 use App\Entity\Usuario;
@@ -28,6 +29,7 @@ class EventoController extends AbstractController
         private readonly InvitadoRepository $invitadoRepository,
         private readonly UsuarioRepository $usuarioRepository,
         private readonly SeleccionParticipanteEventoRepository $seleccionParticipanteEventoRepository,
+        private readonly IriConverterInterface $iriConverter,
     ) {
     }
 
@@ -98,12 +100,23 @@ class EventoController extends AbstractController
         $data = json_decode($request->getContent(), true);
         // Legacy payloads are no longer supported; only canonical keys are accepted.
 
-        if (empty($data['personas']) || !is_array($data['personas'])) {
+        if (empty($data['persona']) || !is_array($data['persona'])) {
+            return $this->json(['error' => 'Se requiere al menos una persona'], 400);
+        }
+        $personaData = $data['persona'];
+
+        if (empty($personaData) || !is_array($personaData)) {
             return $this->json(['error' => 'Se requiere al menos una persona'], 400);
         }
 
+        $user = $this->iriConverter->getResourceFromIri($personaData['usuario']);
+
         try {
-            $inscripcion = $this->inscripcionService->crearInscripcion($evento, $user, $data['personas']);
+            $inscripcion = $this->inscripcionService->crearInscripcion(
+                $evento,
+                $user,
+                [$personaData],   // el service hace foreach, necesita array de líneas
+            );
 
             $response = $this->json([
                 'id' => $inscripcion->getId(),
@@ -117,7 +130,6 @@ class EventoController extends AbstractController
                     'nombrePersonaSnapshot' => $linea->getNombrePersonaSnapshot(),
                     'tipoPersonaSnapshot' => $linea->getTipoPersonaSnapshot(),
                     'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
-                    'nombreActividadSnapshot' => $linea->getNombreActividadSnapshot(),
                     'nombreActividadSnapshot' => $linea->getNombreActividadSnapshot(),
                     'actividadId' => $linea->getActividad()->getId(),
                     'precioUnitario' => $linea->getPrecioUnitario(),
@@ -167,7 +179,7 @@ class EventoController extends AbstractController
         return $this->getInvitados($id);
     }
 
-    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
+//    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
     public function getApuntados(string $id, Request $request): JsonResponse
     {
         /** @var Usuario $user */

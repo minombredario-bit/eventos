@@ -7,19 +7,26 @@ api_platform:
         max_joins: 100
         fetch_partial: false
         force_eager: false
+        enabled: true
 
     defaults:
+        pagination_client_items_per_page: true
+        formats:
+            json: [ 'application/json', 'application/merge-patch+json' ]
+            jsonld: [ 'application/ld+json' ]
+            html: [ 'text/html' ]
         stateless: true
         cache_headers:
             vary: ['Content-Type', 'Authorization']
         normalization_context:
             groups: ['evento:read']
             enable_max_depth: true
-    
+
     collection:
         pagination:
             enabled: true
-    
+            items_per_page_parameter_name: itemsPerPage
+
     formats:
         jsonld:
             mime_types:
@@ -30,16 +37,19 @@ api_platform:
         jsonhal:
             mime_types:
                 - application/hal+json
-    
+
+    patch_formats:
+        json: [ 'application/merge-patch+json' ]
+
     exception_to_status:
         ApiPlatform\Exception\InvalidArgumentException: 400
         ApiPlatform\Exception\FilterValidationException: 400
-    
+
     openapi:
         contact:
             name: Entidades Festivas Support
             email: support@entidadesfestivas.es
         termsOfService: ~
-    
+
     # EnableMercure for real-time (optional)
     # mercure: ~

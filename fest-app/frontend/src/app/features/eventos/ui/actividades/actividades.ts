@@ -46,6 +46,7 @@ import {
   shouldLoadLegacyInscripcionesFallback,
   shouldUseLegacyActividadesFallback,
 } from '../../domain/actividades.utils';
+import {getActivityPrice} from '../../../../core/utils/activity-price.utils';
 
 @Component({
   selector: 'app-actividades',
@@ -215,7 +216,7 @@ export class Actividades {
     const userCount = this.existingInscriptionRows().length;
     const actividadCount = this.existingInscriptionRows().reduce((total, row) => total + row.lines.length, 0);
     const modeText = this.canModifyExistingInscription()
-      ? 'Podés quitar líneas para modificarla.'
+      ? 'Puedes quitar líneas para modificarla.'
       : 'Solo lectura.';
 
     const totals = this.existingInscriptionTotals();
@@ -232,18 +233,36 @@ export class Actividades {
 
   protected readonly selectionSummary = computed<SelectionSummaryRow[]>(() => {
     const summary: SelectionSummaryRow[] = [];
+
     for (const member of this.membersInScope()) {
       for (const slot of this.getAvailableSlotsForMember(member)) {
-        const selectedId = this.selectedActivities()[this.participantKey(member.id, member.origin)]?.[slot];
-        if (!selectedId) continue;
+        const selectedId =
+          this.selectedActivities()[
+            this.participantKey(member.id, member.origin)
+            ]?.[slot];
+
+        if (!selectedId) {
+          continue;
+        }
+
         const option = this.options().find((m) => m.id === selectedId);
-        if (!option) continue;
+
+        if (!option) {
+          continue;
+        }
+
         summary.push({
-          memberId: member.id, memberOrigin: member.origin, actividadId: option.id,
-          memberName: member.name, slot, actividadLabel: option.label, price: option.price,
+          memberId: member.id,
+          memberOrigin: member.origin,
+          actividadId: option.id,
+          memberName: member.name,
+          slot,
+          actividadLabel: option.label,
+          price: getActivityPrice(member, option),
         });
       }
     }
+
     return summary;
   });
 
@@ -303,8 +322,10 @@ export class Actividades {
   );
 
   protected readonly allActivitiesAreFree = computed(() => {
+    // Usamos las opciones sin resolver precio por persona como heurística rápida;
+    // si todas las actividades base son gratis, el evento es gratuito.
     const opts = this.options();
-    return opts.length > 0 && opts.every((o) => !o.isPaid || o.price <= 0);
+    return opts.length > 0 && opts.every((o) => !o.isPaid);
   });
 
   protected readonly confirmButtonLabel = computed(() => {
@@ -340,6 +361,7 @@ export class Actividades {
   // ── Handlers de UI ────────────────────────────────────────────────────
 
   protected updateActividad(payload: ActivityChangePayload): void {
+
     if (!payload.slot) return;
     const slot = payload.slot;
     const previousActividadId = this.getSelectedActivityByParticipant(payload.memberId, payload.memberOrigin, slot);
@@ -408,10 +430,10 @@ export class Actividades {
     this.submitting.set(true);
     this.submitError.set(null);
     this.eventosApi
-      .crearInscripcion(eventId, [{
+      .crearInscripcion(eventId, {
         usuario: this.buildPersonaReference(payload.memberId, payload.memberOrigin),
         actividad: nextActividadId,
-      }])
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -451,9 +473,21 @@ export class Actividades {
   }
 
   protected getActivitiesForSlotAndMember(slot: MealSlot, member: FamilyMember): ActivityOption[] {
-    return this.options().filter(
-      (m) => m.slot === slot && (m.compatibility === 'ambos' || m.compatibility === member.personType),
+    const slotOptions = this.options().filter((o) => o.slot === slot);
+    if (!slotOptions.length) return [];
+
+    // Filtrar por compatibilidad: incluir 'ambos' y el tipo específico del miembro
+    const compatible = slotOptions.filter(
+      (o) => o.compatibility === 'ambos' || o.compatibility === member.personType,
     );
+
+    if (!compatible.length) return [];
+
+    // Resolver precio según tipoPersona y origen
+    return compatible.map((opt) => ({
+      ...opt,
+      price: getActivityPrice(member, opt),
+    }));
   }
 
   protected isSelectorLocked(member: FamilyMember, slot: MealSlot): boolean {
@@ -607,7 +641,7 @@ export class Actividades {
           this.loading.set(false);
         },
         error: () => {
-          this.errorMessage.set('No pudimos cargar el evento. Volvé a intentar.');
+          this.errorMessage.set('No pudimos cargar el evento. Vuelve a intentar.');
           this.event.set(null);
           this.removedMemberIds.set([]);
           this.options.set([]);
@@ -908,24 +942,50 @@ export class Actividades {
       .map<ParticipantReference>((item) => {
         const nombreCompleto = `${item.nombre ?? ''} ${item.apellidos ?? ''}`.trim();
 
-        // Prefer actividadesSeleccionadas provided in the participante payload
-        // to build relationLines used for hydrating selected activities in the UI.
-        const actividadesSeleccionadas = (item as any).actividadesSeleccionadas;
+        const actividadesSeleccionadas = (item as any).actividadesSeleccionadas as any[] | undefined;
+        const lineasRelacion = item.inscripcionRelacion?.lineas ?? [];
 
-        const relationLinesSource = Array.isArray(actividadesSeleccionadas) && actividadesSeleccionadas.length > 0
-          ? actividadesSeleccionadas.map((act: any) => ({
-            // synthetic line id to track client-side selection
-            id: act.id ?? '',
-            actividadId: act.id ?? '',
-            nombreActividadSnapshot: act.nombre ?? '',
-            franjaComidaSnapshot: act.franjaComida ?? null,
-            estadoLinea: act.inscrito ? 'pendiente' : 'pendiente',
-            pagada: Boolean(act.pagada ?? false),
-            precioUnitario: act.price ?? 0,
-            usuarioId: item.origen === 'familiar' ? item.id : null,
-            invitadoId: item.origen === 'invitado' ? item.id : null,
-          }))
-          : (item.inscripcionRelacion?.lineas ?? []);
+        // Construir source de líneas:
+        // Si hay actividadesSeleccionadas, cruzar las inscritas (inscrito===true)
+        // con los datos reales de línea de inscripcionRelacion.lineas.
+        // Esto evita incluir actividades no inscritas y garantiza tener lineId real.
+        let relationLinesSource: any[];
+
+        if (Array.isArray(actividadesSeleccionadas) && actividadesSeleccionadas.length > 0) {
+          const inscritasIds = new Set(
+            actividadesSeleccionadas
+              .filter((act: any) => Boolean(act.inscrito))
+              .map((act: any) => String(act.id ?? '').trim()),
+          );
+
+          if (inscritasIds.size > 0 && lineasRelacion.length > 0) {
+            // Preferir datos reales de la línea del servidor
+            relationLinesSource = lineasRelacion.filter((linea: any) =>
+              inscritasIds.has(String(linea.actividadId ?? '').trim()),
+            );
+          } else if (inscritasIds.size > 0) {
+            // Fallback: no hay lineas en inscripcionRelacion, construir sintético
+            // solo para las actividades realmente inscritas
+            relationLinesSource = actividadesSeleccionadas
+              .filter((act: any) => Boolean(act.inscrito))
+              .map((act: any) => ({
+                id: act.lineId ?? act.id ?? '',        // lineId si el back lo manda
+                actividadId: act.id ?? '',
+                nombreActividadSnapshot: act.nombre ?? '',
+                franjaComidaSnapshot: act.franjaComida ?? null,
+                estadoLinea: 'pendiente',
+                pagada: Boolean(act.pagada ?? false),
+                precioUnitario: act.precioUnitario ?? act.price ?? 0,
+                usuarioId: item.origen === 'familiar' ? item.id : null,
+                invitadoId: item.origen === 'invitado' ? item.id : null,
+              }));
+          } else {
+            // Ninguna actividad inscrita → sin líneas
+            relationLinesSource = [];
+          }
+        } else {
+          relationLinesSource = lineasRelacion;
+        }
 
         const relationSummary = item.inscripcionRelacion
           ? {
@@ -942,9 +1002,7 @@ export class Actividades {
             const usuarioLinea = String((linea as { usuarioId?: string }).usuarioId ?? '').trim();
             const invitadoLinea = String((linea as { invitadoId?: string }).invitadoId ?? '').trim();
 
-            if (!usuarioLinea && !invitadoLinea) {
-              return true;
-            }
+            if (!usuarioLinea && !invitadoLinea) return true;
 
             return item.origen === 'invitado'
               ? invitadoLinea === item.id
@@ -953,7 +1011,7 @@ export class Actividades {
           .map((linea: any) => ({
             lineId: String(linea.id ?? linea.lineId ?? '').trim(),
             inscripcionId: String(item.inscripcionRelacion?.id ?? linea.inscripcionId ?? '').trim(),
-            actividadId: String(linea.actividadId ?? linea.actividadId ?? '').trim(),
+            actividadId: String(linea.actividadId ?? '').trim(),
             actividadLabel: String(linea.nombreActividadSnapshot ?? linea.nombre ?? '').trim(),
             slot: this.normalizeMealSlot(linea.franjaComidaSnapshot ?? linea.franjaComida ?? undefined),
             estadoLinea: String(linea.estadoLinea ?? '').trim(),

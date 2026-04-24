@@ -186,8 +186,8 @@ export class Detalle {
   protected readonly inscritosSummary = computed(() => {
     const count = this.inscritosRows().length;
     if (count === 0) return 'Todavía no guardaste participantes para este evento.';
-    if (count === 1) return 'Tenés 1 persona apuntada en este evento.';
-    return `Tenés ${count} personas apuntadas en este evento.`;
+    if (count === 1) return 'Tienes 1 persona apuntada en este evento.';
+    return `Tienes ${count} personas apuntadas en este evento.`;
   });
 
   protected readonly participantsLookup = computed(() => {
@@ -541,17 +541,6 @@ export class Detalle {
    * Si el miembro SÍ está seleccionado → DELETE (quitar)
    */
   protected toggleMemberEnrollment(member: FamilyMember): void {
-    console.log('[toggleMemberEnrollment]', member.id, {
-      inscripcionCerrada: this.inscripcionCerrada(),
-      isPaidEnrollmentLocked: this.isPaidEnrollmentLocked(member),
-      guestManagementEnabled: this.guestManagementEnabled(),
-      origin: member.origin,
-      enrollmentStatus: this.enrollmentStatus()[this.participantKey(member)],
-      isMemberSelected: this.isMemberSelected(member),
-      savingSelection: this.savingSelection(),
-      participantActionsLocked: this.participantActionsLocked(),
-    });
-
     if (this.inscripcionCerrada()) { console.warn('[toggleMemberEnrollment] BLOCKED: inscripcionCerrada'); return; }
     if (this.isPaidEnrollmentLocked(member)) { console.warn('[toggleMemberEnrollment] BLOCKED: isPaidEnrollmentLocked'); return; }
     if (member.origin === 'invitado' && !this.guestManagementEnabled()) { console.warn('[toggleMemberEnrollment] BLOCKED: invitado sin guestManagement'); return; }
@@ -723,7 +712,7 @@ export class Detalle {
           this.loading.set(false);
         },
         error: () => {
-          this.errorMessage.set('No pudimos cargar el detalle del evento. Volvé a intentar.');
+          this.errorMessage.set('No pudimos cargar el detalle del evento. Vuelve a intentar.');
           this.event.set(null);
           this.loading.set(false);
         },

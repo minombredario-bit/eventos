@@ -7,6 +7,7 @@ import {
   PaymentBadgeStatus,
 } from '../../../eventos/domain/eventos.models';
 import { ActivityChangePayload } from '../../../eventos/domain/actividades.models';
+import {getActivityPrice} from '../../../../core/utils/activity-price.utils';
 
 @Component({
   selector: 'app-member-row',
@@ -36,7 +37,6 @@ export class MemberRow {
 
   readonly actionPressed = output<string>();
   readonly secondaryActionPressed = output<string>();
-  readonly actividadChanged = output<ActivityChangePayload>();
   readonly activityChanged = output<ActivityChangePayload>();
 
   protected onActionClick(): void {
@@ -55,7 +55,6 @@ export class MemberRow {
       slot: this.slot(),
     };
 
-    this.actividadChanged.emit(payload);
     this.activityChanged.emit(payload);
   }
 
@@ -65,6 +64,7 @@ export class MemberRow {
 
   protected selectorOptions(): ActivityOption[] {
     const activities = this.activityOptions();
+
     if (activities.length > 0) {
       return activities;
     }
@@ -95,4 +95,6 @@ export class MemberRow {
     if (m?.parentescoLabel) return String(m.parentescoLabel);
     return null;
   }
+
+  protected readonly getActivityPrice = getActivityPrice;
 }

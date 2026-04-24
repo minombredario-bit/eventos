@@ -7,20 +7,18 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\Inscripcion;
 use App\Entity\InscripcionLinea;
 use App\Entity\SeleccionParticipanteEvento;
+use App\Entity\SeleccionParticipanteEventoLinea;
 use App\Entity\Usuario;
-use App\Enum\EstadoLineaInscripcionEnum;
-use App\Service\InscripcionService;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
-class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
+final class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
 {
     public function __construct(
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
-        private readonly InscripcionService $inscripcionService,
     ) {
     }
 
@@ -31,67 +29,45 @@ class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
         }
 
         $user = $this->security->getUser();
+
         if (!$user instanceof Usuario) {
             throw new AccessDeniedHttpException('No autenticado.');
         }
 
         if (
-            $data->getInscritoPorUsuario()->getId() !== $user->getId()
-            && $data->getEvento()->getEntidad()->getId() !== $user->getEntidad()->getId()
+            $data->getInscritoPorUsuario()?->getId() !== $user->getId()
+            && $data->getEvento()?->getEntidad()?->getId() !== $user->getEntidad()?->getId()
         ) {
             throw new AccessDeniedHttpException('No tienes permiso para eliminar esta selección.');
         }
 
         $inscripcion = $this->resolveInscripcion($data);
+        $lineasInscripcion = $this->getLineasInscripcionDeSeleccion($data, $inscripcion);
 
-        if ($inscripcion !== null) {
-            foreach ($inscripcion->getLineas() as $linea) {
-                if ($linea->getEstadoLinea() === EstadoLineaInscripcionEnum::CANCELADA) {
-                    continue;
-                }
+        foreach ($lineasInscripcion as $linea) {
+            if ($linea->isPagada()) {
+                throw new ConflictHttpException(
+                    'No se puede eliminar esta selección porque tiene líneas de inscripción pagadas.'
+                );
+            }
+        }
 
-                if (!$this->lineaBelongsToSeleccion($linea, $data)) {
-                    continue;
-                }
+        foreach ($lineasInscripcion as $linea) {
+            $inscripcion?->removeLinea($linea);
+            $this->entityManager->remove($linea);
+        }
 
-                if ($linea->isPagada()) {
-                    throw new ConflictHttpException(
-                        'No se puede eliminar esta selección porque tiene líneas de inscripción pagadas.'
-                    );
-                }
+        if ($inscripcion !== null && $inscripcion->getLineas()->isEmpty()) {
+            $this->entityManager->remove($inscripcion);
+        }
+
+        foreach ($data->getLineas()->toArray() as $lineaSeleccion) {
+            if (!$lineaSeleccion instanceof SeleccionParticipanteEventoLinea) {
+                continue;
             }
 
-            $errors = [];
-
-            foreach ($inscripcion->getLineas()->toArray() as $linea) {
-                if (!$linea instanceof InscripcionLinea) {
-                    continue;
-                }
-
-                if ($linea->getEstadoLinea() === EstadoLineaInscripcionEnum::CANCELADA) {
-                    continue;
-                }
-
-                if (!$this->lineaBelongsToSeleccion($linea, $data)) {
-                    continue;
-                }
-
-                try {
-                    $this->inscripcionService->cancelarLineaInscripcion($inscripcion, $linea);
-                } catch (\Throwable $e) {
-                    $errors[] = $e->getMessage();
-                }
-            }
-
-            if ($errors !== []) {
-                throw new ConflictHttpException('No se pudo eliminar la selección: ' . implode(' | ', $errors));
-            }
-
-            $this->entityManager->refresh($inscripcion);
-
-            if ($inscripcion->getLineas()->isEmpty()) {
-                $this->entityManager->remove($inscripcion);
-            }
+            $data->removeLinea($lineaSeleccion);
+            $this->entityManager->remove($lineaSeleccion);
         }
 
         $this->entityManager->remove($data);
@@ -100,10 +76,42 @@ class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInterface
         return null;
     }
 
+    /**
+     * @return InscripcionLinea[]
+     */
+    private function getLineasInscripcionDeSeleccion(
+        SeleccionParticipanteEvento $seleccion,
+        ?Inscripcion $inscripcion,
+    ): array {
+        if ($inscripcion === null) {
+            return [];
+        }
+
+        $lineas = [];
+
+        foreach ($inscripcion->getLineas() as $linea) {
+            if (!$linea instanceof InscripcionLinea) {
+                continue;
+            }
+
+            if (!$this->lineaBelongsToSeleccion($linea, $seleccion)) {
+                continue;
+            }
+
+            $lineas[] = $linea;
+        }
+
+        return $lineas;
+    }
+
     private function resolveInscripcion(SeleccionParticipanteEvento $seleccion): ?Inscripcion
     {
         foreach ($seleccion->getEvento()->getInscripciones() as $inscripcion) {
             foreach ($inscripcion->getLineas() as $linea) {
+                if (!$linea instanceof InscripcionLinea) {
+                    continue;
+                }
+
                 if ($this->lineaBelongsToSeleccion($linea, $seleccion)) {
                     return $inscripcion;
                 }

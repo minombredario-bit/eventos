@@ -21,9 +21,9 @@
     } @else if (inscription()) {
       <article class="panel payment-card">
         <h2>{{ inscription()?.evento?.titulo }}</h2>
-        <p>Importe total: <strong>{{ totalAmount() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong></p>
-        <p>Ya pagado: <strong>{{ totalPaidAmount() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong></p>
-        <p>Pendiente: <strong>{{ totalPendingAmount() | currency: 'EUR' : 'symbol' : '1.0-0' }}</strong></p>
+        <p>Importe total: <strong>{{ totalAmount() | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong></p>
+        <p>Ya pagado: <strong>{{ totalPaidAmount() | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong></p>
+        <p>Pendiente: <strong>{{ totalPendingAmount() | currency: 'EUR' : 'symbol' : '1.2-2' }}</strong></p>
         <p>Estado de pago: <strong>{{ inscription()?.estadoPago }}</strong></p>
 
         <label for="metodoPago">Forma de pago</label>
@@ -34,7 +34,7 @@
         </select>
 
         @if (needsPayment()) {
-          <p class="hint">Podés pagar ahora el pendiente o volver cuando quieras desde tus inscripciones.</p>
+          <p class="hint">Puedes pagar ahora el pendiente o volver cuando quieras desde tus inscripciones.</p>
         } @else {
           <p class="hint">Este evento no requiere pago adicional.</p>
         }
