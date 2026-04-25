@@ -1,0 +1,22 @@
+.admin-entidad {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+
+  .field {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+
+    label { font-weight: 600; margin-bottom: .25rem; }
+    input, textarea { padding: .5rem; border: 1px solid #ccc; border-radius: 4px; }
+  }
+
+  .actions { margin-top: 1rem; }
+
+  .messages { margin-top: 1rem; }
+
+  .error { color: #b00020; }
+  .success { color: #006600; }
+}
+

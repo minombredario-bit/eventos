@@ -7,6 +7,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\RelacionUsuario;
 use App\Entity\Usuario;
 use App\Repository\RelacionUsuarioRepository;
+use App\Enum\TipoRelacionEnum;
 use App\Repository\UsuarioRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -93,8 +94,53 @@ class RelacionUsuarioProcessor implements ProcessorInterface
         $relacion->setUsuarioDestino($usuarioDestino);
 
         $this->entityManager->persist($relacion);
+
+        // Intentar crear la relación inversa automáticamente si existe un tipo inverso definido.
+        $inverseType = $this->getInverseTipo($relacion->getTipoRelacion());
+        if ($inverseType !== null) {
+            // Comprobar si ya existe una relación del tipo inverso entre los mismos usuarios
+            $existingInverse = $this->relacionUsuarioRepository->createQueryBuilder('r')
+                ->andWhere('r.tipoRelacion = :tipoRelacion')
+                ->andWhere('(
+                    (r.usuarioOrigen = :usuarioDestino AND r.usuarioDestino = :usuarioOrigen)
+                    OR
+                    (r.usuarioOrigen = :usuarioOrigen AND r.usuarioDestino = :usuarioDestino)
+                )')
+                ->setParameter('tipoRelacion', $inverseType)
+                ->setParameter('usuarioOrigen', $usuarioOrigen)
+                ->setParameter('usuarioDestino', $usuarioDestino)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+
+            if (!$existingInverse instanceof RelacionUsuario) {
+                $inverse = new RelacionUsuario();
+                $inverse->setUsuarioOrigen($usuarioDestino);
+                $inverse->setUsuarioDestino($usuarioOrigen);
+                $inverse->setTipoRelacion($inverseType);
+                $this->entityManager->persist($inverse);
+            }
+        }
+
         $this->entityManager->flush();
 
         return $relacion;
+    }
+
+    private function getInverseTipo(TipoRelacionEnum $tipo): ?TipoRelacionEnum
+    {
+        return match ($tipo) {
+            TipoRelacionEnum::PADRE => TipoRelacionEnum::HIJO,
+            TipoRelacionEnum::MADRE => TipoRelacionEnum::HIJA,
+            TipoRelacionEnum::HIJO => TipoRelacionEnum::PADRE,
+            TipoRelacionEnum::HIJA => TipoRelacionEnum::MADRE,
+            TipoRelacionEnum::SOBRINO => TipoRelacionEnum::TIO,
+            TipoRelacionEnum::SOBRINA => TipoRelacionEnum::TIA,
+            TipoRelacionEnum::TIO => TipoRelacionEnum::SOBRINO,
+            TipoRelacionEnum::TIA => TipoRelacionEnum::SOBRINA,
+            TipoRelacionEnum::ABUELO => TipoRelacionEnum::ABUELA, // fallback: make them symmetric-ish
+            TipoRelacionEnum::ABUELA => TipoRelacionEnum::ABUELO,
+            default => null,
+        };
     }
 }

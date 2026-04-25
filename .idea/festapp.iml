@@ -36,8 +36,6 @@
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/phar-io/manifest" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/phar-io/version" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/egulias/email-validator" />
-      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/phenx/php-font-lib" />
-      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/phenx/php-svg-lib" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/phpoffice/phpspreadsheet" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/phpunit/php-code-coverage" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/phpunit/php-file-iterator" />
@@ -132,6 +130,9 @@
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/theseer/tokenizer" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/twig/twig" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/willdurand/negotiation" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/dompdf/php-font-lib" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/dompdf/php-svg-lib" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/ezyang/htmlpurifier" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

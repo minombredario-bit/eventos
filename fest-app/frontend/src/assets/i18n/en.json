@@ -1,0 +1,36 @@
+{
+  "admin": {
+    "entidad": {
+      "title": "Edit organization",
+      "selectEntidad": "Select organization",
+      "selectPlaceholder": "-- Select --",
+      "nombre": "Name",
+      "emailContacto": "Contact email",
+      "telefono": "Phone",
+      "direccion": "Address",
+      "textoLopd": "Legal text / Privacy (HTML)",
+      "textoLopdHelp": "WYSIWYG editor. Content will be stored as HTML in the backend.",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "successSaved": "Organization updated successfully.",
+      "errorLoad": "Could not load organizations.",
+      "errorSave": "Error updating organization.",
+      "selectRequired": "Select an organization.",
+      "invalidForm": "Please check required fields."
+    }
+  ,
+    "usuario": {
+      "subtitle_edit": "Manual edit",
+      "subtitle_create": "Manual create",
+      "loading": "Loading",
+      "retrieving_user": "Retrieving user",
+      "last_reward": "Last reward",
+      "next_reward": "Next reward",
+      "not_set": "Not set",
+      "nombre": "Name",
+      "apellidos": "Surname",
+      "email": "Email"
+    }
+  }
+}
+

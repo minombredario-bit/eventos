@@ -8,7 +8,8 @@
     "start:net": "ng serve --port 4250 --host 0.0.0.0",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "extract-translations": "ngx-translate-extract --input ./src --output ./src/assets/i18n/es.json ./src/assets/i18n/en.json --sort --format namespaced-json --marker marker"
   },
   "private": true,
   "dependencies": {
@@ -21,6 +22,10 @@
     "@angular/platform-browser-dynamic": "^18.2.0",
     "@angular/router": "^18.2.0",
     "@angular/service-worker": "^18.2.0",
+    "@ngx-translate/core": "^17.0.0",
+    "@ngx-translate/http-loader": "^17.0.0",
+    "ngx-quill": "^26.0.8",
+    "quill": "^2.0.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.10"

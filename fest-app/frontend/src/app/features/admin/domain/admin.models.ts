@@ -32,8 +32,19 @@ export type TipoRelacion =
   | 'hija'
   | 'sobrino'
   | 'sobrina'
+  | 'tio'
+  | 'tia'
   | 'abuelo'
   | 'abuela';
+
+export interface Entidad {
+  id?: string;
+  nombre?: string;
+  emailContacto?: string;
+  telefono?: string | null;
+  direccion?: string | null;
+  textoLopd?: string | null;
+}
 
 export type TipoPersona = 'infantil' | 'cadete' | 'adulto';
 export type CargoTipoPersona = 'infantil' | 'adulto';

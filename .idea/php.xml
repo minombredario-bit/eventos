@@ -141,8 +141,9 @@
       <path value="$PROJECT_DIR$/fest-app/backend/vendor/symfony/yaml" />
       <path value="$PROJECT_DIR$/fest-app/backend/vendor/symfony/web-link" />
       <path value="$PROJECT_DIR$/fest-app/backend/vendor/symfony/var-exporter" />
-      <path value="$PROJECT_DIR$/fest-app/backend/vendor/phenx/php-svg-lib" />
-      <path value="$PROJECT_DIR$/fest-app/backend/vendor/phenx/php-font-lib" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/ezyang/htmlpurifier" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/dompdf/php-svg-lib" />
+      <path value="$PROJECT_DIR$/fest-app/backend/vendor/dompdf/php-font-lib" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.2">

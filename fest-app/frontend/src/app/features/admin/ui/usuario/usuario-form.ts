@@ -36,11 +36,12 @@ import {
   UsuarioRelacionadoSeleccionado,
   UserRole,
 } from '../../domain/admin.models';
+import {TranslateModule} from '@ngx-translate/core';
 
 @Component({
   selector: 'app-admin-usuario-form',
   standalone: true,
-  imports: [CommonModule, MobileHeader, ReactiveFormsModule],
+  imports: [CommonModule, MobileHeader, ReactiveFormsModule, TranslateModule],
   templateUrl: './usuario-form.html',
   styleUrl: './usuario-form.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

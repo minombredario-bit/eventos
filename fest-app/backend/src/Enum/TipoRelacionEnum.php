@@ -12,6 +12,8 @@ enum TipoRelacionEnum: string
     case HIJA     = 'hija';
     case SOBRINO  = 'sobrino';
     case SOBRINA  = 'sobrina';
+    case TIO      = 'tio';
+    case TIA      = 'tia';
     case ABUELO   = 'abuelo';
     case ABUELA   = 'abuela';
 
@@ -26,6 +28,8 @@ enum TipoRelacionEnum: string
             self::HIJA => 'Hija',
             self::SOBRINO => 'Sobrino',
             self::SOBRINA => 'Sobrina',
+            self::TIO => 'Tío',
+            self::TIA => 'Tía',
             self::ABUELO => 'Abuelo',
             self::ABUELA => 'Abuela',
         };

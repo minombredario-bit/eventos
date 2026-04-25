@@ -71,7 +71,17 @@ class EntidadVoter extends Voter
      */
     private function canEdit(Entidad $entidad, Usuario $user): bool
     {
-        return $this->isSuperadmin($user);
+        // Superadmin OR admin de la misma entidad pueden editar desde el panel
+        if ($this->isSuperadmin($user)) {
+            return true;
+        }
+
+        // ROLE_ADMIN_ENTIDAD puede editar su propia entidad
+        if (in_array('ROLE_ADMIN_ENTIDAD', $user->getRoles(), true) && $user->getEntidad()?->getId() === $entidad->getId()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

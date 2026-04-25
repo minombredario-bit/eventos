@@ -108,6 +108,11 @@ export const routes: Routes = [
           import('./features/admin/ui/eventos/eventos').then((m) => m.AdminEventos),
       },
       {
+        path: 'entidad',
+        loadComponent: () =>
+          import('./features/admin/ui/entidad/entidad-form').then((m) => m.AdminEntidadForm),
+      },
+      {
         path: 'eventos/crear',
         loadComponent: () =>
           import('./features/admin/ui/evento-form/evento-form').then((m) => m.AdminEventoForm),

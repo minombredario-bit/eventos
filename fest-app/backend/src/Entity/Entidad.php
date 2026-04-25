@@ -20,6 +20,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
+// Optional HTML purifier — if installed via composer (ezyang/htmlpurifier) will be used
 
 #[ORM\Entity(repositoryClass: EntidadRepository::class)]
 #[ORM\Table(name: 'entidad')]
@@ -34,7 +35,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new GetCollection(security: "is_granted('ROLE_USER')"),
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
-        new Patch(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Patch(security: "is_granted('ENTIDAD_EDIT', object)"),
     ],
     normalizationContext: ['groups' => ['entidad:read']],
     denormalizationContext: ['groups' => ['entidad:write']]
@@ -246,7 +247,16 @@ class Entidad
 
     public function setTextoLopd(?string $textoLopd): static
     {
-        $this->textoLopd = $textoLopd;
+        // If HTMLPurifier is available, sanitize HTML to avoid XSS when rendering later.
+        if ($textoLopd !== null && class_exists('\HTMLPurifier')) {
+            // Create default config; if HTMLPurifier not available this block is skipped.
+            $config = \HTMLPurifier_Config::createDefault();
+            // Allow some basic tags -- default config is OK, but host app can customize if needed
+            $purifier = new \HTMLPurifier($config);
+            $this->textoLopd = $purifier->purify($textoLopd);
+        } else {
+            $this->textoLopd = $textoLopd;
+        }
 
         return $this;
     }

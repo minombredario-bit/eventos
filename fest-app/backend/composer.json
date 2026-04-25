@@ -15,6 +15,7 @@
         "doctrine/doctrine-migrations-bundle": "^3.3",
         "doctrine/orm": "^3.0",
         "dompdf/dompdf": "^3.1",
+        "ezyang/htmlpurifier": "^4.19",
         "lexik/jwt-authentication-bundle": "^3.0",
         "phpoffice/phpspreadsheet": "^2.0",
         "ramsey/uuid-doctrine": "^2.1",

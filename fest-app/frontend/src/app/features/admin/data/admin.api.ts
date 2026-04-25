@@ -9,6 +9,7 @@ import {
   EnumOption,
   ImportResult,
   EntidadCargo,
+  Entidad,
   Usuario,
   UsuarioCreatePayload,
   UsuarioPatch,
@@ -183,6 +184,17 @@ export class AdminApi {
         `${environment.apiUrl}/generic/enums/${encodeURIComponent(enumName)}`
       )
       .pipe(map((response) => response.items));
+  }
+
+  getEntidades(): Observable<Entidad[]> {
+    return this.http.get<ApiCollection<Entidad>>(`${environment.apiUrl}/entidad`).pipe(
+      map((response) => parseCollection<Entidad>(response as unknown))
+    );
+  }
+
+  updateEntidad(id: string, payload: Partial<Entidad>): Observable<Entidad> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' });
+    return this.http.patch<Entidad>(`${environment.apiUrl}/entidad/${encodeURIComponent(id)}`, payload, { headers });
   }
 
   importarExcel(file: File): Observable<ImportResult> {

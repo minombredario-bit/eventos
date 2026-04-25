@@ -1,7 +1,7 @@
 <section class="screen admin-usuario-screen">
   <app-mobile-header
     [title]="pageTitle()"
-    subtitle="{{ isEditMode() ? 'Edición manual' : 'Alta manual' }}"
+    subtitle="{{ isEditMode() ? ('admin.usuario.subtitle_edit' | translate) : ('admin.usuario.subtitle_create' | translate) }}"
     [showBack]="true"
     actionType="logout"
     (backPressed)="goBack()"
@@ -11,39 +11,39 @@
   <div class="content">
     @if (loading()) {
       <article class="panel">
-        <p class="eyebrow">Cargando</p>
-        <h2>Recuperando usuario</h2>
+        <p class="eyebrow">{{ 'admin.usuario.loading' | translate }}</p>
+        <h2>{{ 'admin.usuario.retrieving_user' | translate }}</h2>
       </article>
     } @else {
       <article class="panel">
         @if (isEditMode() && usuario(); as currentUser) {
           <div class="grid">
             <div>
-              <span>Última recompensa</span>
+              <span>{{ 'admin.usuario.last_reward' | translate }}</span>
               <strong>{{ currentUser.ultimoReconocimiento }}</strong>
             </div>
 
             <div>
-              <span>Siguiente recompensa</span>
-              <strong>{{ currentUser.proximoReconocimiento || 'No indicado' }}</strong>
+              <span>{{ 'admin.usuario.next_reward' | translate }}</span>
+              <strong>{{ currentUser.proximoReconocimiento || ('admin.usuario.not_set' | translate) }}</strong>
             </div>
           </div>
         }
 
         <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form">
-          <div class="field">
+            <div class="field">
             <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
-            <label for="nombre">Nombre</label>
+            <label for="nombre">{{ 'admin.usuario.nombre' | translate }}</label>
           </div>
 
           <div class="field">
             <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
-            <label for="apellidos">Apellidos</label>
+            <label for="apellidos">{{ 'admin.usuario.apellidos' | translate }}</label>
           </div>
 
           <div class="field field--full">
             <input id="email" type="email" formControlName="email" placeholder=" " />
-            <label for="email">Email</label>
+            <label for="email">{{ 'admin.usuario.email' | translate }}</label>
           </div>
 
           <div class="field">

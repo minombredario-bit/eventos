@@ -1,0 +1,49 @@
+<div class="admin-entidad">
+  <h1>{{ 'admin.entidad.title' | translate }}</h1>
+
+  <div *ngIf="loading">{{ 'admin.entidad.loading' | translate }}</div>
+
+  <div *ngIf="!loading">
+    <div *ngIf="entidades.length > 1" class="selector">
+      <label for="entidadSelect">{{ 'admin.entidad.selectEntidad' | translate }}</label>
+      <select id="entidadSelect" (change)="selectEntidad($any($event.target).value)">
+        <option [value]="null">{{ 'admin.entidad.selectPlaceholder' | translate }}</option>
+        <option *ngFor="let e of entidades" [value]="e.id">{{ e.nombre }}</option>
+      </select>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="field">
+        <label>{{ 'admin.entidad.nombre' | translate }}</label>
+        <input formControlName="nombre" />
+      </div>
+
+      <div class="field">
+        <label>{{ 'admin.entidad.emailContacto' | translate }}</label>
+        <input formControlName="emailContacto" />
+      </div>
+
+      <div class="field">
+        <label>{{ 'admin.entidad.telefono' | translate }}</label>
+        <input formControlName="telefono" />
+      </div>
+
+      <div class="field">
+        <label>{{ 'admin.entidad.direccion' | translate }}</label>
+        <input formControlName="direccion" />
+      </div>
+
+      <div class="field">
+        <label>{{ 'admin.entidad.textoLopd' | translate }}</label>
+        <quill-editor formControlName="textoLopd" [modules]="{ toolbar: [['bold','italic'], ['link','image'], [{ 'list': 'ordered'}, { 'list': 'bullet' }]] }" style="height: 240px;"></quill-editor>
+        <p class="help">{{ 'admin.entidad.textoLopdHelp' | translate }}</p>
+      </div>
+
+      <div class="actions">
+        <button type="submit" [disabled]="saving">{{ saving ? ('admin.entidad.saving' | translate) : ('admin.entidad.save' | translate) }}</button>
+      </div>
+    </form>
+    <!-- toasts are shown globally -->
+  </div>
+</div>
+
