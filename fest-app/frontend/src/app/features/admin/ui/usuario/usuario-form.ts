@@ -36,7 +36,8 @@ import {
   UsuarioRelacionadoSeleccionado,
   UserRole,
 } from '../../domain/admin.models';
-import {TranslateModule} from '@ngx-translate/core';
+import {TranslateModule, TranslateService} from '@ngx-translate/core';
+import {ToastService} from '../../../shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-admin-usuario-form',
@@ -53,6 +54,8 @@ export class AdminUsuarioForm {
   private readonly adminApi = inject(AdminApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
+  private readonly toast= inject(ToastService);
+  private readonly translate = inject(TranslateService);
 
   private readonly relacionUsuarioSearch$ = new Subject<string>();
 
@@ -66,7 +69,44 @@ export class AdminUsuarioForm {
 
   protected readonly cargos = signal<Cargo[]>([]);
   protected readonly cargosSeleccionados = signal<string[]>([]);
-  protected readonly tipoPersonaCargo = signal<CargoTipoPersona>('adulto');
+  readonly tipoPersonaCargo = computed<CargoTipoPersona>(() => {
+    const usuario = this.usuario();
+
+    // Prioridad 1: valor real enviado por backend
+    if (usuario?.tipoPersona === 'infantil') {
+      return 'infantil';
+    }
+
+    if (usuario?.tipoPersona === 'adulto') {
+      return 'adulto';
+    }
+
+    // Fallback: calcular por fecha del formulario
+    const fecha = this.form.controls.fechaNacimiento.value;
+
+    if (!fecha) {
+      return 'adulto';
+    }
+
+    const [year, month, day] = fecha.split('-').map(Number);
+
+    if (!year || !month || !day) {
+      return 'adulto';
+    }
+
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - year;
+
+    const aunNoCumplio =
+      hoy.getMonth() + 1 < month ||
+      (hoy.getMonth() + 1 === month && hoy.getDate() < day);
+
+    if (aunNoCumplio) {
+      edad--;
+    }
+
+    return edad < 18 ? 'infantil' : 'adulto';
+  });
 
   protected readonly tiposRelacion = signal<EnumOption<TipoRelacion>[]>([]);
 
@@ -147,11 +187,17 @@ export class AdminUsuarioForm {
         }
 
         this.loading.set(true);
+        // Disable form interactions while loading to improve accessibility
+        try { this.form.disable({ emitEvent: false }); } catch {}
 
         this.adminApi
           .getUsuarioAdmin(id.trim())
           .pipe(
-            finalize(() => this.loading.set(false)),
+            finalize(() => {
+              this.loading.set(false);
+              try { this.form.enable({ emitEvent: false }); } catch {}
+              this.applyFieldPermissions();
+            }),
             takeUntilDestroyed(this.destroyRef)
           )
           .subscribe({
@@ -162,6 +208,7 @@ export class AdminUsuarioForm {
               this.patchCargos(usuario);
               this.patchRelacionUsuarios(usuario);
               this.applyFieldPermissions();
+              this.loadCargos();
             },
             error: (error: { error?: { error?: string } }) => {
               this.errorMessage.set(
@@ -327,7 +374,7 @@ export class AdminUsuarioForm {
       formaPagoPreferida: value.formaPagoPreferida,
       debeCambiarPassword: value.debeCambiarPassword,
       roles,
-      cargos: this.buildCargoIris(this.cargosSeleccionados()),
+      cargos: this.cargosSeleccionados().map((id) => `/api/entidad_cargos/${id}`),
       relacionUsuarios: this.usuariosRelacionadosSeleccionados().map(
         (item) => ({
           usuario: `/api/usuarios/${item.id}`,
@@ -454,6 +501,7 @@ export class AdminUsuarioForm {
 
     this.usuariosRelacionadosSeleccionados.set([]);
     this.usuariosRelacionadosDisponibles.set([]);
+    try { this.form.enable({ emitEvent: false }); } catch {}
   }
 
   private patchForm(usuario: Usuario): void {
@@ -556,12 +604,13 @@ export class AdminUsuarioForm {
   private initCargoTypeWatcher(): void {
     this.form.controls.fechaNacimiento.valueChanges
       .pipe(
-        startWith(this.form.controls.fechaNacimiento.value),
         distinctUntilChanged(),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(() => {
-        this.loadCargos();
+        if (!this.loading()) {
+          this.loadCargos();
+        }
       });
   }
 
@@ -581,25 +630,17 @@ export class AdminUsuarioForm {
   }
 
   private loadCargos(): void {
-    const tipoPersona = this.resolveTipoPersonaCargo();
-
-    this.tipoPersonaCargo.set(tipoPersona);
+    const tipo = this.tipoPersonaCargo(); // 'adulto' | 'infantil'
 
     this.adminApi
-      .getCargos(tipoPersona)
+      .getCargos(tipo)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (items) => {
-          this.cargos.set(items);
-
-          const validIds = new Set(items.map((item) => this.getCargoSelectionKey(item)));
-          this.cargosSeleccionados.set(
-            this.cargosSeleccionados().filter((cargoId) => validIds.has(cargoId))
-          );
-        },
-        error: () => {
-          this.errorMessage.set('No se pudo cargar el listado de cargos.');
-        },
+        next: (items) => this.cargos.set(items),
+        error: () =>
+          this.toast.showError(
+            this.translate.instant('admin.usuario.error_load_cargos')
+          ),
       });
   }
 

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EventSummary } from '../../../eventos/domain/eventos.models';
 import {formatDay, formatMonth} from '../../../../core/utils/date.utils';
@@ -7,7 +7,7 @@ import {formatDay, formatMonth} from '../../../../core/utils/date.utils';
 @Component({
   selector: 'app-event-card',
   standalone: true,
-  imports: [DatePipe, RouterLink, NgClass],
+  imports: [RouterLink, NgClass],
   templateUrl: './event-card.html',
   styleUrl: './event-card.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

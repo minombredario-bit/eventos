@@ -1,49 +1,212 @@
-<div class="admin-entidad">
-  <h1>{{ 'admin.entidad.title' | translate }}</h1>
+<section class="screen admin-entidad-form-screen">
+  <app-mobile-header
+    [title]="pageTitle()"
+    subtitle=""
+    [showBack]="true"
+    actionType="logout"
+    (backPressed)="goBack()"
+    (actionPressed)="logout()">
+  </app-mobile-header>
 
-  <div *ngIf="loading">{{ 'admin.entidad.loading' | translate }}</div>
+  <div class="content">
+    @if (loading()) {
+      <article class="panel">
+        <p class="eyebrow">Cargando</p>
+        <h2>Recuperando datos de la entidad</h2>
+      </article>
+    } @else {
+      <form class="edit-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
 
-  <div *ngIf="!loading">
-    <div *ngIf="entidades.length > 1" class="selector">
-      <label for="entidadSelect">{{ 'admin.entidad.selectEntidad' | translate }}</label>
-      <select id="entidadSelect" (change)="selectEntidad($any($event.target).value)">
-        <option [value]="null">{{ 'admin.entidad.selectPlaceholder' | translate }}</option>
-        <option *ngFor="let e of entidades" [value]="e.id">{{ e.nombre }}</option>
-      </select>
-    </div>
+        <!-- Datos generales -->
+        <section class="form-section">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">{{ 'admin.entidad.section_general' | translate }}</p>
+              <h3>{{ 'admin.entidad.info_title' | translate }}</h3>
+              <p>{{ 'admin.entidad.info_help' | translate }}</p>
+            </div>
+          </div>
 
-    <form [formGroup]="form" (ngSubmit)="save()">
-      <div class="field">
-        <label>{{ 'admin.entidad.nombre' | translate }}</label>
-        <input formControlName="nombre" />
-      </div>
+          <div class="field-grid">
+            <div class="field field--full">
+              <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
+              <label for="nombre">
+                {{ 'admin.entidad.nombre' | translate }}
+                <span class="field-required">*</span>
+              </label>
+            </div>
 
-      <div class="field">
-        <label>{{ 'admin.entidad.emailContacto' | translate }}</label>
-        <input formControlName="emailContacto" />
-      </div>
+            <div class="field">
+              <input id="emailContacto" type="email" formControlName="emailContacto" placeholder=" " />
+              <label for="emailContacto">
+                {{ 'admin.entidad.emailContacto' | translate }}
+                <span class="field-required">*</span>
+              </label>
+            </div>
 
-      <div class="field">
-        <label>{{ 'admin.entidad.telefono' | translate }}</label>
-        <input formControlName="telefono" />
-      </div>
+            <div class="field">
+              <input id="telefono" type="tel" formControlName="telefono" placeholder=" " />
+              <label for="telefono">{{ 'admin.entidad.telefono' | translate }}</label>
+            </div>
 
-      <div class="field">
-        <label>{{ 'admin.entidad.direccion' | translate }}</label>
-        <input formControlName="direccion" />
-      </div>
+            <div class="field field--full">
+              <input id="direccion" type="text" formControlName="direccion" placeholder=" " />
+              <label for="direccion">{{ 'admin.entidad.direccion' | translate }}</label>
+            </div>
+          </div>
+        </section>
 
-      <div class="field">
-        <label>{{ 'admin.entidad.textoLopd' | translate }}</label>
-        <quill-editor formControlName="textoLopd" [modules]="{ toolbar: [['bold','italic'], ['link','image'], [{ 'list': 'ordered'}, { 'list': 'bullet' }]] }" style="height: 240px;"></quill-editor>
-        <p class="help">{{ 'admin.entidad.textoLopdHelp' | translate }}</p>
-      </div>
+        <!-- LOPD -->
+        <section class="form-section">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">{{ 'admin.entidad.section_legal' | translate }}</p>
+              <h3>{{ 'admin.entidad.legal_title' | translate }}</h3>
+              <p>{{ 'admin.entidad.legal_help' | translate }}</p>
+            </div>
+          </div>
 
-      <div class="actions">
-        <button type="submit" [disabled]="saving">{{ saving ? ('admin.entidad.saving' | translate) : ('admin.entidad.save' | translate) }}</button>
-      </div>
-    </form>
-    <!-- toasts are shown globally -->
+          <div class="field-grid">
+            <div class="field field--full field--editor">
+              <label class="editor-label">
+                {{ 'admin.entidad.textoLopd' | translate }}
+                <span class="field-optional">
+                  ({{ 'admin.entidad.optional' | translate }})
+                </span>
+              </label>
+
+              <quill-editor
+                formControlName="textoLopd"
+                theme="snow"
+                class="lopd-editor"
+                [modules]="{
+                  toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['link'],
+                    ['clean']
+                  ]
+                }">
+              </quill-editor>
+            </div>
+          </div>
+        </section>
+
+        <!-- Cargos oficiales -->
+        @if (availableCargoMasters().length > 0) {
+          <section class="form-section">
+            <div class="section-head">
+              <div>
+                <h3>Cargos oficiales</h3>
+                <p>Selecciona los cargos estándar que usará tu entidad.</p>
+              </div>
+            </div>
+
+            <div class="cargo-chips">
+              <div class="cargo-chips" role="group" aria-label="Selección de cargos oficiales">
+                @for (cm of cargoMastersList(); track cm.id) {
+                  <button
+                    type="button"
+                    class="cargo-pill"
+                    [class.cargo-pill--selected]="isCargoMasterLinked(cm.id)"
+                    (click)="toggleCargoMaster(cm)"
+                    [disabled]="saving()"
+                    [attr.aria-pressed]="isCargoMasterLinked(cm.id)"
+                  >
+                    <span class="cargo-pill__check">
+                      @if (isCargoMasterLinked(cm.id)) {
+                        ✓
+                      }
+                    </span>
+
+                    <span class="cargo-pill__label">
+                      {{ cm.nombre }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+          </section>
+        }
+
+        <!-- Cargos personalizados -->
+        <section class="form-section">
+          <div class="section-head">
+            <div>
+              <h3>Cargos personalizados</h3>
+              <p>Cargos creados específicamente para tu entidad.</p>
+            </div>
+          </div>
+          <div class="cargo-add-row">
+            <div class="cargo-input-wrap">
+              <input
+                type="text"
+                class="cargo-input"
+                formControlName="newCargoName"
+                placeholder="Nuevo cargo" />
+
+              <button
+                type="button"
+                class="secondary-button cargo-add-btn"
+                [disabled]="saving() || !canAddCargo()"
+                (click)="addCustomCargo()"
+                aria-label="Añadir cargo">
+                <span class="secondary-button__icon">+</span>
+                <span class="cargo-add-btn__text">Añadir cargo</span>
+              </button>
+            </div>
+          </div>
+          @if (entidadCargos().length > 0) {
+            <div class="cargos-list cargos-list--existing">
+              @for (ec of entidadCargos(); track ec.id) {
+                @if (ec.cargo || ec.nombre) {
+                  <div class="cargo-pill cargo-pill--selected cargo-pill--custom">
+                    <span class="cargo-pill__check">✓</span>
+
+                    <span class="cargo-pill__label">
+                      {{ getCargoNombre(ec) }}
+                    </span>
+
+                    <button
+                      type="button"
+                      class="cargo-pill__remove"
+                      [disabled]="saving()"
+                      (click)="removeEntidadCargo(ec)"
+                      aria-label="Eliminar cargo"
+                      title="Eliminar"
+                    >
+                      <svg viewBox="0 0 24 24" class="cargo-pill__remove-icon" aria-hidden="true">
+                        <path
+                          d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v8h-2V9zm4 0h2v8h-2V9zM7 9h2v8H7V9zm1 12c-1.1 0-2-.9-2-2V8h12v11c0 1.1-.9 2-2 2H8z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          }
+        </section>
+
+        <!-- Botón final correcto -->
+        <button type="submit" class="action-button" [disabled]="saving()">
+          {{ saving()
+          ? ('admin.entidad.saving' | translate)
+          : ('admin.entidad.save' | translate) }}
+        </button>
+
+      </form>
+    }
   </div>
-</div>
-
+</section>
+@if (showDeleteCargoModal()) {
+  <app-confirm-modal
+    [title]="'Eliminar cargo'"
+    [message]="'¿Seguro que quieres eliminar el cargo &quot;' + getCargoNombre(cargoToDelete()!) + '&quot;?'"
+    [confirmLabel]="'Eliminar'"
+    [cancelLabel]="'Cancelar'"
+    (confirmed)="confirmRemoveEntidadCargo()"
+    (cancel)="cancelRemoveEntidadCargo()">
+  </app-confirm-modal>
+}

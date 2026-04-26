@@ -2,7 +2,10 @@
   "admin": {
     "entidad": {
       "title": "Edit organization",
+      "subtitle": "Organization settings",
       "selectEntidad": "Select organization",
+      "loading": "Loading",
+      "retrieving": "Retrieving data",
       "selectPlaceholder": "-- Select --",
       "nombre": "Name",
       "emailContacto": "Contact email",
@@ -16,7 +19,14 @@
       "errorLoad": "Could not load organizations.",
       "errorSave": "Error updating organization.",
       "selectRequired": "Select an organization.",
-      "invalidForm": "Please check required fields."
+      "invalidForm": "Please check required fields.",
+      "section_general": "General",
+      "info_title": "Organization information",
+      "info_help": "Name, contact and identification data.",
+      "section_legal": "Legal",
+      "legal_title": "Terms of use / Privacy",
+      "legal_help": "Legal text that users must accept on first access.",
+      "optional": "optional"
     }
   ,
     "usuario": {
@@ -29,7 +39,32 @@
       "not_set": "Not set",
       "nombre": "Name",
       "apellidos": "Surname",
-      "email": "Email"
+      "email": "Email",
+      "telefono": "Phone",
+      "fechaNacimiento": "Birth date",
+      "antiguedadReal": "Actual seniority",
+      "antiguedad": "Seniority",
+      "formaPagoPreferida": "Preferred payment method",
+      "usuario_activo": "User active",
+      "debeCambiarPassword": "Must change password on first login",
+      "motivoBajaCenso": "Reason for census removal",
+      "cargos": "Positions",
+      "cargos_help": "Select one or more positions for this user.",
+      "cargos_selected": "{count} selected",
+      "relacion_titulo": "User relation",
+      "relacion_help": "Search by full name and add related users.",
+      "relacion_search_placeholder": "Search user…",
+      "relacion_none": "No related users yet.",
+      "relacion_relation_placeholder": "Relation…",
+      "relacion_quitar": "Remove",
+      "create_success": "User created successfully.",
+      "update_success": "User updated successfully.",
+      "create_error": "Could not create user.",
+      "update_error": "Could not update user."
+      ,
+      "role": "Role",
+      "role_user": "User",
+      "role_admin": "Administrator"
     }
   }
 }

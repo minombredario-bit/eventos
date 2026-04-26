@@ -9,13 +9,13 @@
   />
 
   <div class="content">
-    @if (loading()) {
-      <article class="panel">
-        <p class="eyebrow">{{ 'admin.usuario.loading' | translate }}</p>
-        <h2>{{ 'admin.usuario.retrieving_user' | translate }}</h2>
-      </article>
-    } @else {
-      <article class="panel">
+    <article class="panel">
+      <div *ngIf="loading()" class="loading-overlay" aria-hidden="true">
+        <div class="loading-inner">
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="loading-text">{{ 'admin.usuario.loading' | translate }}</div>
+        </div>
+      </div>
         @if (isEditMode() && usuario(); as currentUser) {
           <div class="grid">
             <div>
@@ -30,7 +30,7 @@
           </div>
         }
 
-        <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form">
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form" [class.is-loading]="loading()">
             <div class="field">
             <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
             <label for="nombre">{{ 'admin.usuario.nombre' | translate }}</label>
@@ -48,12 +48,12 @@
 
           <div class="field">
             <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
-            <label for="telefono">Teléfono</label>
+            <label for="telefono">{{ 'admin.usuario.telefono' | translate }}</label>
           </div>
 
           <div class="field">
             <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
-            <label for="fechaNacimiento">Fecha nacimiento</label>
+            <label for="fechaNacimiento">{{ 'admin.usuario.fechaNacimiento' | translate }}</label>
           </div>
 
           <div class="field">
@@ -65,7 +65,7 @@
               min="0"
               step="1"
             />
-            <label for="antiguedadReal">Antigüedad real</label>
+            <label for="antiguedadReal">{{ 'admin.usuario.antiguedadReal' | translate }}</label>
           </div>
 
           <div class="field">
@@ -77,7 +77,7 @@
               min="0"
               step="1"
             />
-            <label for="antiguedad">Antigüedad</label>
+              <label for="antiguedad">{{ 'admin.usuario.antiguedad' | translate }}</label>
           </div>
 
           <div class="field">
@@ -87,27 +87,27 @@
               <option value="transferencia">Transferencia</option>
               <option value="bizum">Bizum</option>
             </select>
-            <label for="formaPagoPreferida">Forma pago preferida</label>
+            <label for="formaPagoPreferida">{{ 'admin.usuario.formaPagoPreferida' | translate }}</label>
           </div>
 
           <div class="field">
             <div class="field field--full">
-              <select formControlName="role" id="role">
-                <option value="ROLE_USER">Usuario</option>
-                <option value="ROLE_ADMIN_ENTIDAD">Admin</option>
-              </select>
-              <label for="role">Rol</label>
+                <select formControlName="role" id="role">
+                  <option value="ROLE_USER">{{ 'admin.usuario.role_user' | translate }}</option>
+                  <option value="ROLE_ADMIN_ENTIDAD">{{ 'admin.usuario.role_admin' | translate }}</option>
+                </select>
+                <label for="role">{{ 'admin.usuario.role' | translate }}</label>
             </div>
           </div>
 
           <label class="checkbox-row">
             <input type="checkbox" formControlName="activo" />
-            <span>Usuario activo</span>
+            <span>{{ 'admin.usuario.usuario_activo' | translate }}</span>
           </label>
 
           <label class="checkbox-row">
             <input type="checkbox" formControlName="debeCambiarPassword" />
-            <span>Debe cambiar contraseña al acceder</span>
+            <span>{{ 'admin.usuario.debeCambiarPassword' | translate }}</span>
           </label>
 
           @if (form.controls.activo.value === false) {
@@ -118,20 +118,20 @@
                 formControlName="motivoBajaCenso"
                 placeholder=" "
               />
-              <label for="motivoBajaCenso">Motivo baja censo</label>
+              <label for="motivoBajaCenso">{{ 'admin.usuario.motivoBajaCenso' | translate }}</label>
             </div>
           }
 
           <section class="cargo-panel">
             <div class="cargo-header">
               <div>
-                <h3>Cargos</h3>
+                <h3>{{ 'admin.usuario.cargos' | translate }}</h3>
                 <p class="cargo-help">
-                  Selecciona uno o varios cargos para este usuario.
+                  {{ 'admin.usuario.cargos_help' | translate }}
                   <strong>Tipo:</strong> {{ tipoPersonaCargo() === 'infantil' ? 'Infantil' : 'Adulto' }}.
                 </p>
               </div>
-              <span>{{ cargosSeleccionados().length }} seleccionados</span>
+              <span>{{ 'admin.usuario.cargos_selected' | translate:{count: cargosSeleccionados().length} }}</span>
             </div>
 
             <div class="cargo-pills" role="group" aria-label="Selección de cargos">
@@ -160,8 +160,8 @@
           <section class="cargo-panel relacion-panel">
             <div class="cargo-header relacion-header">
               <div class="relacion-header__left">
-                <h3>Relación usuario</h3>
-                <p class="cargo-help">Busca por nombre completo y añade usuarios relacionados.</p>
+                <h3>{{ 'admin.usuario.relacion_titulo' | translate }}</h3>
+                <p class="cargo-help">{{ 'admin.usuario.relacion_help' | translate }}</p>
               </div>
               <div class="relacion-search-wrap">
                 <span class="relacion-search-icon" aria-hidden="true">
@@ -175,7 +175,7 @@
                   #relacionUsuarioSearchInput
                   type="text"
                   formControlName="relacionUsuarioSearch"
-                  placeholder="Buscar usuario…"
+                  placeholder="{{ 'admin.usuario.relacion_search_placeholder' | translate }}"
                   class="relacion-search-input"
                   (input)="onRelacionUsuarioSearch(relacionUsuarioSearchInput.value)"
                   autocomplete="off"
@@ -213,7 +213,7 @@
                         (change)="setTipoRelacionUsuario(item.id, tipoRelacionSelect.value)"
                         [attr.aria-label]="'Tipo de relación con ' + item.nombreCompleto"
                       >
-                        <option [selected]="!item.tipoRelacion" value="">Relación…</option>
+                        <option [selected]="!item.tipoRelacion" value="">{{ 'admin.usuario.relacion_relation_placeholder' | translate }}</option>
                         @for (tipo of tiposRelacion(); track tipo.value) {
                           <option
                             [value]="tipo.value"
@@ -228,14 +228,14 @@
                       type="button"
                       class="relacion-chip__remove"
                       (click)="removeUsuarioRelacionado(item.id)"
-                      [attr.aria-label]="'Quitar ' + item.nombreCompleto"
+                      [attr.aria-label]="('admin.usuario.relacion_quitar' | translate) + ' ' + item.nombreCompleto"
                     >✕</button>
                   </div>
                 }
               </div>
-            } @else {
-              <p class="relacion-empty">Ningún usuario relacionado aún.</p>
-            }
+              } @else {
+               <p class="relacion-empty">{{ 'admin.usuario.relacion_none' | translate }}</p>
+             }
           </section>
 
           <button type="submit" class="action-button" [disabled]="saving()">
@@ -251,6 +251,5 @@
           <p class="feedback error" role="alert">{{ errorMessage() }}</p>
         }
       </article>
-    }
   </div>
 </section>

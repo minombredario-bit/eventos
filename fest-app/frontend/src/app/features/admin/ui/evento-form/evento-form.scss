@@ -1,3 +1,5 @@
+@import '../../../../styles/admin-panel';
+
 :host {
   display: block;
 }
@@ -17,10 +19,10 @@
 
 .panel,
 .feedback,
-.edit-form,
-.form-section,
-.activity-card {
-  border: 1px solid color-mix(in srgb, var(--border-soft) 68%, transparent);
+.edit-form {
+  display: grid;
+  gap: 1.25rem;
+  padding: 0 0 1rem;
   border-radius: 1.25rem;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   box-shadow: var(--surface-shadow);
@@ -196,7 +198,7 @@
 .field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.9rem;
+  gap: 1.25rem;
   margin-top: 1rem;
 }
 

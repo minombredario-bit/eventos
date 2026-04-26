@@ -14,14 +14,17 @@ import {
   UsuarioCreatePayload,
   UsuarioPatch,
   UsuariosFiltro,
-  UsuariosPage,
+  UsuariosPage, CargoMaster, TipoEntidadCargo,
 } from '../domain/admin.models';
 import {environment} from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AdminApi {
   private readonly http = inject(HttpClient);
-  private readonly apiBaseUrl = 'http://localhost:8080';
+  // Simple in-memory caches to avoid repeated network calls during a session
+  private tipoEntidadesCache: any[] | null = null;
+  private tipoEntidadCargosCache = new Map<string, any[]>();
+  private entidadCargosCache: any[] | null = null; // cached for current user / session
 
   getUsuarios(options: {
     search?: string;
@@ -64,8 +67,7 @@ export class AdminApi {
         map((response) => {
           const raw = response as unknown as Record<string, any>;
 
-          const members = (raw['member'] ?? raw['hydra:member'] ?? []) as Usuario[];
-          const items = members;
+          const items = (raw['member'] ?? raw['hydra:member'] ?? []) as Usuario[];
 
           const totalItems = Number(raw['totalItems'] ?? raw['hydra:totalItems'] ?? items.length);
           const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -127,16 +129,32 @@ export class AdminApi {
   }
 
   getEntidadCargos(tipoPersona?: CargoTipoPersona): Observable<EntidadCargo[]> {
-    let params = new HttpParams();
+    let params = new HttpParams()
+      .set('order[orden]', 'asc')
+      .set('order[cargo.ordenJerarquico]', 'asc')
+      .set('order[cargoMaster.ordenJerarquico]', 'asc');
 
     if (tipoPersona) {
       params = params.set('tipoPersona', tipoPersona);
-      params = params.set('infantil_especial', tipoPersona === 'infantil' ? '1' : '0');
     }
 
     return this.http
-      .get<ApiCollection<EntidadCargo> | EntidadCargo[]>(`${environment.apiUrl}/entidad_cargos`, { params })
-      .pipe(map((response) => parseCollection<EntidadCargo>(response as unknown)));
+      .get<ApiCollection<EntidadCargo> | EntidadCargo[]>(
+        `${environment.apiUrl}/entidad_cargos`,
+        { params }
+      )
+      .pipe(
+        map((response) => {
+          const raw = response as unknown as Record<string, any>;
+          const members = raw['member'] ?? raw['hydra:member'] ?? null;
+
+          if (Array.isArray(members)) {
+            return members as EntidadCargo[];
+          }
+
+          return parseCollection<EntidadCargo>(response as unknown);
+        })
+      );
   }
 
   getCargos(tipoPersona?: CargoTipoPersona): Observable<Cargo[]> {
@@ -145,33 +163,43 @@ export class AdminApi {
         entidadCargos
           .filter((item) => item.activo !== false)
           .map((item): Cargo | null => {
-            const cargo = item.cargo;
+            const cargo = typeof item.cargo === 'string' ? null : item.cargo;
+            const cargoMaster = typeof item.cargoMaster === 'string' ? null : item.cargoMaster;
 
-            if (!cargo) {
+            const source = cargo ?? cargoMaster;
+
+            if (!source) {
               return null;
             }
 
-            const nombre = (item.nombre?.trim() || cargo.nombre).trim();
-            const codigo = cargo.codigo ?? null;
+            const nombre = (
+              item.nombreVisible?.trim() ||
+              item.nombre?.trim() ||
+              source.nombre
+            ).trim();
+
+            const codigo = item.codigoVisible ?? source.codigo ?? null;
             const tipoPersonaInferida = this.resolveCargoTipoPersona(codigo, nombre);
 
             return {
-              id: cargo.id,
+              id: item.id,
               registroId: item.id,
               nombre,
               codigo,
-              descripcion: cargo.descripcion ?? null,
+              descripcion: item.descripcionVisible ?? source.descripcion ?? null,
               activo: item.activo,
-              infantilEspecial: cargo.infantilEspecial ?? false,
+              infantilEspecial: item.infantilEspecial ?? source.infantilEspecial ?? false,
               tipoPersona: tipoPersonaInferida,
-              origen: 'entidad_cargo' as const,
-              iri: `/api/cargos/${cargo.id}`,
+              origen: cargoMaster ? 'cargo_master' : 'entidad_cargo',
+              iri: `/api/entidad_cargos/${item.id}`,
               entidadCargo: item,
             } as Cargo;
           })
           .filter((item): item is Cargo => item !== null)
           .filter((item) => (tipoPersona ? item.tipoPersona === tipoPersona : true))
-          .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+          .sort((a, b) =>
+            a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+          )
       )
     );
   }
@@ -186,6 +214,56 @@ export class AdminApi {
       .pipe(map((response) => response.items));
   }
 
+  /** Returns raw TipoEntidad objects (id, codigo, nombre) */
+  getTipoEntidadesRaw(): Observable<any[]> {
+    if (this.tipoEntidadesCache) {
+      return new Observable((subscriber) => { subscriber.next(this.tipoEntidadesCache!); subscriber.complete(); });
+    }
+
+    return this.http.get<ApiCollection<any>>(`${environment.apiUrl}/tipo_entidads`).pipe(
+      map((r) => {
+        const items = parseCollection<any>(r as unknown);
+        this.tipoEntidadesCache = items;
+        return items;
+      })
+    );
+  }
+
+  getTipoEntidadCargos(): Observable<TipoEntidadCargo[]> {
+    return this.http
+      .get<ApiCollection<TipoEntidadCargo> | TipoEntidadCargo[]>(
+        `${environment.apiUrl}/tipo_entidad_cargos`
+      )
+      .pipe(
+        map((response) =>
+          Array.isArray(response)
+            ? response
+            : response.member ?? response['hydra:member'] ?? []
+        )
+      );
+  }
+
+  /** Create a Cargo. The backend must infer the entidad from the authenticated user; do not send entidad id. */
+  crearCargo(payload: Partial<Cargo>): Observable<Cargo> {
+    const body = { ...payload } as any;
+    return this.http.post<Cargo>(`${environment.apiUrl}/cargos`, body);
+  }
+
+  /** Create an EntidadCargo. Backend should associate it to the current user's entidad. */
+  crearEntidadCargo(payload: any): Observable<any> {
+    const body = { ...payload };
+    return this.http.post<any>(`${environment.apiUrl}/entidad_cargos`, body);
+  }
+
+  deleteEntidadCargo(id: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/entidad_cargos/${encodeURIComponent(id)}`);
+  }
+
+  patchEntidadCargo(id: string, payload: Partial<any>): Observable<any> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' });
+    return this.http.patch<any>(`${environment.apiUrl}/entidad_cargos/${encodeURIComponent(id)}`, payload, { headers });
+  }
+
   getEntidades(): Observable<Entidad[]> {
     return this.http.get<ApiCollection<Entidad>>(`${environment.apiUrl}/entidad`).pipe(
       map((response) => parseCollection<Entidad>(response as unknown))
@@ -193,8 +271,15 @@ export class AdminApi {
   }
 
   updateEntidad(id: string, payload: Partial<Entidad>): Observable<Entidad> {
-    const headers = new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' });
-    return this.http.patch<Entidad>(`${environment.apiUrl}/entidad/${encodeURIComponent(id)}`, payload, { headers });
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/merge-patch+json',
+    });
+
+    return this.http.patch<Entidad>(
+      `${environment.apiUrl}/entidads/${encodeURIComponent(id)}`,
+      payload,
+      { headers }
+    );
   }
 
   importarExcel(file: File): Observable<ImportResult> {

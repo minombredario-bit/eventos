@@ -100,6 +100,12 @@ export class AuthService {
     return this.authStore.user;
   }
 
+  hasAnyRole(roles: string[]): boolean {
+    const userRoles = this.authStore.user()?.roles ?? [];
+    if (!Array.isArray(userRoles)) return false;
+    return roles.some((r) => userRoles.includes(r));
+  }
+
   private normalizeLoginResponse(
     response: LoginResponse | Record<string, unknown>,
   ): LoginResponse {

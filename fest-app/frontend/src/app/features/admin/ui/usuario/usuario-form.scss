@@ -1,3 +1,5 @@
+@import '../../../../styles/admin-panel';
+
 :host {
   display: block;
   min-height: 100%;
@@ -27,8 +29,8 @@
   /* Añadimos padding-bottom que incluye la altura del bottom nav para
      evitar que elementos finales (ej. botón Guardar) queden bajo el footer
      fijo. Usamos la variable global --bottom-nav-height definida en
-     src/styles.scss. */
-  padding: 1rem 1rem calc(var(--bottom-nav-height, 68px) + 1.25rem);
+     src/styles.scss. Aumentamos el offset para evitar solapamientos. */
+  padding: 1rem 1rem calc(var(--bottom-nav-height, 68px) + 2.5rem);
 }
 
 .panel {
@@ -41,6 +43,26 @@
     var(--shadow-soft, 0 6px 18px rgba(90,30,0,.10));
   backdrop-filter: blur(10px);
 }
+
+/* Loading overlay shared with entidad form */
+.panel {
+  position: relative;
+}
+.loading-overlay {
+  position: absolute;
+  inset: 0.6rem;
+  border-radius: 1rem;
+  background: rgba(255,255,255,0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+.loading-inner { display:flex; flex-direction:column; align-items:center; gap:0.6rem; }
+.spinner { width:36px; height:36px; border-radius:50%; border:4px solid rgba(0,0,0,0.08); border-top-color: var(--brand-primary); animation: spin 1s linear infinite; }
+.loading-text { color: var(--text-primary); font-weight:700; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.edit-form.is-loading { opacity: 0.9; pointer-events: none; }
 
 .eyebrow {
   margin: 0 0 0.35rem;
@@ -62,7 +84,7 @@
 .edit-form,
 form {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .field {
@@ -631,7 +653,7 @@ form {
   .edit-form,
   form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem 1.25rem;
+    gap: 1.25rem 1.25rem;
     align-items: start;
   }
 
@@ -669,7 +691,7 @@ form {
   .edit-form,
   form {
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 1rem 1.25rem;
+    gap: 1.25rem 1.25rem;
   }
 
   .field {
@@ -694,7 +716,7 @@ form {
 @media (max-width: 640px) {
   .content {
     /* Ajuste para móviles: evitar que el CTA quede bajo la navegación inferior */
-    padding: 0.5rem 0.85rem calc(var(--bottom-nav-height, 68px) + 0.75rem);
+    padding: 0.5rem 0.85rem calc(var(--bottom-nav-height, 68px) + 1.75rem);
   }
 
   .panel {

@@ -58,15 +58,33 @@ export interface CargoMaster {
   codigo?: string | null;
   descripcion?: string | null;
   activo?: boolean;
+  infantilEspecial?: boolean;
 }
 
 export interface EntidadCargo {
   id: string;
   entidad?: string;
-  cargo?: Cargo | null;
+  cargo?: Cargo | string | null;
   cargoMaster?: CargoMaster | null;
   nombre?: string | null;
   orden?: number;
+  activo?: boolean;
+
+  esOficial?: boolean;
+  nombreVisible?: string | null;
+  codigoVisible?: string | null;
+  descripcionVisible?: string | null;
+  esInfantil?: boolean;
+  infantilEspecial?: boolean;
+  computaComoDirectivo?: boolean;
+  esRepresentativo?: boolean;
+  ordenJerarquicoVisible?: number;
+  aniosComputables?: number;
+}
+
+export interface TipoEntidadCargo {
+  id: string;
+  cargoMaster: CargoMaster;
   activo?: boolean;
 }
 
@@ -82,6 +100,15 @@ export interface Cargo {
   origen?: CargoOrigen;
   iri?: string;
   entidadCargo?: EntidadCargo;
+  cargo?: Cargo | null;
+  entidad?: string;
+}
+
+export interface TipoEntidadCargo {
+  id: string;
+  tipoEntidad?: string;
+  cargoMaster: CargoMaster;
+  activo?: boolean;
 }
 
 export interface RelacionUsuario {

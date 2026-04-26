@@ -2,7 +2,10 @@
   "admin": {
     "entidad": {
       "title": "Editar entidad",
+      "subtitle": "Configuración de la entidad",
       "selectEntidad": "Seleccionar entidad",
+      "loading": "Cargando",
+      "retrieving": "Recuperando datos",
       "selectPlaceholder": "-- Selecciona --",
       "nombre": "Nombre",
       "emailContacto": "Email contacto",
@@ -16,7 +19,14 @@
       "errorLoad": "No se pudieron cargar las entidades.",
       "errorSave": "Error actualizando la entidad.",
       "selectRequired": "Selecciona una entidad.",
-      "invalidForm": "Revisa los campos obligatorios."
+      "invalidForm": "Revisa los campos obligatorios.",
+      "section_general": "Datos generales",
+      "info_title": "Información de la entidad",
+      "info_help": "Nombre, contacto y datos de identificación.",
+      "section_legal": "Legal",
+      "legal_title": "Condiciones de uso / LOPD",
+      "legal_help": "Texto legal que los usuarios deberán aceptar al acceder por primera vez.",
+      "optional": "opcional"
     }
   ,
     "usuario": {
@@ -29,7 +39,32 @@
       "not_set": "No indicado",
       "nombre": "Nombre",
       "apellidos": "Apellidos",
-      "email": "Email"
+      "email": "Email",
+      "telefono": "Teléfono",
+      "fechaNacimiento": "Fecha nacimiento",
+      "antiguedadReal": "Antigüedad real",
+      "antiguedad": "Antigüedad",
+      "formaPagoPreferida": "Forma pago preferida",
+      "usuario_activo": "Usuario activo",
+      "debeCambiarPassword": "Debe cambiar contraseña al acceder",
+      "motivoBajaCenso": "Motivo baja censo",
+      "cargos": "Cargos",
+      "cargos_help": "Selecciona uno o varios cargos para este usuario.",
+      "cargos_selected": "{count} seleccionados",
+      "relacion_titulo": "Relación usuario",
+      "relacion_help": "Busca por nombre completo y añade usuarios relacionados.",
+      "relacion_search_placeholder": "Buscar usuario…",
+      "relacion_none": "Ningún usuario relacionado aún.",
+      "relacion_relation_placeholder": "Relación…",
+      "relacion_quitar": "Quitar",
+      "create_success": "Usuario creado correctamente.",
+      "update_success": "Usuario actualizado correctamente.",
+      "create_error": "No se pudo crear el usuario.",
+      "update_error": "No se pudo actualizar el usuario."
+      ,
+      "role": "Rol",
+      "role_user": "Usuario",
+      "role_admin": "Administrador"
     }
   }
 }

@@ -200,56 +200,6 @@ export class EventosApi {
   }
 
   /**
-   * Crear de forma atómica una inscripción (línea) para una sola persona.
-   * Este helper envuelve el endpoint /api/eventos/{id}/inscribirme pero
-   * acepta un participante mínimo ({ id, origen }) y construye el payload
-   * reducido esperado por el backend. Se usa para inscribir "líneas"
-   * individuales en lugar de enviar un PUT con la colección completa.
-   */
-  inscribirParticipanteAtomico(
-    eventoId: string,
-    participante: { id: string; origen: 'familiar' | 'invitado'; actividadId?: string },
-  ): Observable<unknown> {
-    const normalizedId = this.extractResourceId(participante.id).trim();
-    if (!normalizedId) return of(void 0);
-
-    const personaPayload: Record<string, string> =
-      participante.origen === 'invitado'
-        ? { invitado: `/api/invitados/${normalizedId}` }
-        : { usuario: `/api/usuarios/${normalizedId}` };
-
-    // If an actividadId was provided, include it in the payload so the backend
-    // receives both participant and actividad when required by server-side validation.
-    if (participante.actividadId && String(participante.actividadId).trim()) {
-      personaPayload['actividad'] = `/api/actividades/${String(participante.actividadId).trim()}`;
-    }
-
-    return this.http.post(`${this.eventoBasePath(eventoId)}/inscribirme`, { personas: [personaPayload] });
-  }
-
-  /**
-   * Crea una selección de participante (SeleccionParticipanteEvento) para el evento.
-   * Endpoint: POST /api/eventos/{eventoId}/seleccion_participantes
-   */
-  crearSeleccionParticipante(eventoId: string, participante: { id: string; origen: 'familiar' | 'invitado' }): Observable<unknown> {
-    const normalizedId = this.extractResourceId(participante.id).trim();
-    if (!normalizedId) return of(void 0);
-
-    // If the id is a synthetic fallback id (starts with 'nf-'), there is no server
-    // resource to reference — skip the server call and let the client handle local fallback.
-    if (normalizedId.startsWith('nf-')) {
-      return of(void 0);
-    }
-
-    const payload: Record<string, string> =
-      participante.origen === 'invitado'
-        ? { invitado: `/api/invitados/${normalizedId}` }
-        : { usuario: `/api/usuarios/${normalizedId}` };
-
-    return this.http.post(`${this.eventoBasePath(eventoId)}/seleccion_participantes`, payload);
-  }
-
-  /**
    * POST /api/seleccion_participante_eventos
    * Inscribe un participante en el evento y devuelve la selección creada con su id.
    */
