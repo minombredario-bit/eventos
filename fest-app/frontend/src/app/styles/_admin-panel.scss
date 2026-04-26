@@ -37,6 +37,19 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 .edit-form.is-loading { opacity: 0.9; pointer-events: none; }
 
+/* Form container/grid gap between fields */
+.edit-form,
+form {
+  display: grid;
+  gap: 1.25rem; /* aumento del espaciado entre campos */
+}
+
+/* Baseline gap for field-grid helper (used in forms) */
+.field-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
 /* Form field defaults shared across admin forms */
 .field {
   position: relative;
