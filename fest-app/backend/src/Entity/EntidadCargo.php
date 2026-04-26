@@ -2,6 +2,10 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\ExistsFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -17,14 +21,45 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('ROLE_USER')"),
-        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new Get(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
     ],
     normalizationContext: ['groups' => ['entidad_cargo:read']],
     denormalizationContext: ['groups' => ['entidad_cargo:write']]
 )]
+#[ApiFilter(SearchFilter::class, properties: [
+    'entidad' => 'exact',
+    'cargo' => 'exact',
+    'cargoMaster' => 'exact',
+    'cargo.nombre' => 'partial',
+    'cargo.codigo' => 'partial',
+    'cargoMaster.nombre' => 'partial',
+    'cargoMaster.codigo' => 'partial',
+])]
+#[ApiFilter(BooleanFilter::class, properties: [
+    'activo',
+    'cargo.infantilEspecial',
+    'cargo.esInfantil',
+    'cargoMaster.infantilEspecial',
+    'cargoMaster.esInfantil',
+])]
+#[ApiFilter(ExistsFilter::class, properties: [
+    'cargo',
+    'cargoMaster',
+])]
+#[ApiFilter(OrderFilter::class, properties: [
+    'orden',
+    'nombre',
+    'cargo.nombre',
+    'cargo.codigo',
+    'cargo.ordenJerarquico',
+    'cargoMaster.nombre',
+    'cargoMaster.codigo',
+    'cargoMaster.ordenJerarquico',
+])]
+
 #[ORM\Entity(repositoryClass: EntidadCargoRepository::class)]
 #[ORM\Table(name: 'entidad_cargo')]
 class EntidadCargo

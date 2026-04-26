@@ -386,21 +386,60 @@ final class AdminUpdateUsuarioProcessor implements ProcessorInterface
             return null;
         }
 
+        // 1) Si viene /api/cargos/{id}
         $cargo = $this->cargoRepository->findOneByIdAndEntidad($usuario->getEntidad(), $cargoId);
+
         if ($cargo instanceof Cargo) {
             return $cargo;
         }
 
+        // 2) Si viene /api/entidad_cargos/{id}
         $entidadCargo = $this->entityManager->find(EntidadCargo::class, $cargoId);
+
         if (!$entidadCargo instanceof EntidadCargo) {
             return null;
         }
 
-        if ($entidadCargo->getEntidad()?->getId() !== $usuario->getEntidad()->getId()) {
+        if ((string) $entidadCargo->getEntidad()?->getId() !== (string) $usuario->getEntidad()->getId()) {
             return null;
         }
 
-        return $entidadCargo->getCargo() instanceof Cargo ? $entidadCargo->getCargo() : null;
+        // Cargo personalizado
+        if ($entidadCargo->getCargo() instanceof Cargo) {
+            return $entidadCargo->getCargo();
+        }
+
+        // Cargo oficial basado en CargoMaster: crear/reutilizar Cargo operativo para la entidad
+        $cargoMaster = $entidadCargo->getCargoMaster();
+
+        if ($cargoMaster === null) {
+            return null;
+        }
+
+        $existingCargo = $this->cargoRepository->findOneBy([
+            'entidad' => $usuario->getEntidad(),
+            'codigo' => $cargoMaster->getCodigo(),
+        ]);
+
+        if ($existingCargo instanceof Cargo) {
+            return $existingCargo;
+        }
+
+        $cargo = new Cargo();
+        $cargo->setEntidad($usuario->getEntidad());
+        $cargo->setNombre($cargoMaster->getNombre());
+        $cargo->setCodigo($cargoMaster->getCodigo());
+        $cargo->setDescripcion($cargoMaster->getDescripcion());
+        $cargo->setActivo(true);
+        $cargo->setInfantilEspecial($cargoMaster->isInfantilEspecial());
+        $cargo->setComputaComoDirectivo($cargoMaster->isComputaComoDirectivo());
+        $cargo->setEsRepresentativo($cargoMaster->isEsRepresentativo());
+        $cargo->setEsInfantil($cargoMaster->isEsInfantil());
+        $cargo->setOrdenJerarquico($cargoMaster->getOrdenJerarquico());
+
+        $this->entityManager->persist($cargo);
+
+        return $cargo;
     }
 
     private function extractId(string|array $value): ?string

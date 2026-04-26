@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
+use App\Controller\Admin\EntidadAdminCollectionController;
 use App\Repository\EntidadRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -27,7 +28,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('ENTIDAD_VIEW', object)"),
+        new GetCollection(
+            uriTemplate: '/entidad',
+            controller: EntidadAdminCollectionController::class,
+            security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"
+        ),
         new Get(security: "is_granted('ROLE_USER')"),
         new Get(
             uriTemplate: '/entidad/lopd',
@@ -35,7 +40,9 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new GetCollection(security: "is_granted('ROLE_USER')"),
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
-        new Patch(security: "is_granted('ENTIDAD_EDIT', object)"),
+        new Patch(
+            security: "is_granted('ENTIDAD_EDIT', object)"
+        ),
     ],
     normalizationContext: ['groups' => ['entidad:read']],
     denormalizationContext: ['groups' => ['entidad:write']]
@@ -247,12 +254,19 @@ class Entidad
 
     public function setTextoLopd(?string $textoLopd): static
     {
-        // If HTMLPurifier is available, sanitize HTML to avoid XSS when rendering later.
-        if ($textoLopd !== null && class_exists('\HTMLPurifier')) {
-            // Create default config; if HTMLPurifier not available this block is skipped.
+        if ($textoLopd !== null && class_exists(\HTMLPurifier::class)) {
+
+            $cacheDir = dirname(__DIR__, 2) . '/var/cache/htmlpurifier';
+
+            if (!is_dir($cacheDir)) {
+                @mkdir($cacheDir, 0777, true);
+            }
+
             $config = \HTMLPurifier_Config::createDefault();
-            // Allow some basic tags -- default config is OK, but host app can customize if needed
+            $config->set('Cache.SerializerPath', $cacheDir);
+
             $purifier = new \HTMLPurifier($config);
+
             $this->textoLopd = $purifier->purify($textoLopd);
         } else {
             $this->textoLopd = $textoLopd;

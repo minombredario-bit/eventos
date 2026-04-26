@@ -90,7 +90,7 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
                 break;
 
             case CargoMaster::class:
-                $this->addWhereCargoMaster($queryBuilder, $rootAlias, $isItemOperation);
+                $this->addWhereCargoMaster($queryBuilder, $rootAlias, $entidad,  $isItemOperation);
                 break;
 
             case EntidadCargo::class:
@@ -284,8 +284,31 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
     private function addWhereCargoMaster(
         QueryBuilder $queryBuilder,
         string $rootAlias,
+        Entidad $entidad,
         bool $isItemOperation = false
     ): void {
+        $tipoEntidad = $entidad->getTipoEntidad();
+
+        if (!$tipoEntidad instanceof TipoEntidad || $tipoEntidad->getId() === null) {
+            $queryBuilder->andWhere('1 = 0');
+
+            return;
+        }
+
+        $tipoEntidadCargoAlias = 'tec_' . $rootAlias;
+        $parameterName = 'cargo_master_tipo_entidad';
+
+        $queryBuilder
+            ->innerJoin(
+                TipoEntidadCargo::class,
+                $tipoEntidadCargoAlias,
+                'WITH',
+                sprintf('%s.cargoMaster = %s', $tipoEntidadCargoAlias, $rootAlias)
+            )
+            ->andWhere(sprintf('%s.tipoEntidad = :%s', $tipoEntidadCargoAlias, $parameterName))
+            ->andWhere(sprintf('%s.activo = true', $tipoEntidadCargoAlias))
+            ->setParameter($parameterName, $tipoEntidad);
+
         if (!$isItemOperation) {
             $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
         }
@@ -306,6 +329,65 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
         if (!$isItemOperation) {
             $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
         }
+
+        $request = $this->requestStack->getCurrentRequest();
+        $tipoPersona = $request?->query->get('tipoPersona');
+
+        $cargoAlias = 'ec_cargo_filter';
+        $cargoMasterAlias = 'ec_cargo_master_filter';
+
+        $queryBuilder
+            ->leftJoin(sprintf('%s.cargo', $rootAlias), $cargoAlias)
+            ->leftJoin(sprintf('%s.cargoMaster', $rootAlias), $cargoMasterAlias);
+
+        // Siempre exigir que el cargo relacionado esté activo
+        $queryBuilder->andWhere(sprintf(
+            '(
+            (%s.id IS NOT NULL AND %s.activo = true)
+            OR
+            (%s.id IS NOT NULL AND %s.activo = true)
+        )',
+            $cargoAlias,
+            $cargoAlias,
+            $cargoMasterAlias,
+            $cargoMasterAlias
+        ));
+
+        if (!\in_array($tipoPersona, ['adulto', 'infantil'], true)) {
+            return;
+        }
+
+        if ($tipoPersona === 'infantil') {
+            $queryBuilder->andWhere(sprintf(
+                '(
+                (%s.id IS NOT NULL AND (%s.esInfantil = true OR %s.infantilEspecial = true))
+                OR
+                (%s.id IS NOT NULL AND (%s.esInfantil = true OR %s.infantilEspecial = true))
+            )',
+                $cargoAlias,
+                $cargoAlias,
+                $cargoAlias,
+                $cargoMasterAlias,
+                $cargoMasterAlias,
+                $cargoMasterAlias
+            ));
+
+            return;
+        }
+
+        $queryBuilder->andWhere(sprintf(
+            '(
+            (%s.id IS NOT NULL AND %s.esInfantil = false AND %s.infantilEspecial = false)
+            OR
+            (%s.id IS NOT NULL AND %s.esInfantil = false AND %s.infantilEspecial = false)
+        )',
+            $cargoAlias,
+            $cargoAlias,
+            $cargoAlias,
+            $cargoMasterAlias,
+            $cargoMasterAlias,
+            $cargoMasterAlias
+        ));
     }
 
     private function addWhereTipoEntidadCargo(
@@ -326,9 +408,7 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
         $queryBuilder
             ->andWhere(sprintf('%s.tipoEntidad = :%s', $rootAlias, $parameterName))
             ->setParameter($parameterName, $tipoEntidad);
+        $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
 
-        if (!$isItemOperation) {
-            $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
-        }
     }
 }

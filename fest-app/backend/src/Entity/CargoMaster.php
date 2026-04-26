@@ -30,11 +30,11 @@ class CargoMaster
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['cargo_master:read', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'entidad_cargo:read', 'tipo_entidad_cargo:read'])]
     private ?string $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 120)]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read', 'tipo_entidad_cargo:read'])]
     #[Assert\NotBlank]
     private string $nombre;
 

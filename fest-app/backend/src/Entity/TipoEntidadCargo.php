@@ -15,10 +15,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('ROLE_USER')"),
-        new GetCollection(security: "is_granted('ROLE_USER')"),
-        new Post(security: "is_granted('ROLE_SUPERADMIN')"),
-        new Patch(security: "is_granted('ROLE_SUPERADMIN')"),
+        new Get(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
     ],
     normalizationContext: ['groups' => ['tipo_entidad_cargo:read']],
     denormalizationContext: ['groups' => ['tipo_entidad_cargo:write']]
@@ -35,7 +35,7 @@ class TipoEntidadCargo
 
     #[ORM\ManyToOne(targetEntity: TipoEntidad::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['tipo_entidad_cargo:read', 'tipo_entidad_cargo:write'])]
+    #[Groups(['tipo_entidad_cargo:write'])]
     #[Assert\NotNull]
     private TipoEntidad $tipoEntidad;
 
@@ -46,7 +46,7 @@ class TipoEntidadCargo
     private CargoMaster $cargoMaster;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    #[Groups(['tipo_entidad_cargo:read', 'tipo_entidad_cargo:write'])]
+    #[Groups(['tipo_entidad_cargo:write'])]
     private bool $activo = true;
 
     public function __construct()

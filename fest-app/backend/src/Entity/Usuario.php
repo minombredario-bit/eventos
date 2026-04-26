@@ -235,6 +235,9 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     )]
     private Collection $cargosTemporada;
 
+    #[ORM\OneToMany(targetEntity: EntidadCargo::class, mappedBy: 'entidad')]
+    private Collection $entidadCargos;
+
     /** @var Collection<int, UsuarioReconocimiento> */
     #[ORM\OneToMany(targetEntity: UsuarioReconocimiento::class, mappedBy: 'usuario')]
     private Collection $usuarioReconocimientos;
@@ -251,6 +254,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         $this->relacionesDestino = new ArrayCollection();
         $this->cargosTemporada = new ArrayCollection();
         $this->usuarioReconocimientos = new ArrayCollection();
+        $this->entidadCargos = new ArrayCollection();
     }
 
     public function getId(): ?string
@@ -854,17 +858,52 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         );
     }
 
-    #[Groups(['usuario:read'])]
-    /** @return array<Cargo> */
+    public function getEntidadCargos(): Collection
+    {
+        return $this->entidadCargos;
+    }
+
+    #[Groups(['usuario:read', 'read_user_admin'])]
     public function getCargos(): array
     {
         $result = [];
 
         foreach ($this->cargosTemporada as $utc) {
             $cargo = $utc->getCargo();
-            if ($cargo) {
-                $result[] = $cargo;
+
+            if (!$cargo) {
+                continue;
             }
+
+            $entidadCargo = null;
+
+            foreach ($this->entidad->getEntidadCargos() as $ec) {
+                if ($ec->getCargo()?->getId() === $cargo->getId()) {
+                    $entidadCargo = $ec;
+                    break;
+                }
+
+                if (
+                    $ec->getCargoMaster() !== null
+                    && $ec->getCargoMaster()->getCodigo() !== null
+                    && $cargo->getCodigo() === $ec->getCargoMaster()->getCodigo()
+                ) {
+                    $entidadCargo = $ec;
+                    break;
+                }
+            }
+
+            if ($entidadCargo === null) {
+                continue;
+            }
+
+            $result[] = [
+                'id' => $entidadCargo->getId(),
+                '@id' => '/api/entidad_cargos/' . $entidadCargo->getId(),
+                'cargoId' => $cargo->getId(),
+                'nombre' => $entidadCargo->getNombreVisible(),
+                'codigo' => $entidadCargo->getCodigoVisible(),
+            ];
         }
 
         return $result;
