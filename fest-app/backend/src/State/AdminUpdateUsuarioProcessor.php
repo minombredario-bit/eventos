@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\AdminUpdateUsuarioInput;
 use App\Entity\Cargo;
+use App\Entity\CargoMaster;
 use App\Entity\EntidadCargo;
 use App\Entity\RelacionUsuario;
 use App\Entity\TemporadaEntidad;
@@ -159,7 +160,27 @@ final class AdminUpdateUsuarioProcessor implements ProcessorInterface
                         continue;
                     }
 
-                    $cargoActualId = $utc->getCargo()?->getId();
+                    // UsuarioTemporadaCargo ahora apunta a EntidadCargo; resolver el cargo operativo (Cargo) si es posible
+                    $entidadCargoUtc = $utc->getEntidadCargo();
+
+                    $cargoActualId = null;
+
+                    if ($entidadCargoUtc?->getCargo() instanceof Cargo) {
+                        $cargoActualId = $entidadCargoUtc->getCargo()->getId();
+                    } elseif ($entidadCargoUtc?->getCargoMaster() !== null) {
+                        // intentar resolver un Cargo operativo existente para la entidad por codigo
+                        $codigo = $entidadCargoUtc->getCargoMaster()->getCodigo();
+                        if ($codigo !== null) {
+                            $existingCargo = $this->cargoRepository->findOneBy([
+                                'entidad' => $usuario->getEntidad(),
+                                'codigo' => $codigo,
+                            ]);
+                            if ($existingCargo instanceof Cargo) {
+                                $cargoActualId = $existingCargo->getId();
+                            }
+                        }
+                    }
+
                     if ($cargoActualId === null) {
                         continue;
                     }
@@ -198,8 +219,40 @@ final class AdminUpdateUsuarioProcessor implements ProcessorInterface
 
                     $cargoTemporada = new UsuarioTemporadaCargo();
                     $cargoTemporada->setUsuario($usuario);
-                    $cargoTemporada->setCargo($cargo);
                     $cargoTemporada->setTemporada($temporada);
+
+                    // Resolver o crear EntidadCargo para el cargo operativo
+                    $entidadCargo = $this->entityManager->getRepository(EntidadCargo::class)->findOneBy([
+                        'entidad' => $usuario->getEntidad(),
+                        'cargo' => $cargo,
+                    ]);
+
+                    if (!$entidadCargo instanceof EntidadCargo) {
+                        // Intentar buscar por cargoMaster (código)
+                        $codigo = $cargo->getCodigo();
+                        if ($codigo !== null) {
+                            $cargoMaster = $this->entityManager->getRepository(CargoMaster::class)->findOneBy(['codigo' => $codigo]);
+                            if ($cargoMaster instanceof CargoMaster) {
+                                $entidadCargo = $this->entityManager->getRepository(EntidadCargo::class)->findOneBy([
+                                    'entidad' => $usuario->getEntidad(),
+                                    'cargoMaster' => $cargoMaster,
+                                ]);
+                            }
+                        }
+                    }
+
+                    if (!$entidadCargo instanceof EntidadCargo) {
+                        // Crear EntidadCargo local para este cargo operativo
+                        $entidadCargo = new EntidadCargo();
+                        $entidadCargo->setEntidad($usuario->getEntidad());
+                        $entidadCargo->setCargo($cargo);
+                        $entidadCargo->setNombre(null);
+                        $entidadCargo->setOrden(null);
+                        $entidadCargo->setActivo(true);
+                        $this->entityManager->persist($entidadCargo);
+                    }
+
+                    $cargoTemporada->setEntidadCargo($entidadCargo);
 
                     $this->entityManager->persist($cargoTemporada);
                     $usuario->addCargoTemporada($cargoTemporada);
@@ -285,8 +338,38 @@ final class AdminUpdateUsuarioProcessor implements ProcessorInterface
 
             $cargoTemporada = new UsuarioTemporadaCargo();
             $cargoTemporada->setUsuario($usuario);
-            $cargoTemporada->setCargo($cargo);
             $cargoTemporada->setTemporada($temporada);
+
+            // Resolver o crear EntidadCargo para este cargo operativo
+            $entidadCargo = $this->entityManager->getRepository(EntidadCargo::class)->findOneBy([
+                'entidad' => $usuario->getEntidad(),
+                'cargo' => $cargo,
+            ]);
+
+            if (!$entidadCargo instanceof EntidadCargo) {
+                $codigo = $cargo->getCodigo();
+                if ($codigo !== null) {
+                    $cargoMaster = $this->entityManager->getRepository(CargoMaster::class)->findOneBy(['codigo' => $codigo]);
+                    if ($cargoMaster instanceof CargoMaster) {
+                        $entidadCargo = $this->entityManager->getRepository(EntidadCargo::class)->findOneBy([
+                            'entidad' => $usuario->getEntidad(),
+                            'cargoMaster' => $cargoMaster,
+                        ]);
+                    }
+                }
+            }
+
+            if (!$entidadCargo instanceof EntidadCargo) {
+                $entidadCargo = new EntidadCargo();
+                $entidadCargo->setEntidad($usuario->getEntidad());
+                $entidadCargo->setCargo($cargo);
+                $entidadCargo->setNombre(null);
+                $entidadCargo->setOrden(null);
+                $entidadCargo->setActivo(true);
+                $this->entityManager->persist($entidadCargo);
+            }
+
+            $cargoTemporada->setEntidadCargo($entidadCargo);
 
             $result[] = $cargoTemporada;
         }
@@ -312,14 +395,34 @@ final class AdminUpdateUsuarioProcessor implements ProcessorInterface
         }
 
         if ($temporada === null) {
-            $currentYear = (int) (new \DateTimeImmutable())->format('Y');
-            $seasonCode = $this->seasonCodeFromYear($currentYear);
+            $now = new \DateTimeImmutable();
+            $startMonth = $usuario->getEntidad()->getTemporadaInicioMes() ?? 1;
+            $startDay = $usuario->getEntidad()->getTemporadaInicioDia() ?? 1;
+            $currentYear = (int) $now->format('Y');
+
+            // If current month is before startMonth, the season started the previous year
+            $nowMonth = (int) $now->format('n');
+            if ($nowMonth >= $startMonth) {
+                $seasonYear = $currentYear;
+            } else {
+                $seasonYear = $currentYear - 1;
+            }
+
+            $seasonCode = $this->seasonCodeFromYear($seasonYear);
             $temporada = $this->temporadaEntidadRepository->findOneByEntidadAndCodigo($usuario->getEntidad(), $seasonCode);
             if ($temporada === null) {
+                // create temporada for computed season code and populate fechaInicio/fechaFin according to entidad rules
                 $temporada = new TemporadaEntidad();
                 $temporada->setEntidad($usuario->getEntidad());
                 $temporada->setCodigo($seasonCode);
                 $temporada->setNombre('Temporada ' . $seasonCode);
+
+                // calculate fechaInicio as seasonYear-startMonth-01 and fechaFin as one year minus one day
+                $fechaInicio = new \DateTimeImmutable(sprintf('%04d-%02d-%02d', $seasonYear, $startMonth, $startDay));
+                $fechaFin = $fechaInicio->modify('+1 year')->modify('-1 day');
+                $temporada->setFechaInicio($fechaInicio);
+                $temporada->setFechaFin($fechaFin);
+
                 $this->entityManager->persist($temporada);
             }
         }

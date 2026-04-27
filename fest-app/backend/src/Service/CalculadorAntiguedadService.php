@@ -159,13 +159,13 @@ class CalculadorAntiguedadService
      */
     private function normalizarCargoTemporada(UsuarioTemporadaCargo $item): array
     {
-        $cargo = $item->getCargo();
+        $entidadCargo = $item->getEntidadCargo();
 
         return [
             'id' => $item->getId(),
-            'cargoId' => $cargo?->getId(),
-            'cargoNombre' => $cargo?->getNombre() ?? '',
-            'cargoCodigo' => $cargo?->getCodigo(),
+            'cargoId' => $entidadCargo?->getCargo()?->getId() ?? $entidadCargo?->getCargoMaster()?->getId(),
+            'cargoNombre' => $entidadCargo?->getNombreVisible() ?? '',
+            'cargoCodigo' => $entidadCargo?->getCodigoVisible(),
             'principal' => $item->isPrincipal(),
             'computaAntiguedad' => $item->isComputaAntiguedad(),
             'computaReconocimiento' => $item->isComputaReconocimiento(),

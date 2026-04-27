@@ -11,6 +11,7 @@ use App\Entity\CargoMaster;
 use App\Entity\EntidadCargo;
 use App\Entity\Entidad;
 use App\Entity\Evento;
+use App\Entity\Inscripcion;
 use App\Entity\Pago;
 use App\Entity\Cargo;
 use App\Entity\TipoEntidadCargo;
@@ -119,6 +120,10 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
 
             case Pago::class:
                 $this->addWherePago($queryBuilder, $queryNameGenerator, $rootAlias, $entidad, $currentUser);
+                break;
+
+            case Inscripcion::class:
+                $this->addWhereInscripcion($queryBuilder, $rootAlias, $currentUser);
                 break;
         }
     }
@@ -409,6 +414,18 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
             ->andWhere(sprintf('%s.tipoEntidad = :%s', $rootAlias, $parameterName))
             ->setParameter($parameterName, $tipoEntidad);
         $queryBuilder->andWhere(sprintf('%s.activo = true', $rootAlias));
+
+    }
+
+    private function addWhereInscripcion(
+        QueryBuilder $queryBuilder,
+        string $rootAlias,
+        Usuario $currentUser
+    ): void {
+        $parameterName = 'usuario';
+        $queryBuilder
+            ->andWhere(sprintf('%s.usuario = :%s_usuario', $rootAlias, $parameterName))
+            ->setParameter(sprintf('%s_usuario', $parameterName), $currentUser);
 
     }
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\DataFixtures;
 
+use App\Entity\EntidadCargo;
 use App\Entity\Cargo;
+use App\Entity\CargoMaster;
 use App\Entity\TemporadaEntidad;
 use App\Entity\Usuario;
 use App\Entity\UsuarioTemporadaCargo;
@@ -33,6 +35,47 @@ final class UsuarioTemporadaCargoFixtures extends Fixture implements DependentFi
             /** @var Cargo $cargo */
             $cargo = $this->getReference($cargoRef, Cargo::class);
 
+            // Determinar la entidad a la que pertenece el usuario (fixtures crean usuarios con entidad ya seteada)
+            $entidad = $usuario->getEntidad();
+
+            // Buscar la EntidadCargo previamente creada por migración/fixtures.
+            // Prioridad: cargo interno (Entidad->Cargo) — si no existe, buscar por CargoMaster (oficial).
+            $entidadCargo = $manager->getRepository(EntidadCargo::class)->findOneBy([
+                'entidad' => $entidad,
+                'cargo' => $cargo,
+            ]);
+
+            if (!$entidadCargo instanceof EntidadCargo) {
+                // Intentar resolver un CargoMaster equivalente al código del Cargo (case-insensitive)
+                $codigoCargo = $cargo->getCodigo();
+                $cargoMaster = null;
+
+                if (null !== $codigoCargo) {
+                    $cargoMaster = $manager->getRepository(CargoMaster::class)->findOneBy(['codigo' => $codigoCargo]);
+                    if (!$cargoMaster instanceof CargoMaster) {
+                        $cargoMaster = $manager->getRepository(CargoMaster::class)->findOneBy(['codigo' => strtolower($codigoCargo)]);
+                    }
+                    if (!$cargoMaster instanceof CargoMaster) {
+                        $cargoMaster = $manager->getRepository(CargoMaster::class)->findOneBy(['codigo' => strtoupper($codigoCargo)]);
+                    }
+                }
+
+                if ($cargoMaster instanceof CargoMaster) {
+                    $entidadCargo = $manager->getRepository(EntidadCargo::class)->findOneBy([
+                        'entidad' => $entidad,
+                        'cargoMaster' => $cargoMaster,
+                    ]);
+                }
+            }
+
+            if (!$entidadCargo instanceof EntidadCargo) {
+                throw new \RuntimeException(sprintf(
+                    'EntidadCargo no encontrada para entidad "%s" y cargo "%s". Asegúrate de ejecutar la migración que crea los cargos oficiales o de cargar las fixtures de `EntidadCargo`.',
+                    $entidad->getNombre(),
+                    $cargo->getCodigo() ?? $cargo->getId()
+                ));
+            }
+
             if (!$usuario instanceof Usuario) {
                 continue;
             }
@@ -40,7 +83,7 @@ final class UsuarioTemporadaCargoFixtures extends Fixture implements DependentFi
             $usuarioTemporadaCargo = $manager->getRepository(UsuarioTemporadaCargo::class)->findOneBy([
                 'usuario' => $usuario,
                 'temporada' => $temporada2025,
-                'cargo' => $cargo,
+                'entidadCargo' => $entidadCargo,
             ]);
 
             if (!$usuarioTemporadaCargo instanceof UsuarioTemporadaCargo) {
@@ -49,7 +92,7 @@ final class UsuarioTemporadaCargoFixtures extends Fixture implements DependentFi
 
             $usuarioTemporadaCargo->setUsuario($usuario);
             $usuarioTemporadaCargo->setTemporada($temporada2025);
-            $usuarioTemporadaCargo->setCargo($cargo);
+            $usuarioTemporadaCargo->setEntidadCargo($entidadCargo);
             $usuarioTemporadaCargo->setPrincipal($principal);
             $usuarioTemporadaCargo->setComputaAntiguedad($computaAntiguedad);
             $usuarioTemporadaCargo->setComputaReconocimiento($computaReconocimiento);
@@ -67,7 +110,7 @@ final class UsuarioTemporadaCargoFixtures extends Fixture implements DependentFi
 
     public function getDependencies(): array
     {
-        return [AppFixtures::class, CargoFixtures::class, TemporadaEntidadFixtures::class];
+        return [AppFixtures::class, CargoFixtures::class, EntidadCargoFixtures::class, TemporadaEntidadFixtures::class];
     }
 }
 

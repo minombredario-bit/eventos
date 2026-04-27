@@ -8,6 +8,8 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\CargoMasterRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\Uuid;
@@ -39,7 +41,7 @@ class CargoMaster
     private string $nombre;
 
     #[ORM\Column(type: Types::STRING, length: 100, nullable: true)]
-    #[Groups(['cargo_master:read', 'cargo_master:write'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
     private ?string $codigo = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -47,19 +49,19 @@ class CargoMaster
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
     private bool $computaComoDirectivo = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
     private bool $esRepresentativo = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
     private bool $esInfantil = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
     private bool $infantilEspecial = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
@@ -67,17 +69,22 @@ class CargoMaster
     private bool $activo = true;
 
     #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
-    #[Groups(['cargo_master:read', 'cargo_master:write'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
     private int $ordenJerarquico = 0;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 6, scale: 2, options: ['default' => '1.00'])]
-    #[Groups(['cargo_master:read', 'cargo_master:write'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
     #[Assert\PositiveOrZero]
     private string $aniosComputables = '1.00';
+
+    /** @var Collection<int, TipoEntidadCargo> */
+    #[ORM\OneToMany(targetEntity: TipoEntidadCargo::class, mappedBy: 'cargoMaster')]
+    private Collection $tipoEntidadCargos;
 
     public function __construct()
     {
         $this->id = Uuid::uuid4()->toString();
+        $this->tipoEntidadCargos = new ArrayCollection();
     }
 
     public function getId(): ?string
@@ -203,5 +210,11 @@ class CargoMaster
         $this->aniosComputables = number_format($aniosComputables, 2, '.', '');
 
         return $this;
+    }
+
+    /** @return Collection<int, TipoEntidadCargo> */
+    public function getTipoEntidadCargos(): Collection
+    {
+        return $this->tipoEntidadCargos;
     }
 }

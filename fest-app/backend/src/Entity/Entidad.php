@@ -147,10 +147,6 @@ class Entidad
     #[ORM\OneToMany(targetEntity: Evento::class, mappedBy: 'entidad')]
     private Collection $eventos;
 
-    /** @var Collection<int, Usuario> */
-    #[ORM\ManyToMany(targetEntity: Usuario::class, inversedBy: 'entidadesAdmin')]
-    private Collection $admins;
-
     /** @var Collection<int, Cargo> */
     #[ORM\OneToMany(targetEntity: Cargo::class, mappedBy: 'entidad')]
     private Collection $cargos;
@@ -166,6 +162,13 @@ class Entidad
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $usaReconocimiento = true;
 
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 1])]
+    #[Groups(['entidad:read', 'entidad:write'])]
+    private int $temporadaInicioMes = 1;
+
+    #[ORM\Column(type: Types::SMALLINT, options: ['default' => 1])]
+    #[Groups(['entidad:read', 'entidad:write'])]
+    private int $temporadaInicioDia = 1;
     /** @var Collection<int, TemporadaEntidad> */
     #[ORM\OneToMany(
         targetEntity: TemporadaEntidad::class,
@@ -184,7 +187,6 @@ class Entidad
         $this->id = Uuid::uuid4();
         $this->usuarios = new ArrayCollection();
         $this->eventos = new ArrayCollection();
-        $this->admins = new ArrayCollection();
         $this->cargos = new ArrayCollection();
         $this->entidadCargos = new ArrayCollection();
         $this->temporadas = new ArrayCollection();
@@ -434,28 +436,6 @@ class Entidad
         return $this->eventos;
     }
 
-    /** @return Collection<int, Usuario> */
-    public function getAdmins(): Collection
-    {
-        return $this->admins;
-    }
-
-    public function addAdmin(Usuario $admin): static
-    {
-        if (!$this->admins->contains($admin)) {
-            $this->admins->add($admin);
-        }
-
-        return $this;
-    }
-
-    public function removeAdmin(Usuario $admin): static
-    {
-        $this->admins->removeElement($admin);
-
-        return $this;
-    }
-
     /** @return Collection<int, Cargo> */
     public function getCargos(): Collection
     {
@@ -478,5 +458,27 @@ class Entidad
     public function getReconocimientos(): Collection
     {
         return $this->reconocimientos;
+    }
+
+    public function getTemporadaInicioMes(): int
+    {
+        return $this->temporadaInicioMes;
+    }
+
+    public function setTemporadaInicioMes(int $mes): static
+    {
+        $this->temporadaInicioMes = max(1, min(12, $mes));
+        return $this;
+    }
+
+    public function getTemporadaInicioDia(): int
+    {
+        return $this->temporadaInicioDia;
+    }
+
+    public function setTemporadaInicioDia(int $dia): static
+    {
+        $this->temporadaInicioDia = max(1, min(31, $dia));
+        return $this;
     }
 }

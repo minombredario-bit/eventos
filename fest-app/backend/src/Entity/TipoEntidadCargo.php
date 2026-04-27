@@ -13,6 +13,12 @@ use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
+/**
+ * Define qué cargos oficiales (CargoMaster) aplican a un tipo de entidad concreto.
+ *
+ * Los cargos internos (Cargo) no pasan por aquí: pertenecen directamente
+ * a su entidad y no necesitan ser definidos a nivel de tipo.
+ */
 #[ApiResource(
     operations: [
         new Get(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
@@ -39,14 +45,14 @@ class TipoEntidadCargo
     #[Assert\NotNull]
     private TipoEntidad $tipoEntidad;
 
-    #[ORM\ManyToOne(targetEntity: CargoMaster::class)]
+    #[ORM\ManyToOne(targetEntity: CargoMaster::class, inversedBy: 'tipoEntidadCargos')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['tipo_entidad_cargo:read', 'tipo_entidad_cargo:write'])]
     #[Assert\NotNull]
     private CargoMaster $cargoMaster;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    #[Groups(['tipo_entidad_cargo:write'])]
+    #[Groups(['tipo_entidad_cargo:read', 'tipo_entidad_cargo:write'])]
     private bool $activo = true;
 
     public function __construct()

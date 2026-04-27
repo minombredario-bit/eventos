@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'usuario_temporada_cargo')]
-#[ORM\UniqueConstraint(name: 'uniq_usuario_temporada_cargo', columns: ['usuario_id', 'temporada_id', 'cargo_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_usuario_temporada_cargo', columns: ['usuario_id', 'temporada_id', 'entidad_cargo_id'])]
 class UsuarioTemporadaCargo
 {
     #[ORM\Id]
@@ -31,11 +31,15 @@ class UsuarioTemporadaCargo
     #[Assert\NotNull]
     private ?TemporadaEntidad $temporada = null;
 
-    #[ORM\ManyToOne(targetEntity: Cargo::class, inversedBy: 'usuariosTemporadaCargo')]
+    /**
+     * Punto de entrada único para cualquier tipo de cargo (oficial o interno).
+     * Nunca apuntes directamente a Cargo o CargoMaster desde aquí.
+     */
+    #[ORM\ManyToOne(targetEntity: EntidadCargo::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['usuario:read', 'usuario:write'])]
     #[Assert\NotNull]
-    private ?Cargo $cargo = null;
+    private ?EntidadCargo $entidadCargo = null;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
     #[Groups(['usuario:read', 'usuario:write'])]
@@ -70,35 +74,109 @@ class UsuarioTemporadaCargo
         $this->id = Uuid::uuid4();
     }
 
-    public function getId(): ?string { return $this->id; }
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
 
-    public function getUsuario(): ?Usuario { return $this->usuario; }
-    public function setUsuario(?Usuario $usuario): static { $this->usuario = $usuario; return $this; }
+    public function getUsuario(): ?Usuario
+    {
+        return $this->usuario;
+    }
 
-    public function getTemporada(): ?TemporadaEntidad { return $this->temporada; }
+    public function setUsuario(?Usuario $usuario): static
+    {
+        $this->usuario = $usuario;
+
+        return $this;
+    }
+
+    public function getTemporada(): ?TemporadaEntidad
+    {
+        return $this->temporada;
+    }
+
     public function setTemporada(?TemporadaEntidad $temporada): static
     {
         $this->temporada = $temporada;
+
         return $this;
     }
 
-    public function getCargo(): ?Cargo { return $this->cargo; }
-    public function setCargo(?Cargo $cargo): static { $this->cargo = $cargo; return $this; }
+    public function getEntidadCargo(): ?EntidadCargo
+    {
+        return $this->entidadCargo;
+    }
 
-    public function isPrincipal(): bool { return $this->principal; }
-    public function setPrincipal(bool $principal): static { $this->principal = $principal; return $this; }
+    public function setEntidadCargo(?EntidadCargo $entidadCargo): static
+    {
+        $this->entidadCargo = $entidadCargo;
 
-    public function isComputaAntiguedad(): bool { return $this->computaAntiguedad; }
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers de conveniencia: delegan en EntidadCargo para no romper
+    // código existente que lea propiedades del cargo directamente.
+    // -------------------------------------------------------------------------
+
+    public function getNombreCargo(): string
+    {
+        return $this->entidadCargo?->getNombreVisible() ?? '';
+    }
+
+    public function getAniosComputables(): float
+    {
+        return $this->entidadCargo?->getAniosComputables() ?? 0.0;
+    }
+
+    public function isComputaComoDirectivo(): bool
+    {
+        return $this->entidadCargo?->isComputaComoDirectivo() ?? false;
+    }
+
+    public function isEsRepresentativo(): bool
+    {
+        return $this->entidadCargo?->isEsRepresentativo() ?? false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Resto de propiedades propias
+    // -------------------------------------------------------------------------
+
+    public function isPrincipal(): bool
+    {
+        return $this->principal;
+    }
+
+    public function setPrincipal(bool $principal): static
+    {
+        $this->principal = $principal;
+
+        return $this;
+    }
+
+    public function isComputaAntiguedad(): bool
+    {
+        return $this->computaAntiguedad;
+    }
+
     public function setComputaAntiguedad(bool $computaAntiguedad): static
     {
         $this->computaAntiguedad = $computaAntiguedad;
+
         return $this;
     }
 
-    public function isComputaReconocimiento(): bool { return $this->computaReconocimiento; }
+    public function isComputaReconocimiento(): bool
+    {
+        return $this->computaReconocimiento;
+    }
+
     public function setComputaReconocimiento(bool $computaReconocimiento): static
     {
         $this->computaReconocimiento = $computaReconocimiento;
+
         return $this;
     }
 
@@ -110,6 +188,7 @@ class UsuarioTemporadaCargo
     public function setAniosExtraAplicados(float $aniosExtraAplicados): static
     {
         $this->aniosExtraAplicados = number_format($aniosExtraAplicados, 2, '.', '');
+
         return $this;
     }
 
@@ -121,6 +200,7 @@ class UsuarioTemporadaCargo
     public function setTipoPersona(TipoPersonaEnum $tipoPersona): static
     {
         $this->tipoPersona = $tipoPersona;
+
         return $this;
     }
 
@@ -139,13 +219,27 @@ class UsuarioTemporadaCargo
         return $this->tipoPersona === TipoPersonaEnum::ADULTO;
     }
 
-    public function getOrden(): int { return $this->orden; }
-    public function setOrden(int $orden): static { $this->orden = $orden; return $this; }
+    public function getOrden(): int
+    {
+        return $this->orden;
+    }
 
-    public function getObservaciones(): ?string { return $this->observaciones; }
+    public function setOrden(int $orden): static
+    {
+        $this->orden = $orden;
+
+        return $this;
+    }
+
+    public function getObservaciones(): ?string
+    {
+        return $this->observaciones;
+    }
+
     public function setObservaciones(?string $observaciones): static
     {
         $this->observaciones = $observaciones;
+
         return $this;
     }
 }

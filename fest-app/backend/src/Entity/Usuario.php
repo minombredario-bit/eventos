@@ -202,10 +202,6 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Inscripcion::class, mappedBy: 'usuario')]
     private Collection $inscripciones;
 
-    /** @var Collection<int, Entidad> */
-    #[ORM\ManyToMany(targetEntity: Entidad::class, mappedBy: 'admins')]
-    private Collection $entidadesAdmin;
-
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     #[Groups(['usuario:read', 'usuario:write', 'read_user_admin'])]
     private ?\DateTimeImmutable $fechaNacimiento = null;
@@ -246,7 +242,6 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->id = Uuid::uuid4();
         $this->inscripciones = new ArrayCollection();
-        $this->entidadesAdmin = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->tipoUsuarioEconomico = TipoRelacionEconomicaEnum::INTERNO;
@@ -680,11 +675,6 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->inscripciones;
     }
 
-    /** @return Collection<int, Entidad> */
-    public function getEntidadesAdmin(): Collection
-    {
-        return $this->entidadesAdmin;
-    }
 
     // UserInterface methods
     public function getUserIdentifier(): string
@@ -869,38 +859,20 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         $result = [];
 
         foreach ($this->cargosTemporada as $utc) {
-            $cargo = $utc->getCargo();
+            // Nueva estructura: UsuarioTemporadaCargo apunta a EntidadCargo
+            $entidadCargo = $utc->getEntidadCargo();
 
-            if (!$cargo) {
+            if (!$entidadCargo) {
                 continue;
             }
 
-            $entidadCargo = null;
-
-            foreach ($this->entidad->getEntidadCargos() as $ec) {
-                if ($ec->getCargo()?->getId() === $cargo->getId()) {
-                    $entidadCargo = $ec;
-                    break;
-                }
-
-                if (
-                    $ec->getCargoMaster() !== null
-                    && $ec->getCargoMaster()->getCodigo() !== null
-                    && $cargo->getCodigo() === $ec->getCargoMaster()->getCodigo()
-                ) {
-                    $entidadCargo = $ec;
-                    break;
-                }
-            }
-
-            if ($entidadCargo === null) {
-                continue;
-            }
+            // cargoId: prefer the underlying Cargo id (internal); if not present, return the CargoMaster id
+            $underlyingId = $entidadCargo->getCargo()?->getId() ?? $entidadCargo->getCargoMaster()?->getId();
 
             $result[] = [
                 'id' => $entidadCargo->getId(),
                 '@id' => '/api/entidad_cargos/' . $entidadCargo->getId(),
-                'cargoId' => $cargo->getId(),
+                'cargoId' => $underlyingId,
                 'nombre' => $entidadCargo->getNombreVisible(),
                 'codigo' => $entidadCargo->getCodigoVisible(),
             ];

@@ -8,8 +8,6 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
 use App\Repository\CargoRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Ramsey\Uuid\Uuid;
@@ -81,14 +79,16 @@ class Cargo
     #[Groups(['cargo:read', 'cargo:write', 'entidad_cargo:read'])]
     private int $ordenJerarquico = 0;
 
-    /** @var Collection<int, UsuarioTemporadaCargo> */
-    #[ORM\OneToMany(targetEntity: UsuarioTemporadaCargo::class, mappedBy: 'cargo')]
-    private Collection $usuariosTemporadaCargo;
+    /**
+     * Los cargos internos siempre computan 1 año. Es una regla de negocio fija,
+     * no un dato configurable, por lo que no se persiste en base de datos.
+     */
+    #[Groups(['cargo:read', 'cargo:collection', 'entidad_cargo:read'])]
+    private float $aniosComputables = 1.0;
 
     public function __construct()
     {
         $this->id = Uuid::uuid4()->toString();
-        $this->usuariosTemporadaCargo = new ArrayCollection();
     }
 
     public function getId(): ?string
@@ -216,15 +216,9 @@ class Cargo
         return $this;
     }
 
-    #[Groups(['cargo:read', 'cargo:collection', 'entidad_cargo:read'])]
     public function getAniosComputables(): float
     {
-        return 1.0;
+        return $this->aniosComputables;
     }
 
-    /** @return Collection<int, UsuarioTemporadaCargo> */
-    public function getUsuariosTemporadaCargo(): Collection
-    {
-        return $this->usuariosTemporadaCargo;
-    }
 }
