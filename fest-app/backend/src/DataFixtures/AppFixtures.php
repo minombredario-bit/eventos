@@ -57,6 +57,9 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $entidad->setDireccion('C/ Joan Lloren, 25 - 46009 Valencia');
         $entidad->setCodigoRegistro('FALLA2024');
         $entidad->setTemporadaActual('2024');
+        $entidad->setTextoLopd('LOPD');
+        $entidad->setTemporadaInicioDia(20);
+        $entidad->setTemporadaInicioMes(3);
         $entidad->setActiva(true);
         $manager->persist($entidad);
 
@@ -84,7 +87,7 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $adminEntidad->setEntidad($entidad);
         $adminEntidad->setNombre('María');
         $adminEntidad->setApellidos('García Admin');
-        $adminEntidad->setEmail('admin@fallallobre.es');
+        $adminEntidad->setEmail('admin.demo@festapp.local');
         $adminEntidad->setTelefono('600222333');
         $adminEntidad->setPassword($this->passwordHasher->hashPassword($adminEntidad, 'admin123'));
         $adminEntidad->setRoles(['ROLE_ADMIN_ENTIDAD']);
@@ -616,9 +619,6 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         // Flush all
         $manager->flush();
 
-        // Add admin to entidad
-        $entidad->addAdmin($adminEntidad);
-        $manager->flush();
 
         $this->addReference('entidad.demo', $entidad);
     }

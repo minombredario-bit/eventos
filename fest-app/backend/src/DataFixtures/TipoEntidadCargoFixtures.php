@@ -43,7 +43,8 @@ final class TipoEntidadCargoFixtures extends Fixture
 
                 $tipoCodigo = $tipoEntidad->getCodigo();
                 $cargoCodigo = $cargoMaster->getCodigo() ?? strtolower($cargoMaster->getNombre());
-                $this->addReference(sprintf('tipo_entidad_cargo.%s.%s', strtolower($tipoCodigo), strtolower($cargoCodigo)), $tipoEntidadCargo);
+                // Use setReference to allow running fixtures with --append without failing on duplicate keys
+                $this->setReference(sprintf('tipo_entidad_cargo.%s.%s', strtolower($tipoCodigo), strtolower($cargoCodigo)), $tipoEntidadCargo);
             }
         }
 
