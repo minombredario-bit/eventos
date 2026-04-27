@@ -10,9 +10,9 @@ import { PwaInstallService } from '../../../../services/pwa-install.service';
     @if (pwa.canInstall()) {
       <div class="install-banner">
         <div class="install-banner__content">
-          <img src="/icons/icon-192x192.png" alt="FestApp" class="install-banner__icon" />
+          <img src="/icons/icon-192x192.png" alt="FestivApp" class="install-banner__icon" />
           <div class="install-banner__text">
-            <strong>Instalar FestApp</strong>
+            <strong>Instalar FestivApp</strong>
             <span>Acceso rápido desde tu pantalla de inicio</span>
           </div>
         </div>
