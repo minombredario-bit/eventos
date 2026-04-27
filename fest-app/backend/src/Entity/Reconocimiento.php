@@ -69,51 +69,128 @@ class Reconocimiento
         $this->id = Uuid::uuid4();
     }
 
-    public function getId(): ?string { return $this->id; }
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
 
-    public function getEntidad(): Entidad { return $this->entidad; }
-    public function setEntidad(Entidad $entidad): static { $this->entidad = $entidad; return $this; }
+    public function getEntidad(): Entidad
+    {
+        return $this->entidad;
+    }
 
-    public function getCodigo(): string { return $this->codigo; }
-    public function setCodigo(string $codigo): static { $this->codigo = $codigo; return $this; }
+    public function setEntidad(Entidad $entidad): static
+    {
+        $this->entidad = $entidad;
 
-    public function getNombre(): string { return $this->nombre; }
-    public function setNombre(string $nombre): static { $this->nombre = $nombre; return $this; }
+        return $this;
+    }
 
-    public function getTipo(): string { return $this->tipo; }
-    public function setTipo(string $tipo): static { $this->tipo = $tipo; return $this; }
+    public function getCodigo(): string
+    {
+        return $this->codigo;
+    }
 
-    public function getOrden(): int { return $this->orden; }
-    public function setOrden(int $orden): static { $this->orden = $orden; return $this; }
+    public function setCodigo(string $codigo): static
+    {
+        $this->codigo = $codigo;
+
+        return $this;
+    }
+
+    public function getNombre(): string
+    {
+        return $this->nombre;
+    }
+
+    public function setNombre(string $nombre): static
+    {
+        $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    public function getTipo(): string
+    {
+        return $this->tipo;
+    }
+
+    public function setTipo(string $tipo): static
+    {
+        $this->tipo = $tipo;
+
+        return $this;
+    }
+
+    public function getOrden(): int
+    {
+        return $this->orden;
+    }
+
+    public function setOrden(int $orden): static
+    {
+        $this->orden = $orden;
+
+        return $this;
+    }
 
     public function getMinAntiguedad(): ?float
     {
-        return $this->minAntiguedad !== null ? (float) $this->minAntiguedad : null;
+        return $this->minAntiguedad !== null ? (float)$this->minAntiguedad : null;
     }
 
     public function setMinAntiguedad(?float $value): static
     {
         $this->minAntiguedad = $value !== null ? number_format($value, 2, '.', '') : null;
+
         return $this;
     }
 
     public function getMinAntiguedadDirectivo(): ?float
     {
-        return $this->minAntiguedadDirectivo !== null ? (float) $this->minAntiguedadDirectivo : null;
+        return $this->minAntiguedadDirectivo !== null ? (float)$this->minAntiguedadDirectivo : null;
     }
 
     public function setMinAntiguedadDirectivo(?float $value): static
     {
         $this->minAntiguedadDirectivo = $value !== null ? number_format($value, 2, '.', '') : null;
+
         return $this;
     }
 
-    public function isRequiereDirectivo(): bool { return $this->requiereDirectivo; }
-    public function setRequiereDirectivo(bool $requiereDirectivo): static { $this->requiereDirectivo = $requiereDirectivo; return $this; }
+    public function isRequiereDirectivo(): bool
+    {
+        return $this->requiereDirectivo;
+    }
 
-    public function isRequiereAnterior(): bool { return $this->requiereAnterior; }
-    public function setRequiereAnterior(bool $requiereAnterior): static { $this->requiereAnterior = $requiereAnterior; return $this; }
+    public function setRequiereDirectivo(bool $requiereDirectivo): static
+    {
+        $this->requiereDirectivo = $requiereDirectivo;
 
-    public function isActivo(): bool { return $this->activo; }
-    public function setActivo(bool $activo): static { $this->activo = $activo; return $this; }
+        return $this;
+    }
+
+    public function isRequiereAnterior(): bool
+    {
+        return $this->requiereAnterior;
+    }
+
+    public function setRequiereAnterior(bool $requiereAnterior): static
+    {
+        $this->requiereAnterior = $requiereAnterior;
+
+        return $this;
+    }
+
+    public function isActivo(): bool
+    {
+        return $this->activo;
+    }
+
+    public function setActivo(bool $activo): static
+    {
+        $this->activo = $activo;
+
+        return $this;
+    }
 }
