@@ -58,13 +58,6 @@ export class AdminEventos {
   );
   protected readonly hasNextPage = computed<boolean>(() => this.eventosPage().hasNext);
   protected readonly hasPreviousPage = computed<boolean>(() => this.eventosPage().hasPrevious);
-  protected readonly paginationStart = computed<number>(() => {
-    if (this.totalEventosFiltrados() === 0) return 0;
-    return (this.currentPage() - 1) * AdminEventos.PAGE_SIZE + 1;
-  });
-  protected readonly paginationEnd = computed<number>(() =>
-    Math.min(this.currentPage() * AdminEventos.PAGE_SIZE, this.totalEventosFiltrados())
-  );
 
   protected readonly monthChipLabel = computed(() => {
     const currentMonthKey = getCurrentMonthKey();
