@@ -50,37 +50,57 @@
           />
         </form>
       </article>
-
-      <article class="panel form-card">
-        <h2>Cambiar contraseña</h2>
-        <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
-          <label>
-            Contraseña actual
-            <input type="password" formControlName="currentPassword" />
-          </label>
-
-          <label>
-            Nueva contraseña
-            <input type="password" formControlName="newPassword" />
-          </label>
-
-          <label>
-            Confirmar contraseña
-            <input type="password" formControlName="confirmPassword" />
-          </label>
-
-          @if (passwordMessage()) {
-            <p class="feedback">{{ passwordMessage() }}</p>
-          }
-
+      @if (!showPasswordCard()) {
+        <article class="panel">
           <app-cta-button
-            type="submit"
-            [label]="savingPassword() ? 'Actualizando...' : 'Actualizar contraseña'"
-            [disabled]="!canSavePassword()"
-            [loading]="savingPassword()"
+            type="button"
+            [label]="'Cambiar contraseña'"
+            (pressed)="showPasswordCard.set(true)"
           />
-        </form>
-      </article>
+        </article>
+      }
+
+      @if (showPasswordCard()) {
+        <article class="panel form-card">
+          <h2>Cambiar contraseña</h2>
+          <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
+            <label>
+              Contraseña actual
+              <input type="password" formControlName="currentPassword" />
+            </label>
+
+            <label>
+              Nueva contraseña
+              <input type="password" formControlName="newPassword" />
+            </label>
+
+            <label>
+              Confirmar contraseña
+              <input type="password" formControlName="confirmPassword" />
+            </label>
+
+            @if (passwordMessage()) {
+              <p class="feedback">{{ passwordMessage() }}</p>
+            }
+
+            <div class="password-actions">
+              <app-cta-button
+                type="submit"
+                [label]="savingPassword() ? 'Actualizando...' : 'Actualizar contraseña'"
+                [disabled]="!canSavePassword()"
+                [loading]="savingPassword()"
+                [fullWidth]="false"
+              />
+              <app-cta-button
+                type="button"
+                [label]="'Cancelar'"
+                (pressed)="showPasswordCard.set(false)"
+                [fullWidth]="false"
+              />
+            </div>
+          </form>
+        </article>
+      }
     }
   </div>
 </section>

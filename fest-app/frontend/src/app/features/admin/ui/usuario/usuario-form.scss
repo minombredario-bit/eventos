@@ -3,6 +3,7 @@
 :host {
   display: block;
   min-height: 100%;
+
   /* Map local color tokens to global theme variables defined in
      fest-app/frontend/src/styles.scss (:root[data-theme="..."]) */
   --color-primary: var(--brand-primary, #e8520a);
@@ -23,17 +24,17 @@
   color: var(--text-primary, #1a0a00);
 }
 
+.screen .content,
 .content {
-  width: min(100%, 720px);
+  width: 100%;
+  max-width: 980px;
   margin: 0 auto;
-  /* Añadimos padding-bottom que incluye la altura del bottom nav para
-     evitar que elementos finales (ej. botón Guardar) queden bajo el footer
-     fijo. Usamos la variable global --bottom-nav-height definida en
-     src/styles.scss. Aumentamos el offset para evitar solapamientos. */
-  padding: 1rem 1rem calc(var(--bottom-nav-height, 68px) + 2.5rem);
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .panel {
+  position: relative;
   background: var(--surface, rgba(255, 252, 247, 0.96));
   border: 1px solid var(--border-soft, rgba(180, 83, 9, 0.16));
   border-radius: 1.25rem;
@@ -44,10 +45,6 @@
   backdrop-filter: blur(10px);
 }
 
-/* Loading overlay shared with entidad form */
-.panel {
-  position: relative;
-}
 .loading-overlay {
   position: absolute;
   inset: 0.6rem;
@@ -58,11 +55,38 @@
   justify-content: center;
   z-index: 30;
 }
-.loading-inner { display:flex; flex-direction:column; align-items:center; gap:0.6rem; }
-.spinner { width:36px; height:36px; border-radius:50%; border:4px solid rgba(0,0,0,0.08); border-top-color: var(--brand-primary); animation: spin 1s linear infinite; }
-.loading-text { color: var(--text-primary); font-weight:700; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.edit-form.is-loading { opacity: 0.9; pointer-events: none; }
+
+.loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 4px solid rgba(0,0,0,0.08);
+  border-top-color: var(--brand-primary);
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.edit-form.is-loading {
+  opacity: 0.9;
+  pointer-events: none;
+}
 
 .eyebrow {
   margin: 0 0 0.35rem;
@@ -84,7 +108,16 @@
 .edit-form,
 form {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 1.25rem;
+}
+
+.field,
+.field--full,
+.cargo-panel,
+.action-button,
+.checkbox-row {
+  grid-column: 1 / -1;
 }
 
 .field {
@@ -195,8 +228,8 @@ form {
   color: var(--text-primary, #1a0a00);
 }
 
+.cargo-panel,
 .relacion-panel {
-  /* Full width mobile-first: ocupar todo el ancho del contenedor */
   width: 100%;
   box-sizing: border-box;
   max-width: none;
@@ -205,19 +238,19 @@ form {
   border-radius: 0.9rem;
   overflow: hidden;
   background: var(--surface, #fffdf9);
-  background-clip: padding-box; /* asegura color en las esquinas redondeadas */
+  background-clip: padding-box;
   box-shadow: var(--surface-shadow, 0 8px 22px rgba(90,30,0,.06));
 }
 
+.cargo-header,
 .relacion-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   flex-wrap: wrap;
-  /* Mobile-first: header aún más compacto */
   padding: 0.25rem 0.6rem;
-  min-height: 40px; /* reducir altura */
+  min-height: 40px;
   background: var(--surface-soft, #faf4ec);
   border-bottom: 1px solid var(--border-strong, #e6d4c2);
 }
@@ -228,11 +261,11 @@ form {
 }
 
 .relacion-search-wrap {
-  flex: 0 1 220px;
+  flex: 1 1 220px;
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0.05rem 0; /* compactar más */
+  padding: 0.05rem 0;
 }
 
 .cargo-header span {
@@ -322,27 +355,6 @@ form {
   white-space: nowrap;
 }
 
-
-/* ── Relación usuario – diseño (mobile-first) ── */
-
-/* Panel compacto: mobile-first ocupa el ancho del contenedor, con límite
-   de anchura para que no se extienda demasiado en pantallas grandes. */
-.relacion-panel {
-  width: 100%;
-  box-sizing: border-box;
-  max-width: none;
-  margin: 0;
-  border: 1px solid var(--border-strong, #e6d4c2);
-  border-radius: 0.9rem;
-  overflow: hidden;
-  background: var(--surface, #fffdf9);
-  background-clip: padding-box; /* asegura color en las esquinas redondeadas */
-  box-shadow: var(--surface-shadow, 0 8px 22px rgba(90,30,0,.06));
-}
-
-/* El header mantiene el mismo estilo que el de cargos (definido arriba),
-   por lo que no hace falta redefinirlo aquí. */
-
 .relacion-search-icon {
   position: absolute;
   left: 0.7rem;
@@ -353,7 +365,7 @@ form {
 
 .relacion-search-input {
   width: 100%;
-  height: 32px; /* input más bajo para reducir altura total */
+  height: 32px;
   padding: 0 0.6rem 0 1.8rem;
   border: 1px solid var(--border-strong, #e6d4c2);
   border-radius: 999px;
@@ -374,7 +386,6 @@ form {
   }
 }
 
-/* Desplegable de sugerencias */
 .relacion-suggestions {
   display: flex;
   flex-direction: column;
@@ -397,7 +408,9 @@ form {
   text-align: left;
   transition: background 0.12s, padding 0.06s;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 
   &:hover {
     background: color-mix(in srgb, var(--brand-primary) 6%, transparent);
@@ -433,7 +446,6 @@ form {
   line-height: 1;
 }
 
-/* Chips seleccionados */
 .relacion-chips {
   display: flex;
   gap: 0.5rem;
@@ -605,6 +617,7 @@ form {
 
 .grid {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 0.85rem;
 }
 
@@ -640,9 +653,10 @@ form {
 }
 
 @media (min-width: 900px) {
+  .screen .content,
   .content {
-    width: min(100%, 1100px);
-    /* Mantener un padding-bottom suficiente en pantallas grandes también */
+    width: 100%;
+    max-width: 980px;
     padding: 0.75rem 1.5rem calc(var(--bottom-nav-height, 68px) + 1.5rem);
   }
 
@@ -652,60 +666,58 @@ form {
 
   .edit-form,
   form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.25rem 1.25rem;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
     align-items: start;
   }
 
+  .field,
   .field--full,
   .cargo-panel,
-  .action-button {
+  .action-button,
+  .checkbox-row {
     grid-column: 1 / -1;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
   }
 
   .checkbox-row {
     min-height: 56px;
-    align-self: end;
+    align-self: stretch;
   }
 
   .action-button {
     justify-self: start;
     width: min(320px, 100%);
   }
-
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (min-width: 1200px) {
+  .screen .content,
   .content {
-    width: min(100%, 1240px);
+    width: 100%;
+    max-width: 980px;
   }
 
   .panel {
-    max-width: 1180px;
+    max-width: 100%;
     margin: 0 auto;
   }
 
   .edit-form,
   form {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 1.25rem 1.25rem;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
 
-  .field {
-    grid-column: span 6;
-  }
-
+  .field,
   .field--full,
   .cargo-panel,
-  .action-button {
-    grid-column: 1 / -1;
-  }
-
+  .action-button,
   .checkbox-row {
-    grid-column: span 6;
+    grid-column: 1 / -1;
   }
 
   .action-button {
@@ -714,8 +726,8 @@ form {
 }
 
 @media (max-width: 640px) {
+  .screen .content,
   .content {
-    /* Ajuste para móviles: evitar que el CTA quede bajo la navegación inferior */
     padding: 0.5rem 0.85rem calc(var(--bottom-nav-height, 68px) + 1.75rem);
   }
 
@@ -728,7 +740,8 @@ form {
     grid-template-columns: 1fr;
   }
 
-  .cargo-header {
+  .cargo-header,
+  .relacion-header {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -744,7 +757,27 @@ form {
   }
 
   .relacion-search-wrap {
-    flex: 0 1 44px;
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .relacion-chip {
+    width: 100%;
+    border-radius: 1rem;
+  }
+
+  .relacion-chip__body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .relacion-chip__name {
+    max-width: 100%;
+  }
+
+  .relacion-chip__select {
+    width: 100%;
+    max-width: none;
   }
 }
 

@@ -27,6 +27,7 @@ export class Perfil {
   protected readonly savingPassword = signal(false);
   protected readonly profileMessage = signal<string | null>(null);
   protected readonly passwordMessage = signal<string | null>(null);
+  protected readonly showPasswordCard = signal(false);
 
   protected readonly metodosPago = METODOS_PAGO_OPTIONS;
 
@@ -119,6 +120,8 @@ export class Perfil {
         next: () => {
           this.passwordForm.reset();
           this.passwordMessage.set('Contraseña actualizada correctamente.');
+          // hide the password card after a successful update
+          this.showPasswordCard.set(false);
         },
         error: (error) => {
           this.passwordMessage.set(this.resolveApiError(error) ?? 'No se pudo cambiar la contraseña.');

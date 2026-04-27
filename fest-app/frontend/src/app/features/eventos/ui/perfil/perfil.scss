@@ -1,18 +1,16 @@
-.perfil-screen { min-height: 100dvh; }
+.perfil-screen {
+  min-height: 100dvh;
+}
 
 .content {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.9rem;
   padding: 0.9rem;
-}
-
-@media (min-width: 900px) {
-  .content {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-  .loading-card { grid-column: 1 / -1; }
+  box-sizing: border-box;
 }
 
 .panel {
@@ -23,9 +21,22 @@
   border: 1px solid var(--border-soft);
 }
 
-.form-card h2 { margin: 0 0 0.7rem; font-size: 1rem; }
+.form-card h2 {
+  margin: 0 0 0.7rem;
+  font-size: 1rem;
+}
 
-form { display: grid; gap: 0.75rem; }
+form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.password-actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
 
 label {
   display: grid;
@@ -36,7 +47,8 @@ label {
   font-family: var(--font-body);
 }
 
-input, select {
+input,
+select {
   width: 100%;
   min-height: 44px;
   border: 1.5px solid var(--border-soft);
@@ -47,6 +59,7 @@ input, select {
   color: var(--text-primary);
   font-weight: 600;
   transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
 
   &:focus-visible {
     outline: none;
@@ -55,8 +68,16 @@ input, select {
   }
 }
 
-.feedback { margin: 0; font-size: 0.82rem; color: var(--brand-accent); font-weight: 700; }
-.loading-card h2 { margin: 0.25rem 0 0; }
+.feedback {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--brand-accent);
+  font-weight: 700;
+}
+
+.loading-card h2 {
+  margin: 0.25rem 0 0;
+}
 
 .eyebrow {
   margin: 0;
@@ -66,4 +87,27 @@ input, select {
   color: var(--text-muted);
   font-weight: 800;
   font-family: var(--font-body);
+}
+
+@media (min-width: 900px) {
+  .content {
+    grid-template-columns: 1fr;
+    max-width: 980px;
+    padding: 1rem 1.5rem;
+  }
+
+  .loading-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 0.5rem 0.85rem calc(var(--bottom-nav-height, 68px) + 1.75rem);
+  }
+
+  .panel {
+    padding: 1rem;
+    border-radius: 1rem;
+  }
 }
