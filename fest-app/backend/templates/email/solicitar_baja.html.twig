@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Solicitud de baja / cambio en grupo familiar</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #222; }
+        .container { max-width: 680px; margin: 0 auto; padding: 16px; }
+        .header { background: #f5f5f5; padding: 12px; border-radius: 6px; }
+        .content { margin-top: 12px; }
+        .targets { margin-top: 8px; }
+        .target { padding: 6px 8px; border-bottom: 1px solid #eee; }
+        .footer { margin-top: 16px; font-size: 0.9rem; color: #666; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <strong>Solicitud de baja / cambio en grupo familiar</strong>
+    </div>
+
+    <div class="content">
+        <p>Se ha recibido una solicitud desde la cuenta de <strong>{{ requestor }}</strong> &lt;{{ requestor_email }}&gt;.</p>
+
+        <p><strong>Acción solicitada:</strong> {{ action }}</p>
+
+        {% if reason %}
+            <p><strong>Motivo:</strong> {{ reason }}</p>
+        {% endif %}
+
+        <div class="targets">
+            <p><strong>Usuarios afectados:</strong></p>
+            {% if targets is empty %}
+                <p>No se han procesado usuarios.</p>
+            {% else %}
+                {% for t in targets %}
+                    <div class="target">ID: {{ t.id }} — Acción: {{ t.action }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>Si tienes dudas o necesitas confirmar la solicitud, responde a este email o accede al panel de administración de la entidad.</p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

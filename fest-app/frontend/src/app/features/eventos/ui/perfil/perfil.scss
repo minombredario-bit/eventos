@@ -19,11 +19,25 @@
   padding: 1rem;
   box-shadow: var(--surface-shadow), 0 1px 0 rgba(255,255,255,.85) inset;
   border: 1px solid var(--border-soft);
+
+  &--action-only {
+    background: transparent;
+    box-shadow: none;
+    border: 1px dashed var(--border-soft);
+    padding: 0.6rem 1rem;
+  }
+
+  &--danger {
+    border-color: color-mix(in srgb, var(--color-error, #c62828) 30%, transparent);
+    background: color-mix(in srgb, var(--color-error, #c62828) 4%, var(--surface));
+  }
 }
 
 .form-card h2 {
-  margin: 0 0 0.7rem;
-  font-size: 1rem;
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 form {
@@ -32,10 +46,14 @@ form {
   gap: 0.75rem;
 }
 
-.password-actions {
+.form-actions {
   display: flex;
   gap: 0.6rem;
   align-items: center;
+  margin-top: 0.9rem;
+
+  app-cta-button { flex: 1 1 0; }
+  app-cta-button button { width: 100%; }
 }
 
 label {
@@ -48,7 +66,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 44px;
   border: 1.5px solid var(--border-soft);
@@ -68,11 +87,20 @@ select {
   }
 }
 
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
 .feedback {
   margin: 0;
   font-size: 0.82rem;
-  color: var(--brand-accent);
   font-weight: 700;
+  font-family: var(--font-body);
+  color: var(--brand-accent);
+
+  &--success { color: var(--color-success, #2e7d32); }
+  &--error   { color: var(--color-error,   #c62828); }
 }
 
 .loading-card h2 {
@@ -89,16 +117,33 @@ select {
   font-family: var(--font-body);
 }
 
-@media (min-width: 900px) {
-  .content {
-    grid-template-columns: 1fr;
-    max-width: 980px;
-    padding: 1rem 1.5rem;
+.member-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem;
+}
+
+.member-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-muted);
+  cursor: pointer;
+  user-select: none;
+
+  &.selected {
+    background: linear-gradient(140deg, var(--brand-primary) 0%, var(--brand-primary-strong) 100%);
+    color: #fff;
+    border-color: transparent;
   }
 
-  .loading-card {
-    grid-column: 1 / -1;
-  }
+  input { display: none; }
+
+  .pill-name { font-weight: 700; }
 }
 
 @media (max-width: 640px) {
@@ -109,5 +154,13 @@ select {
   .panel {
     padding: 1rem;
     border-radius: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-actions {
+    flex-direction: column;
+    app-cta-button { flex: 0 0 auto; }
+    app-cta-button button { width: 100%; }
   }
 }

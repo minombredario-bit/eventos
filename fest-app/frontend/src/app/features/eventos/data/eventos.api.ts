@@ -518,6 +518,14 @@ export class EventosApi {
       );
   }
 
+  /**
+   * Solicita la baja del usuario / familia. El servidor enviará un correo al admin.
+   * Payload: { memberIds: string[]; reason?: string }
+   */
+  requestUserUnsubscribe(payload: { memberIds: string[]; reason?: string } ): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/me/solicitar-baja`, payload).pipe(map(() => void 0));
+  }
+
   // ── Relaciones ────────────────────────────────────────────────────────
 
   getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {

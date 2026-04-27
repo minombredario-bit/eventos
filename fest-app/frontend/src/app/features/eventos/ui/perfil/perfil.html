@@ -39,7 +39,7 @@
           </label>
 
           @if (profileMessage()) {
-            <p class="feedback">{{ profileMessage() }}</p>
+            <p class="feedback feedback--{{ profileMessage()!.type }}">{{ profileMessage()!.text }}</p>
           }
 
           <app-cta-button
@@ -50,8 +50,9 @@
           />
         </form>
       </article>
+
       @if (!showPasswordCard()) {
-        <article class="panel">
+        <article class="panel panel--action-only">
           <app-cta-button
             type="button"
             [label]="'Cambiar contraseña'"
@@ -80,10 +81,10 @@
             </label>
 
             @if (passwordMessage()) {
-              <p class="feedback">{{ passwordMessage() }}</p>
+              <p class="feedback feedback--{{ passwordMessage()!.type }}">{{ passwordMessage()!.text }}</p>
             }
 
-            <div class="password-actions">
+            <div class="form-actions">
               <app-cta-button
                 type="submit"
                 [label]="savingPassword() ? 'Actualizando...' : 'Actualizar contraseña'"
@@ -101,7 +102,72 @@
           </form>
         </article>
       }
+
+      @if (!showUnsubscribeForm()) {
+        <article class="panel panel--action-only panel--danger">
+          <app-cta-button
+            type="button"
+            [label]="'Darse de baja de la asociación'"
+            (pressed)="showUnsubscribeForm.set(true)"
+          />
+        </article>
+      }
+
+      @if (showUnsubscribeForm()) {
+        <article class="panel form-card panel--danger">
+          <h2>Solicitar baja</h2>
+          <p class="eyebrow">Seleccioná los miembros a dar de baja</p>
+
+          <div class="member-pills">
+            @if (userSignal()) {
+              <label class="member-pill" [class.selected]="unsubscribeSelected().has(userSignal()?.id ?? '')">
+                <input
+                  type="checkbox"
+                  [checked]="unsubscribeSelected().has(userSignal()?.id ?? '')"
+                  (change)="toggleUnsubscribeMember(userSignal()?.id ?? '')"
+                />
+                <span class="pill-name">{{ userFullName() }}</span>
+              </label>
+            }
+
+            @for (member of eventosStore.members(); track member.id) {
+              <label class="member-pill" [class.selected]="unsubscribeSelected().has(member.id)">
+                <input
+                  type="checkbox"
+                  [checked]="unsubscribeSelected().has(member.id)"
+                  (change)="toggleUnsubscribeMember(member.id)"
+                />
+                <span class="pill-name">{{ member.name }}</span>
+              </label>
+            }
+          </div>
+
+          <label>
+            Motivo (opcional)
+            <textarea rows="4" [value]="unsubscribeReason()" (input)="unsubscribeReason.set($any($event.target).value)"></textarea>
+          </label>
+
+          @if (unsubscribeMessage()) {
+            <p class="feedback feedback--{{ unsubscribeMessage()!.type }}">{{ unsubscribeMessage()!.text }}</p>
+          }
+
+          <div class="form-actions">
+            <app-cta-button
+              type="button"
+              [label]="'Enviar solicitud'"
+              (pressed)="submitUnsubscribe()"
+              [disabled]="unsubmitting()"
+              [fullWidth]="false"
+            />
+            <app-cta-button
+              type="button"
+              [label]="'Cancelar'"
+              (pressed)="showUnsubscribeForm.set(false)"
+              [fullWidth]="false"
+            />
+          </div>
+        </article>
+      }
     }
   </div>
 </section>
-
