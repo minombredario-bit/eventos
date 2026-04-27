@@ -25,7 +25,7 @@ export class AppComponent implements OnInit {
   loading = true;
 
   constructor() {
-    this.translate.setDefaultLang('es');
+    this.translate.setFallbackLang('es');
     const browserLang = typeof navigator !== 'undefined' ? (navigator.language ?? 'es').split('-')[0] : 'es';
     this.translate.use(browserLang);
 

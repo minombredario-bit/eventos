@@ -1,15 +1,18 @@
 import {
   ApplicationConfig,
-  ENVIRONMENT_INITIALIZER,
   LOCALE_ID,
   inject,
-  provideZoneChangeDetection, isDevMode,
+  provideZoneChangeDetection,
+  isDevMode,
+  provideEnvironmentInitializer,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { clientPanelInterceptor } from './core/http/client-panel-interceptor';
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
 import { provideRouter } from '@angular/router';
+import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth-interceptor';
@@ -27,13 +30,17 @@ export const appConfig: ApplicationConfig = {
       provide: LOCALE_ID,
       useValue: 'es-ES',
     },
-    {
-      provide: ENVIRONMENT_INITIALIZER,
-      multi: true,
-      useValue: () => inject(ThemeService),
-    }, provideServiceWorker('ngsw-worker.js', {
+    provideEnvironmentInitializer(() => inject(ThemeService)),
+    provideTranslateService({
+      fallbackLang: 'es',
+      loader: provideTranslateHttpLoader({
+        prefix: '/assets/i18n/',
+        suffix: '.json',
+      }),
+    }),
+    provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
-      registrationStrategy: 'registerWhenStable:30000'
+      registrationStrategy: 'registerWhenStable:30000',
     }),
   ],
 };
