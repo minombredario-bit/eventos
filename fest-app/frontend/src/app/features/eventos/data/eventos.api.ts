@@ -342,7 +342,7 @@ export class EventosApi {
       );
   }
 
-  getPago(eventoId: string): Observable<Inscripcion | null> {
+  getInscripcionActualPorEvento(eventoId: string): Observable<Inscripcion | null> {
     const params = new HttpParams()
       .set('evento.id', this.normalizeEventoId(eventoId))
       .set('pagination', 'false');

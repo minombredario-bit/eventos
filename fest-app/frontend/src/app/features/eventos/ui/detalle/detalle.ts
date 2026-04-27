@@ -808,14 +808,16 @@ export class Detalle {
   private loadInscripcionExistente(eventId: string): void {
     this.inscripcionExistente.set(null);
 
+    if (!eventId) {
+      return;
+    }
+
     this.eventosApi
-      .getInscripcionesMiasCollection()
+      .getInscripcionActualPorEvento(eventId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (inscripciones) => {
-          this.inscripcionExistente.set(
-            inscripciones.find((inscripcion) => inscripcion.evento.id === eventId) ?? null,
-          );
+        next: (inscripcion) => {
+          this.inscripcionExistente.set(inscripcion);
         },
         error: () => {
           this.inscripcionExistente.set(null);

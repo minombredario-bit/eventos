@@ -119,9 +119,9 @@ export class Pago {
 
     const request$ = inscriptionId
       ? this.eventosApi.getInscripcion(inscriptionId).pipe(
-        catchError(() => this.eventosApi.getPago(this.eventoId)),
+        catchError(() => this.eventosApi.getInscripcionActualPorEvento(this.eventoId)),
       )
-      : this.eventosApi.getPago(this.eventoId);
+      : this.eventosApi.getInscripcionActualPorEvento(this.eventoId);
 
     request$
       .pipe(
