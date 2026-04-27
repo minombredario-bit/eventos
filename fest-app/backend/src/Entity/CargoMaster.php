@@ -39,7 +39,7 @@ class CargoMaster
     private string $nombre;
 
     #[ORM\Column(type: Types::STRING, length: 100, nullable: true)]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     private ?string $codigo = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -47,31 +47,31 @@ class CargoMaster
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     private bool $computaComoDirectivo = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     private bool $esRepresentativo = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     private bool $esInfantil = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => false])]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     private bool $infantilEspecial = false;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     private bool $activo = true;
 
     #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     private int $ordenJerarquico = 0;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 6, scale: 2, options: ['default' => '1.00'])]
-    #[Groups(['cargo_master:read', 'cargo_master:write', 'entidad_cargo:read'])]
+    #[Groups(['cargo_master:read', 'cargo_master:write'])]
     #[Assert\PositiveOrZero]
     private string $aniosComputables = '1.00';
 

@@ -22,7 +22,6 @@
       "invalidForm": "Please check required fields.",
       "section_general": "General",
       "info_title": "Organization information",
-      "info_help": "Name, contact and identification data.",
       "section_legal": "Legal",
       "legal_title": "Terms of use / Privacy",
       "legal_help": "Legal text that users must accept on first access.",

@@ -1,6 +1,6 @@
 <section class="screen admin-entidad-form-screen">
   <app-mobile-header
-    [title]="pageTitle()"
+    [title]="form.get('nombre')?.value || pageTitle()"
     subtitle=""
     [showBack]="true"
     actionType="logout"
@@ -21,21 +21,17 @@
         <section class="form-section">
           <div class="section-head">
             <div>
-              <p class="eyebrow">{{ 'admin.entidad.section_general' | translate }}</p>
-              <h3>{{ 'admin.entidad.info_title' | translate }}</h3>
-              <p>{{ 'admin.entidad.info_help' | translate }}</p>
+              <!-- Cabecera compacta: un solo concepto con título y nombre de la entidad -->
+              <h3 class="section-title">
+                <span class="section-title__label">{{ 'admin.entidad.info_title' | translate }}</span>
+                <span class="section-title__sep"> — </span>
+                <span class="section-title__entity">{{ form.get('nombre')?.value || '—' }}</span>
+              </h3>
             </div>
           </div>
 
           <div class="field-grid">
-            <div class="field field--full">
-              <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
-              <label for="nombre">
-                {{ 'admin.entidad.nombre' | translate }}
-                <span class="field-required">*</span>
-              </label>
-            </div>
-
+            <!-- Eliminado el header extra de nombre aquí para ahorrar espacio; el nombre se muestra en la cabecera compacta -->
             <div class="field">
               <input id="emailContacto" type="email" formControlName="emailContacto" placeholder=" " />
               <label for="emailContacto">

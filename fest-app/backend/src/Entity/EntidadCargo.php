@@ -71,7 +71,7 @@ class EntidadCargo
 
     #[ORM\ManyToOne(targetEntity: Entidad::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['entidad_cargo:read', 'entidad_cargo:write'])]
+    #[Groups(['entidad_cargo:write'])]
     #[Assert\NotNull]
     private ?Entidad $entidad = null;
 
@@ -94,7 +94,7 @@ class EntidadCargo
     private ?int $orden = null;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['default' => true])]
-    #[Groups(['entidad_cargo:read', 'entidad_cargo:write'])]
+    #[Groups(['entidad_cargo:write'])]
     private bool $activo = true;
 
     public function __construct()
@@ -192,7 +192,6 @@ class EntidadCargo
         return $this;
     }
 
-    #[Groups(['entidad_cargo:read'])]
     public function isEsOficial(): bool
     {
         return null !== $this->cargoMaster;
@@ -208,13 +207,11 @@ class EntidadCargo
         return $this->cargo?->getNombre() ?? $this->cargoMaster?->getNombre();
     }
 
-    #[Groups(['entidad_cargo:read'])]
     public function getCodigoVisible(): ?string
     {
         return $this->cargo?->getCodigo() ?? $this->cargoMaster?->getCodigo();
     }
 
-    #[Groups(['entidad_cargo:read'])]
     public function getDescripcionVisible(): ?string
     {
         return $this->cargo?->getDescripcion() ?? $this->cargoMaster?->getDescripcion();
@@ -250,7 +247,6 @@ class EntidadCargo
         return false;
     }
 
-    #[Groups(['entidad_cargo:read'])]
     public function isComputaComoDirectivo(): bool
     {
         if (null !== $this->cargo) {
@@ -264,7 +260,6 @@ class EntidadCargo
         return false;
     }
 
-    #[Groups(['entidad_cargo:read'])]
     public function isEsRepresentativo(): bool
     {
         if (null !== $this->cargo) {
@@ -296,7 +291,6 @@ class EntidadCargo
         return 0;
     }
 
-    #[Groups(['entidad_cargo:read'])]
     public function getAniosComputables(): float
     {
         if (null !== $this->cargoMaster) {

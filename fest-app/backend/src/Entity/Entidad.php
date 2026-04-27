@@ -72,12 +72,12 @@ class Entidad
     private ?string $id = null;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['entidad:read', 'entidad:write'])]
+    #[Groups(['entidad:read'])]
     #[Assert\NotBlank]
     private string $nombre;
 
     #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
-    #[Groups(['entidad:read', 'entidad:write'])]
+    #[Groups(['entidad:write'])]
     #[Assert\NotBlank]
     private string $slug;
 
@@ -91,7 +91,7 @@ class Entidad
 
     #[ORM\ManyToOne(targetEntity: TipoEntidad::class)]
     #[ORM\JoinColumn(name: 'tipo_entidad_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
-    #[Groups(['entidad:read', 'entidad:write'])]
+    #[Groups(['entidad:write'])]
     private ?TipoEntidad $tipoEntidad = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
@@ -103,7 +103,7 @@ class Entidad
     private ?string $terminologiaEvento = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
-    #[Groups(['entidad:read'])]
+    #[Groups(['entidad:read', 'entidad:write'])]
     private ?string $logo = null;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
@@ -121,27 +121,22 @@ class Entidad
     private ?string $direccion = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, unique: true)]
-    #[Groups(['entidad:read'])]
     private string $codigoRegistro;
 
     #[ORM\Column(type: Types::STRING, length: 10)]
-    #[Groups(['entidad:read', 'entidad:write'])]
+    #[Groups(['entidad:read'])]
     private string $temporadaActual;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['entidad:read', 'entidad:write'])]
     private bool $activa = true;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['entidad:read', 'entidad:write'])]
     private bool $censado = true;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    #[Groups(['entidad:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    #[Groups(['entidad:read'])]
     private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, Usuario> */
@@ -154,7 +149,6 @@ class Entidad
 
     /** @var Collection<int, Usuario> */
     #[ORM\ManyToMany(targetEntity: Usuario::class, inversedBy: 'entidadesAdmin')]
-    #[ORM\JoinTable(name: 'entidad_admins')]
     private Collection $admins;
 
     /** @var Collection<int, Cargo> */
@@ -170,7 +164,6 @@ class Entidad
     private Collection $entidadCargos;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['entidad:read', 'entidad:write'])]
     private bool $usaReconocimiento = true;
 
     /** @var Collection<int, TemporadaEntidad> */
