@@ -46,7 +46,6 @@ export class EventosApi {
   private readonly http = inject(HttpClient);
   private readonly mapper = inject(EventosMapper);
   private readonly authService = inject(AuthService);
-  private readonly apiBaseUrl = 'http://localhost:8080';
   private readonly invitadosStorageKey = 'asociacion:invitados';
 
   // ── Eventos ───────────────────────────────────────────────────────────
