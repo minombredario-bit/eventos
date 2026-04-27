@@ -1,3 +1,5 @@
+import {Usuario} from '../../admin/domain/admin.models';
+
 export type EventStatus = 'abierto' | 'ultimas_plazas' | 'cerrado';
 export type PersonType = 'adulto' | 'infantil';
 export type ParticipantOrigin = 'familiar' | 'invitado';
@@ -249,6 +251,7 @@ export interface Inscripcion {
   estadoPago: string;
   importeTotal: number;
   importePagado: number;
+  formaPagoPreferida?: MetodoPago | null;
   lineas: InscripcionLinea[];
 }
 
@@ -275,6 +278,17 @@ export interface EventoApuntadosResponse {
   totalItems: number;
   currentPage: number;
   itemsPerPage: number;
+}
+
+
+export interface InscripcionesPage {
+  items: Inscripcion[];
+  totalPages: number;
+  totalItems: number;
+  page: number;
+  itemsPerPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 export interface AltaInvitadoPayload {
