@@ -161,5 +161,6 @@ class UnsubscribeController extends AbstractController
             'emails_sent_to' => $recipients,
         ]);
     }
+
 }
 

@@ -133,6 +133,17 @@
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/dompdf/php-font-lib" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/dompdf/php-svg-lib" />
       <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/ezyang/htmlpurifier" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/guzzlehttp/guzzle" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/guzzlehttp/promises" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/guzzlehttp/psr7" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/minishlink/web-push" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/psr/http-client" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/psr/http-factory" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/psr/http-message" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/ralouphie/getallheaders" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/spomky-labs/base64url" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/spomky-labs/pki-framework" />
+      <excludeFolder url="file://$MODULE_DIR$/fest-app/backend/vendor/web-token/jwt-library" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

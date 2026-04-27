@@ -47,6 +47,12 @@ services:
             $reconocimientoRepository: '@App\Repository\ReconocimientoRepository'
             $usuarioReconocimientoRepository: '@App\Repository\UsuarioReconocimientoRepository'
 
+    App\Service\PushNotificationService:
+        arguments:
+            $publicKey: '%env(WEB_PUSH_PUBLIC_KEY)%'
+            $privateKey: '%env(WEB_PUSH_PRIVATE_KEY)%'
+            $subject: '%env(WEB_PUSH_SUBJECT)%'
+
     App\EventSubscriber\ApiCorsSubscriber:
         arguments:
             $allowedOrigins: '%app.cors.allowed_origins%'
