@@ -73,27 +73,27 @@ class InscripcionLinea
 
     #[ORM\ManyToOne(targetEntity: Invitado::class)]
     #[ORM\JoinColumn(name: 'invitado_id', nullable: true, onDelete: 'RESTRICT')]
-    #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write', 'inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write', 'inscripcion:read'])]
     private ?Invitado $invitado = null;
 
     #[ORM\ManyToOne(targetEntity: Usuario::class)]
     #[ORM\JoinColumn(name: 'usuario_id', nullable: true, onDelete: 'RESTRICT')]
-    #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write', 'inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write', 'inscripcion:read'])]
     private ?Usuario $usuario = null;
 
     #[ORM\ManyToOne(targetEntity: ActividadEvento::class)]
     #[ORM\JoinColumn(name: 'actividad_id', nullable: false)]
-    #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write', 'inscripcion-linea:update', 'inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion-linea:read', 'inscripcion-linea:write', 'inscripcion-linea:update', 'inscripcion:read'])]
     #[Assert\NotNull]
     private ActividadEvento $actividad;
 
     // Snapshot fields
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['inscripcion-linea:read', 'inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion-linea:read', 'inscripcion:read'])]
     private string $nombrePersonaSnapshot;
 
     #[ORM\Column(type: Types::STRING, length: 50)]
-    #[Groups(['inscripcion-linea:read', 'inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion-linea:read', 'inscripcion:read'])]
     private string $tipoPersonaSnapshot;
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
@@ -105,11 +105,11 @@ class InscripcionLinea
     private ?string $estadoValidacionSnapshot = null;
 
     #[ORM\Column(name: 'nombre_actividad_snapshot', type: Types::STRING, length: 255)]
-    #[Groups(['inscripcion-linea:read', 'inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion-linea:read', 'inscripcion:read'])]
     private string $nombreActividadSnapshot;
 
     #[ORM\Column(type: Types::STRING, length: 50)]
-    #[Groups(['inscripcion-linea:read', 'inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion-linea:read', 'inscripcion:read'])]
     private string $franjaComidaSnapshot;
 
     #[ORM\Column(type: Types::BOOLEAN)]

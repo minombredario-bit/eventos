@@ -1,13 +1,14 @@
 import { CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import {ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs';
+import {debounceTime, distinctUntilChanged, finalize} from 'rxjs';
+import { Subject } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth';
 import { formatLocalDate, formatTime, hasValidTime, normalizeDateKey } from '../../../../core/utils/date.utils';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { EventosApi } from '../../data/eventos.api';
-import { Inscripcion } from '../../domain/eventos.models';
+import {Inscripcion, InscripcionesPage} from '../../domain/eventos.models';
 
 @Component({
   selector: 'app-inscripciones',
@@ -18,16 +19,44 @@ import { Inscripcion } from '../../domain/eventos.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Inscripciones {
+  private static readonly PAGE_SIZE = 10;
+
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly eventosApi = inject(EventosApi);
   private readonly router = inject(Router);
 
+  private readonly searchSubject = new Subject<string>();
+
+  protected readonly inscripcionesPage = signal<InscripcionesPage>({
+    items: [],
+    totalPages: 0,
+    totalItems: 0,
+    page: 1,
+    itemsPerPage: Inscripciones.PAGE_SIZE,
+    hasNext: false,
+    hasPrevious: false,
+  });
+
   protected readonly loading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
-  protected readonly inscripciones = signal<Inscripcion[]>([]);
+  protected readonly inscripciones = computed<Inscripcion[]>(() => this.inscripcionesPage().items);
+  protected readonly searchTerm = signal<string>('');
+  protected readonly totalItems = computed<number>(() => this.inscripcionesPage().totalItems);
+  protected readonly currentPage = computed<number>(() => this.inscripcionesPage().page);
+  protected readonly hasNextPage = computed<boolean>(() => this.inscripcionesPage().hasNext);
+  protected readonly hasPreviousPage = computed<boolean>(() => this.inscripcionesPage().hasPrevious);
 
   constructor() {
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((value) => {
+      this.searchTerm.set(value);
+      this.loadInscripciones(1);
+    });
+
     this.loadInscripciones();
   }
 
@@ -133,38 +162,55 @@ export class Inscripciones {
     return labels[estado] ?? 'Pago desconocido';
   }
 
-  private loadInscripciones(): void {
+  private loadInscripciones(page = 1): void {
     this.loading.set(true);
     this.errorMessage.set(null);
 
     this.eventosApi
-      .getInscripcionesMiasCollection()
+      .getInscripcionesMiasCollection({
+        search: this.searchTerm(),
+        page,
+        itemsPerPage: Inscripciones.PAGE_SIZE,
+      })
       .pipe(
-        map((inscripciones) => inscripciones
-          .map((inscripcion) => this.normalizeInscripcion(inscripcion))
-          .sort((a, b) => this.compareInscripciones(a, b))),
+        finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (inscripciones) => {
-          this.inscripciones.set(inscripciones);
-          this.loading.set(false);
-        },
-        error: () => {
-          this.inscripciones.set([]);
-          this.errorMessage.set('No pudimos cargar tus eventos inscritos. Probá nuevamente.');
-          this.loading.set(false);
+        next: (inscripcionesPage) => this.inscripcionesPage.set(inscripcionesPage),
+        error: (error: { error?: { error?: string } }) => {
+          this.inscripcionesPage.set({
+            items: [],
+            totalItems: 0,
+            totalPages: 0,
+            page: 1,
+            itemsPerPage: Inscripciones.PAGE_SIZE,
+            hasNext: false,
+            hasPrevious: false,
+          });
+          this.errorMessage.set(error?.error?.error ?? 'No se pudo cargar tus eventos.');
         },
       });
   }
 
-  private compareInscripciones(a: Inscripcion, b: Inscripcion): number {
-    const dateA = this.resolveSortDateTime(a);
-    const dateB = this.resolveSortDateTime(b);
-    if (dateA !== dateB) {
-      return dateA.localeCompare(dateB);
+  protected loadNextPage(): void {
+    if (!this.hasNextPage()) {
+      return;
     }
-    return a.id.localeCompare(b.id);
+
+    this.loadInscripciones(this.currentPage() + 1);
+  }
+
+  protected loadPreviousPage(): void {
+    if (!this.hasPreviousPage()) {
+      return;
+    }
+
+    this.loadInscripciones(this.currentPage() - 1);
+  }
+
+  protected setSearchTerm(value: string): void {
+    this.searchSubject.next(value);
   }
 
   private resolveSortDateTime(inscripcion: Inscripcion): string {

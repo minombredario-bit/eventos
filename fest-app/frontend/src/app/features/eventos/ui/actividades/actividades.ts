@@ -719,22 +719,22 @@ export class Actividades {
   private loadMyInscriptions(): void {
     this.loadingInscriptions.set(true);
 
-    this.eventosApi
-      .getInscripcionesMiasCollection()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (inscripciones) => {
-          this.hydratedInscripcionId.set(null);
-          this.myInscriptions.set(inscripciones);
-          this.loadingInscriptions.set(false);
-          this.hydrateSelectionsFromExistingInscription();
-        },
-        error: () => {
-          this.myInscriptions.set([]);
-          this.loadingInscriptions.set(false);
-          this.existingFlowError.set('No pudimos cargar tus inscripciones para gestionar actividades.');
-        },
-      });
+    // this.eventosApi
+    //   .getInscripcionesMiasCollection()
+    //   .pipe(takeUntilDestroyed(this.destroyRef))
+    //   .subscribe({
+    //     next: (inscripciones) => {
+    //       this.hydratedInscripcionId.set(null);
+    //       this.myInscriptions.set(inscripciones);
+    //       this.loadingInscriptions.set(false);
+    //       this.hydrateSelectionsFromExistingInscription();
+    //     },
+    //     error: () => {
+    //       this.myInscriptions.set([]);
+    //       this.loadingInscriptions.set(false);
+    //       this.existingFlowError.set('No pudimos cargar tus inscripciones para gestionar actividades.');
+    //     },
+    //   });
   }
 
   private refreshSelectionAfterMutation(eventId: string): void {

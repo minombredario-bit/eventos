@@ -7,36 +7,56 @@
   />
 
   <div class="content">
+
+    <article class="hero-panel">
+      <div>
+        <p class="eyebrow">Mis inscripciones</p>
+        <h2>Eventos inscritos</h2>
+        <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a las actividades.</p>
+      </div>
+      <div>
+            <label class="filters-panel__search" aria-label="Buscar evento">
+              <span>Buscar por evento</span>
+              <input
+                type="search"
+                placeholder="Ej: Mascletà"
+                [value]="searchTerm()"
+                (input)="setSearchTerm($any($event.target).value)"
+              />
+            </label>
+      </div>
+    </article>
+
     @if (errorMessage()) {
-      <article class="panel error-card">
-        <h2>No pudimos cargar tus inscripciones</h2>
+      <article class="feedback feedback--error" role="alert">
+        <strong>No pudimos cargar tus inscripciones</strong>
         <p>{{ errorMessage() }}</p>
       </article>
-    } @else if (loading()) {
-        <article class="panel loading-card">
-          <p class="eyebrow">Cargando</p>
-          <h2>Preparando tus eventos inscritos</h2>
-          <p>Estamos trayendo tus inscripciones.</p>
-        </article>
-    } @else if (!inscripciones().length) {
-      <article class="panel empty-card">
-        <p class="eyebrow">Sin inscripciones</p>
-        <h2>Todavía no tienes eventos registrados</h2>
-        <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a las actividades.</p>
+    }
+
+    @if (loading()) {
+      <article class="panel loading-panel">
+        <div class="skeleton skeleton--title"></div>
+        <div class="skeleton skeleton--text"></div>
+        <div class="skeleton skeleton--text short"></div>
+        <div class="skeleton skeleton--line"></div>
+        <div class="skeleton skeleton--line"></div>
       </article>
-    } @else {
-      <article class="panel list-card">
-        <div class="card-head">
-          <div>
-            <p class="eyebrow">Inscripciones activas</p>
-            <h2>Seleccioná un evento para revisar sus actividades</h2>
-          </div>
-          <span class="count-chip">{{ inscripciones().length }}</span>
+    } @else if (!inscripciones().length && !errorMessage()) {
+      <article class="panel empty-state">
+        <h3>No hay inscripciones para mostrar</h3>
+        <p>Prueba a cambiar la búsqueda o inscríbete en un evento.</p>
+      </article>
+    } @else if (inscripciones().length) {
+      <article class="panel">
+        <div class="head-row">
+          <h2>Inscripciones</h2>
+          <span class="count-chip">{{ totalItems() }}</span>
         </div>
 
         <div class="inscriptions-list">
           @for (inscripcion of inscripciones(); track inscripcion.id) {
-            <article class="inscription-card">
+            <article class="inscription-card" [class.closed]="isEventoCerrado(inscripcion)">
               <a
                 class="inscription-main-link"
                 [routerLink]="['/eventos', eventRouteId(inscripcion), 'detalle']"
@@ -98,7 +118,31 @@
             </article>
           }
         </div>
+
+        <div class="pagination-row">
+          <button
+            type="button"
+            class="action-button secondary action-button--icon action-button--pag"
+            [disabled]="!hasPreviousPage()"
+            (click)="loadPreviousPage()"
+            aria-label="Página anterior"
+          >
+            <span class="button-icon" aria-hidden="true">&lt;</span>
+          </button>
+          <span>Página {{ currentPage() }}</span>
+          <button
+            type="button"
+            class="action-button secondary action-button--icon action-button--pag"
+            [disabled]="!hasNextPage()"
+            (click)="loadNextPage()"
+            aria-label="Página siguiente"
+          >
+            <span class="button-icon" aria-hidden="true">&gt;</span>
+          </button>
+        </div>
+
       </article>
     }
+
   </div>
 </section>

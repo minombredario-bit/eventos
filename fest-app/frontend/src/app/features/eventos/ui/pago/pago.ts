@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { CurrencyPipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, map } from 'rxjs';
+import { finalize, of, switchMap, catchError } from 'rxjs';
+
 import { AuthService } from '../../../../core/auth/auth';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
@@ -24,6 +25,8 @@ export class Pago {
   private readonly authService = inject(AuthService);
   private readonly eventosApi = inject(EventosApi);
 
+  private readonly eventoId = this.route.snapshot.paramMap.get('id') ?? '';
+
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -33,39 +36,44 @@ export class Pago {
 
   protected readonly metodosPago = METODOS_PAGO_OPTIONS;
 
-  protected readonly totalAmount = computed(() => {
-    const inscription = this.inscription();
-    if (!inscription) return 0;
-    return Number(inscription.importeTotal ?? 0);
-  });
+  protected readonly totalAmount = computed(() =>
+    Number(this.inscription()?.importeTotal ?? 0),
+  );
 
-  protected readonly totalPaidAmount = computed(() => {
-    const inscription = this.inscription();
-    if (!inscription) return 0;
-    return Number(inscription.importePagado ?? 0);
-  });
+  protected readonly totalPaidAmount = computed(() =>
+    Number(this.inscription()?.importePagado ?? 0),
+  );
 
   protected readonly totalPendingAmount = computed(() =>
     Math.max(0, this.totalAmount() - this.totalPaidAmount()),
   );
 
-  protected readonly needsPayment = computed(() => {
-    return this.totalPendingAmount() > 0;
-  });
+  protected readonly needsPayment = computed(() =>
+    this.totalPendingAmount() > 0,
+  );
 
-  protected readonly isCashSelected = computed(() => this.selectedMetodoPago() === 'efectivo');
-  protected readonly payNowDisabled = computed(() => this.saving() || this.isCashSelected());
+  protected readonly isCashSelected = computed(() =>
+    this.selectedMetodoPago() === 'efectivo',
+  );
+
+  protected readonly payNowDisabled = computed(() =>
+    this.saving() || !this.needsPayment() || this.isCashSelected(),
+  );
+
   protected readonly payNowLabel = computed(() => {
     if (this.saving()) return 'Guardando...';
-    return this.hasNewInscriptions() ? 'Confirmar y pagar' : 'Pagar';
+    if (this.hasNewInscriptions()) return 'Confirmar y pagar';
+    return 'Pagar ahora';
   });
 
   constructor() {
-    this.loadData();
+    this.loadPreferredPaymentMethod();
+    this.loadState();
+    this.loadInscription();
   }
 
   protected goBack(): void {
-    void this.router.navigate(['/eventos', this.eventId(), 'actividades']);
+    void this.router.navigate(['/eventos', this.eventoId, 'actividades']);
   }
 
   protected logout(): void {
@@ -74,81 +82,78 @@ export class Pago {
   }
 
   protected onMetodoPagoChange(value: string): void {
-    const normalized = value as MetodoPago;
-    if (this.metodosPago.some((m) => m.value === normalized)) {
-      this.selectedMetodoPago.set(normalized);
-    }
+    if (!this.isMetodoPago(value)) return;
+
+    this.selectedMetodoPago.set(value);
   }
 
   protected pagarAhora(): void {
     if (this.payNowDisabled()) return;
-    this.persistMetodoPagoAndContinue('/eventos/' + this.eventId() + '/credencial');
+
+    this.persistMetodoPagoAndContinue(['/eventos', this.eventoId, 'credencial']);
   }
 
   protected pagarMasTarde(): void {
-    this.persistMetodoPagoAndContinue('/eventos/inscripciones');
+    if (this.saving()) return;
+
+    this.persistMetodoPagoAndContinue(['/eventos', 'inscripciones']);
   }
 
-  private loadData(): void {
+  private loadPreferredPaymentMethod(): void {
+    const preferred = this.authService.userSignal()?.['formaPagoPreferida'];
+
+    if (this.isMetodoPago(preferred)) {
+      this.selectedMetodoPago.set(preferred);
+    }
+  }
+
+  private loadState(): void {
+    this.hasNewInscriptions.set(history.state?.hasNewInscriptions === true);
+  }
+
+  private loadInscription(): void {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    const preferred = this.authService.userSignal()?.['formaPagoPreferida'];
-    if (typeof preferred === 'string' && this.metodosPago.some((m) => m.value === preferred)) {
-      this.selectedMetodoPago.set(preferred as MetodoPago);
-    }
+    const inscriptionId = this.getInscriptionIdFromState();
 
-    const inscriptionIdFromState = history.state?.inscripcionId as string | undefined;
-    this.hasNewInscriptions.set(history.state?.hasNewInscriptions === true);
+    const request$ = inscriptionId
+      ? this.eventosApi.getInscripcion(inscriptionId).pipe(
+        catchError(() => this.eventosApi.getPago(this.eventoId)),
+      )
+      : this.eventosApi.getPago(this.eventoId);
 
-    if (inscriptionIdFromState && inscriptionIdFromState.trim().length > 0) {
-      this.eventosApi
-        .getInscripcion(inscriptionIdFromState)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (inscription) => this.finishLoad(inscription),
-          error: () => this.loadInscriptionByEventFallback(),
-        });
-      return;
-    }
-
-    this.loadInscriptionByEventFallback();
-  }
-
-  private loadInscriptionByEventFallback(): void {
-    this.eventosApi
-      .getInscripcionesMiasCollection()
+    request$
       .pipe(
-        map((items) => items.find((item) => item.evento.id === this.eventId()) ?? null),
+        finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (inscription) => {
-          if (!inscription) {
-            this.inscription.set(null);
-            this.errorMessage.set('No encontramos una inscripción para este evento.');
-            this.loading.set(false);
-            return;
-          }
-
-          this.finishLoad(inscription);
-        },
-        error: () => {
-          this.inscription.set(null);
-          this.errorMessage.set('No pudimos cargar el pago del evento.');
-          this.loading.set(false);
-        },
+        next: (inscription) => this.handleInscriptionLoaded(inscription),
+        error: () => this.handleLoadError(),
       });
   }
 
-  private finishLoad(inscription: Inscripcion): void {
+  private handleInscriptionLoaded(inscription: Inscripcion | null): void {
+    if (!inscription) {
+      this.inscription.set(null);
+      this.errorMessage.set('No encontramos una inscripción para este evento.');
+      return;
+    }
+
     this.inscription.set(inscription);
-    this.loading.set(false);
+
+    if (this.isMetodoPago(inscription.formaPagoPreferida)) {
+      this.selectedMetodoPago.set(inscription.formaPagoPreferida);
+    }
   }
 
-  private persistMetodoPagoAndContinue(targetUrl: string): void {
-    if (this.saving()) return;
+  private handleLoadError(): void {
+    this.inscription.set(null);
+    this.errorMessage.set('No pudimos cargar el pago del evento.');
+  }
 
+  private persistMetodoPagoAndContinue(targetCommands: unknown[]): void {
     this.saving.set(true);
     this.errorMessage.set(null);
 
@@ -160,16 +165,24 @@ export class Pago {
       )
       .subscribe({
         next: () => {
-          void this.router.navigateByUrl(targetUrl);
+          void this.router.navigate(targetCommands);
         },
         error: () => {
-          this.errorMessage.set('No se pudo guardar la forma de pago. Intentalo de nuevo.');
+          this.errorMessage.set('No se pudo guardar la forma de pago. Inténtalo de nuevo.');
         },
       });
   }
 
-  private eventId(): string {
-    return this.route.snapshot.paramMap.get('id') ?? '';
+  private getInscriptionIdFromState(): string | null {
+    const value = history.state?.inscripcionId;
+
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : null;
+  }
+
+  private isMetodoPago(value: unknown): value is MetodoPago {
+    return typeof value === 'string'
+      && this.metodosPago.some((metodo) => metodo.value === value);
   }
 }
-

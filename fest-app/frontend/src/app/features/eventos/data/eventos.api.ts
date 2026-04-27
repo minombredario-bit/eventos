@@ -20,7 +20,7 @@ import {
   Invitado,
   MetodoPago,
   ParticipanteSeleccion,
-  RelacionUsuario, EventosAdminParams, EventosPage,
+  RelacionUsuario, EventosAdminParams, EventosPage, InscripcionesPage,
 } from '../domain/eventos.models';
 
 import {
@@ -36,7 +36,7 @@ import {
   RelacionUsuarioCollectionItem,
   SeleccionParticipantesResponseApi,
 } from '../domain/eventos.api.models';
-import {Usuario} from '../../admin/domain/admin.models';
+import {Usuario, UsuariosFiltro, UsuariosPage} from '../../admin/domain/admin.models';
 import {Eventos} from '../eventos';
 import {environment} from '../../../../environments/environment';
 
@@ -240,23 +240,70 @@ export class EventosApi {
       );
   }
 
-  getInscripcionesMiasCollection(): Observable<Inscripcion[]> {
-    const currentUserId = this.authService.currentUserId;
-    if (!currentUserId) {
-      return of([]);
+  getInscripcionesMiasCollection(options: {
+    search?: string;
+    page?: number;
+    itemsPerPage?: number;
+  } = {}): Observable<InscripcionesPage> {
+
+    let params = new HttpParams();
+
+    const search = (options.search ?? '').trim();
+    const page = options.page ?? 1;
+    const itemsPerPage = options.itemsPerPage ?? 10;
+
+    params = params
+      .set('page', page)
+      .set('itemsPerPage', itemsPerPage)
+      .set('order[fechaEvento]', 'desc');
+
+    if (search?.trim() && search.length > 3) {
+      params = params.set('titulo', search.trim());
     }
 
-    const params = new HttpParams().set('usuario.id', currentUserId.trim());
-
     return this.http
-      .get<ApiCollection<InscripcionCollectionItem> | InscripcionCollectionItem[]>(`${environment.apiUrl}/inscripcions`, { params })
+      .get<ApiCollection<Inscripcion>>(`${environment.apiUrl}/inscripcions`, { params })
       .pipe(
-        map((r) => parseCollection<InscripcionCollectionItem>(r as unknown)),
-        map((items) => items
-          .map((item) => this.toInscripcionCollection(item))
-          .filter((item): item is Inscripcion => item !== null)),
+        map((response) => {
+          const raw = response as unknown as Record<string, any>;
+
+          const items = (raw['member'] ?? raw['hydra:member'] ?? []) as Inscripcion[];
+
+          const totalItems = Number(raw['totalItems'] ?? raw['hydra:totalItems'] ?? items.length);
+          const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+          const view = raw['view'] ?? raw['hydra:view'];
+
+          return {
+            items,
+            totalItems,
+            totalPages,
+            page,
+            itemsPerPage,
+            hasNext: Boolean(view?.['next'] ?? view?.['hydra:next']),
+            hasPrevious: Boolean(view?.['previous'] ?? view?.['hydra:previous']),
+          } satisfies InscripcionesPage;
+        }),
       );
   }
+
+  // getInscripcionesMiasCollection(): Observable<Inscripcion[]> {
+  //   const currentUserId = this.authService.currentUserId;
+  //   if (!currentUserId) {
+  //     return of([]);
+  //   }
+  //
+  //   const params = new HttpParams().set('usuario.id', currentUserId.trim());
+  //
+  //   return this.http
+  //     .get<ApiCollection<InscripcionCollectionItem> | InscripcionCollectionItem[]>(`${environment.apiUrl}/inscripcions`, { params })
+  //     .pipe(
+  //       map((r) => parseCollection<InscripcionCollectionItem>(r as unknown)),
+  //       map((items) => items
+  //         .map((item) => this.toInscripcionCollection(item))
+  //         .filter((item): item is Inscripcion => item !== null)),
+  //     );
+  // }
 
   /**
    * Devuelve la respuesta completa de /seleccion_participantes incluyendo participantes
@@ -292,6 +339,26 @@ export class EventosApi {
 
           return item;
         }),
+      );
+  }
+
+  getPago(eventoId: string): Observable<Inscripcion | null> {
+    const params = new HttpParams()
+      .set('evento.id', this.normalizeEventoId(eventoId))
+      .set('pagination', 'false');
+
+    return this.http
+      .get<ApiCollection<InscripcionCollectionItem> | InscripcionCollectionItem[]>(
+        `${environment.apiUrl}/inscripcions`,
+        { params },
+      )
+      .pipe(
+        map((response) => parseCollection<InscripcionCollectionItem>(response as unknown)),
+        map((items) => items
+          .map((item) => this.toInscripcionCollection(item))
+          .filter((item): item is Inscripcion => item !== null),
+        ),
+        map((items) => items[0] ?? null),
       );
   }
 
