@@ -1,36 +1,39 @@
-import { Injectable, signal } from '@angular/core';
+import {
+  ApplicationConfig,
+  ENVIRONMENT_INITIALIZER,
+  LOCALE_ID,
+  inject,
+  provideZoneChangeDetection, isDevMode,
+} from '@angular/core';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { clientPanelInterceptor } from './core/http/client-panel-interceptor';
+import { registerLocaleData } from '@angular/common';
+import localeEs from '@angular/common/locales/es';
+import { provideRouter } from '@angular/router';
 
-@Injectable({ providedIn: 'root' })
-export class PwaInstallService {
-  private deferredPrompt: any = null;
+import { routes } from './app.routes';
+import { authInterceptor } from './core/auth/auth-interceptor';
+import { ThemeService } from './core/theme/theme.service';
+import { provideServiceWorker } from '@angular/service-worker';
 
-  canInstall = signal(false);
-  isInstalled = signal(false);
+registerLocaleData(localeEs);
 
-  constructor() {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      this.deferredPrompt = e;
-      this.canInstall.set(true);
-    });
-
-    window.addEventListener('appinstalled', () => {
-      this.deferredPrompt = null;
-      this.canInstall.set(false);
-      this.isInstalled.set(true);
-    });
-  }
-
-  async promptInstall(): Promise<'accepted' | 'dismissed' | 'unavailable'> {
-    if (!this.deferredPrompt) return 'unavailable';
-    this.deferredPrompt.prompt();
-    const { outcome } = await this.deferredPrompt.userChoice;
-    this.deferredPrompt = null;
-    this.canInstall.set(false);
-    return outcome;
-  }
-
-  dismiss() {
-    this.canInstall.set(false);
-  }
-}
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection(),
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([authInterceptor, clientPanelInterceptor])),
+    {
+      provide: LOCALE_ID,
+      useValue: 'es-ES',
+    },
+    {
+      provide: ENVIRONMENT_INITIALIZER,
+      multi: true,
+      useValue: () => inject(ThemeService),
+    }, provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000'
+    }),
+  ],
+};
