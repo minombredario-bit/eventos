@@ -6,12 +6,13 @@ import { RouterOutlet } from '@angular/router';
 import { AuthStore } from './core/auth/auth-store';
 import { LopdComponent } from './lopd/lopd.component';
 import { ToastComponent } from './features/shared/components/toast/toast.component';
+import { InstallBannerComponent } from './features/shared/components/install-banner/install-banner.component';
 import { TranslateService, TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, LopdComponent, ToastComponent, TranslateModule],
+  imports: [CommonModule, RouterOutlet, LopdComponent, ToastComponent, InstallBannerComponent, TranslateModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -24,7 +25,6 @@ export class AppComponent implements OnInit {
   loading = true;
 
   constructor() {
-    // Initialize translation
     this.translate.setDefaultLang('es');
     const browserLang = typeof navigator !== 'undefined' ? (navigator.language ?? 'es').split('-')[0] : 'es';
     this.translate.use(browserLang);
@@ -32,11 +32,9 @@ export class AppComponent implements OnInit {
     effect(() => {
       const user = this.authStore.user();
       const entidad = typeof user?.nombreEntidad === 'string' ? user.nombreEntidad.trim() : '';
-
       this.title.setTitle(entidad ? `Festiva - ${entidad}` : 'Festiva');
     });
 
-    // Ensure user without LOPD acceptance sees the LOPD screen first
     effect(() => {
       const user = this.authStore.user();
       if (user && user.aceptoLopd === false) {

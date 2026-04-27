@@ -8,12 +8,19 @@ export class PwaInstallService {
   isInstalled = signal(false);
 
   constructor() {
+    this.listenForInstallPrompt();
+    this.listenForInstalled();
+  }
+
+  private listenForInstallPrompt() {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       this.deferredPrompt = e;
       this.canInstall.set(true);
     });
+  }
 
+  private listenForInstalled() {
     window.addEventListener('appinstalled', () => {
       this.deferredPrompt = null;
       this.canInstall.set(false);
