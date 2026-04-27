@@ -129,7 +129,7 @@ class Inscripcion
 
     /** @var Collection<int, InscripcionLinea> */
     #[ORM\OneToMany(targetEntity: InscripcionLinea::class, mappedBy: 'inscripcion', cascade: ['persist', 'remove'])]
-    #[Groups(['inscripcion:read', 'inscripcion:collection'])]
+    #[Groups(['inscripcion:read'])]
     private Collection $lineas;
 
     /** @var Collection<int, Pago> */
@@ -330,6 +330,12 @@ class Inscripcion
     {
         $this->lineas->removeElement($linea);
         return $this;
+    }
+
+    #[Groups(['inscripcion:collection'])]
+    public function getTotalLineas(): int
+    {
+        return $this->lineas->count();
     }
 
     /** @return Collection<int, Pago> */

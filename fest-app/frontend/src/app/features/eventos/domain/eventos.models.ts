@@ -253,6 +253,7 @@ export interface Inscripcion {
   importePagado: number;
   formaPagoPreferida?: MetodoPago | null;
   lineas: InscripcionLinea[];
+  totalLineas?: number;
 }
 
 export interface InscripcionResumen {

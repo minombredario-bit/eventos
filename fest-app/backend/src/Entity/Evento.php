@@ -137,7 +137,7 @@ class Evento
     private string $titulo;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection'])]
+    #[Groups(['evento:read', 'evento:write'])]
     private string $slug;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -152,7 +152,7 @@ class Evento
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoEventoEnum::class)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'evento:item:min'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     #[Assert\NotNull]
     private TipoEventoEnum $tipoEvento;
 
@@ -199,11 +199,11 @@ class Evento
     private ?int $aforo = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'evento:item:min'])]
     private ?\DateTimeImmutable $fechaInicioInscripcion = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['evento:read', 'evento:write', 'inscripcion:read'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'evento:item:min'])]
     private ?\DateTimeImmutable $fechaFinInscripcion = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
@@ -215,7 +215,7 @@ class Evento
     private bool $admitePago = true;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'evento:item:min'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     private bool $permiteInvitados = true;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: EstadoEventoEnum::class)]
@@ -415,7 +415,6 @@ class Evento
         return $this;
     }
 
-    #[Groups(['evento:read', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'evento:item:min'])]
     public function getFechaInicioInscripcion(): ?\DateTimeImmutable
     {
         return $this->fechaInicioInscripcion;
@@ -428,7 +427,6 @@ class Evento
         return $this;
     }
 
-    #[Groups(['evento:read', 'evento:collection', 'evento:read:item', 'inscripcion:read', 'evento:item:min'])]
     #[SerializedName('fechaLimiteInscripcion')]
     public function getFechaFinInscripcion(): ?\DateTimeImmutable
     {

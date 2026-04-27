@@ -135,9 +135,11 @@ export class Inscripciones {
     return `Plazo vencido: ${formatLocalDate(fechaLimite)}.`;
   }
 
-  protected lineasLabel(inscripcion: Inscripcion): string {
-    const count = inscripcion.lineas.length;
-    return count === 1 ? '1 línea' : `${count} líneas`;
+  lineasLabel(inscripcion: Inscripcion): string {
+    const n = inscripcion.totalLineas ?? 0;
+    if (n === 0) return 'Sin personas apuntadas';
+    if (n === 1) return 'Has apuntado 1 persona';
+    return `Has apuntado ${n} personas`;
   }
 
   protected estadoInscripcionLabel(estado: string): string {
