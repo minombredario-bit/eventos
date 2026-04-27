@@ -19,13 +19,11 @@
 }
 
 .content {
-  position: relative;
-  z-index: 1;
-  padding: 1.2rem 1rem calc(var(--bottom-nav-height) + 1.3rem);
-  display: grid;
-  gap: 0.9rem;
+  max-width: 980px;
+  margin: 0 auto;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: start;
 }
-
 // ─── Panel base ────────────────────────────────────────────────────────────────
 
 .panel,
@@ -59,44 +57,30 @@
   }
 }
 
-// Ensure the two child divs inside the hero panel behave as columns
-// and don't each expand to full width. The left column can grow,
-// the right column keeps a reasonable max-width (search / filters).
-.hero-panel > div {
-  flex: 1 1 0; /* allow to share available space */
-  min-width: 0; /* prevent overflow due to long content */
-}
-
-.hero-panel > div:last-child {
-  flex: 0 0 auto; /* keep the right column sized to its content */
-  min-width: 520px; /* a bit larger on wide screens */
-}
-
-/* Increase search column on very large viewports */
-@media (min-width: 900px) {
-  .hero-panel > div:last-child { max-width: 640px; }
-}
-
-@media (max-width: 600px) {
-  .hero-panel {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .hero-panel > div:last-child { max-width: none; }
-}
-
 // ─── Filters panel ─────────────────────────────────────────────────────────────
 
 .filters-panel {
   display: grid;
   gap: 0.7rem;
+  grid-template-areas:
+    "header"
+    "search";
+
+  @media (min-width: 600px) {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "header header"
+      "search search";
+    align-items: center;
+  }
 }
 
 .filters-panel__search {
+  grid-area: search;
   display: grid;
   gap: 0.35rem;
 
-  span {
+  label {
     font-size: 0.78rem;
     color: var(--text-muted);
     font-weight: 700;
@@ -112,6 +96,28 @@
     color: var(--text-primary);
     width: 100%;
     box-sizing: border-box;
+  }
+}
+
+.admin-search-panel {
+  border-top: 3px solid var(--brand-primary);
+  margin: 20px 0;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.admin-search-panel__header {
+  grid-area: header;
+
+  h2 {
+    margin: 0.35rem 0 0;
+  }
+
+  p {
+    margin: 0.3rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.5;
   }
 }
 

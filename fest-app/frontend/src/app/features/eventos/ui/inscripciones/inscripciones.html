@@ -8,23 +8,29 @@
 
   <div class="content">
 
-    <article class="hero-panel">
-      <div>
-        <p class="eyebrow">Mis inscripciones</p>
-        <h2>Eventos inscritos</h2>
-        <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a las actividades.</p>
+    <article class="panel hero-panel filters-panel admin-search-panel">
+      <div class="admin-search-panel__header">
+        <div>
+          <p class="eyebrow">Mis inscripciones</p>
+          <h2>Eventos inscritos</h2>
+          <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a las actividades.</p>
+        </div>
       </div>
-      <div>
-            <label class="filters-panel__search" aria-label="Buscar evento">
-              <span>Buscar por evento</span>
-              <input
-                type="search"
-                placeholder="Ej: Mascletà"
-                [value]="searchTerm()"
-                (input)="setSearchTerm($any($event.target).value)"
-              />
-            </label>
+
+      <div class="actions-row" aria-hidden="true"></div>
+
+      <div class="filters-panel__search">
+        <label for="searchInscripciones">Buscar por evento</label>
+        <input
+          id="searchInscripciones"
+          type="search"
+          placeholder="Ej: Mascletà"
+          [value]="searchTerm()"
+          (input)="setSearchTerm($any($event.target).value)"
+        />
       </div>
+
+      <div class="filters-row" aria-hidden="true"></div>
     </article>
 
     @if (errorMessage()) {

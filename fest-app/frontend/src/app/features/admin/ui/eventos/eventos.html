@@ -1,7 +1,7 @@
 <section class="screen admin-eventos-screen">
   <app-mobile-header
     title="Eventos"
-    subtitle="Administración"
+    subtitle=""
     [showBack]="false"
     actionType="logout"
     (actionPressed)="logout()"
@@ -9,15 +9,14 @@
 
   <div class="content">
 
-    <article class="hero-panel">
-      <div>
-        <p class="eyebrow">Administración</p>
-        <h2>Listado de eventos</h2>
-        <p>Revisa estados, abre cada evento para editarlo y consulta cuántas personas hay apuntadas.</p>
+    <article class="panel hero-panel filters-panel admin-search-panel">
+      <div class="admin-search-panel__header">
+        <div>
+          <p class="eyebrow">Administración</p>
+          <h2>Listado de eventos</h2>
+          <p>Revisa estados, abre cada evento para editarlo y consulta cuántas personas hay apuntadas.</p>
+        </div>
       </div>
-    </article>
-
-    <article class="panel filters-panel">
 
       <!-- Botones de acción: primera fila en mobile, derecha en desktop -->
       <div class="actions-row">
