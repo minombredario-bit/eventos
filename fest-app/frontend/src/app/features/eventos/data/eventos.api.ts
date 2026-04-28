@@ -46,7 +46,6 @@ export class EventosApi {
   private readonly http = inject(HttpClient);
   private readonly mapper = inject(EventosMapper);
   private readonly authService = inject(AuthService);
-  private readonly invitadosStorageKey = 'asociacion:invitados';
 
   // ── Eventos ───────────────────────────────────────────────────────────
 
@@ -666,14 +665,13 @@ export class EventosApi {
   }
 
   private readInvitadosFromFallback(eventoId: string): Invitado[] {
-    return this.getInvitadosStorageEntries()
-      .filter((e) => e.eventId === eventoId)
-      .map(({ eventId: _eventId, ...item }) => item);
+    void eventoId;
+    return [];
   }
 
   private createInvitadoInFallback(eventoId: string, payload: AltaInvitadoPayload): Invitado {
     const created: InvitadoStorageEntry = {
-      id: `nf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      id: this.createFallbackInvitadoId(),
       eventId: eventoId,
       nombre: payload.nombre.trim(),
       apellidos: payload.apellidos.trim(),
@@ -686,34 +684,17 @@ export class EventosApi {
       inscripcion: null,
     };
 
-    const entries = this.getInvitadosStorageEntries();
-    entries.push(created);
-    this.setInvitadosStorageEntries(entries);
-
     const { eventId: _eventId, ...result } = created;
     return result;
   }
 
   private deleteInvitadoInFallback(eventoId: string, invitadoId: string): void {
-    const next = this.getInvitadosStorageEntries().filter(
-      (e) => !(e.eventId === eventoId && String(e.id) === invitadoId),
-    );
-    this.setInvitadosStorageEntries(next);
+    void eventoId;
+    void invitadoId;
   }
 
-  private getInvitadosStorageEntries(): InvitadoStorageEntry[] {
-    if (typeof window === 'undefined') return [];
-    try {
-      const parsed = JSON.parse(window.localStorage.getItem(this.invitadosStorageKey) ?? 'null');
-      return Array.isArray(parsed) ? (parsed as InvitadoStorageEntry[]) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private setInvitadosStorageEntries(entries: InvitadoStorageEntry[]): void {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(this.invitadosStorageKey, JSON.stringify(entries));
+  private createFallbackInvitadoId(): string {
+    return `nf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   }
 
   private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumen | null {
