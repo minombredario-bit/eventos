@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
+final class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
 {
     public function __construct(
         private readonly Security $security,
@@ -28,24 +28,25 @@ class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
             return $data;
         }
 
-        /** @var Usuario $user */
         $user = $this->security->getUser();
+
         if (!$user instanceof Usuario) {
             throw new AccessDeniedHttpException('No autenticado.');
         }
 
-        // 1. Resolver Evento
-        // API Platform hidrata getEvento() cuando el cliente envía el IRI.
-        // Para la ruta anidada /eventos/{eventoId}/seleccion_participantes
-        // leemos el id de uriVariables como fallback.
-        $evento = $data->getEvento() ?? null;
+        $evento = $data->getEvento();
+
         if ($evento === null) {
-            $eventoId = is_string($uriVariables['eventoId'] ?? null) ? $uriVariables['eventoId'] : null;
+            $eventoId = is_string($uriVariables['eventoId'] ?? null)
+                ? $uriVariables['eventoId']
+                : null;
+
             if ($eventoId === null) {
                 throw new BadRequestHttpException('Evento no proporcionado.');
             }
 
             $evento = $this->eventoRepository->find($eventoId);
+
             if ($evento === null) {
                 throw new NotFoundHttpException('Evento no encontrado.');
             }
@@ -53,47 +54,35 @@ class SeleccionParticipanteEventoPostProcessor implements ProcessorInterface
             $data->setEvento($evento);
         }
 
-        // 2. Verificar entidad
         if ($evento->getEntidad()->getId() !== $user->getEntidad()->getId()) {
             throw new AccessDeniedHttpException('No tienes acceso a este evento.');
         }
 
-        // 3. Verificar inscripción abierta
         if (!$evento->estaInscripcionAbierta()) {
             throw new BadRequestHttpException('La inscripción para este evento está cerrada.');
         }
 
-        // 4. Forzar inscritoPorUsuario al usuario autenticado
         $data->setInscritoPorUsuario($user);
 
-        // 5. Validar participante único
-        // API Platform hidrata getUsuario() / getInvitado() desde el IRI enviado
-        // en el cuerpo antes de llamar al processor.
-        $tieneUsuario  = $data->getUsuario() !== null;
+        $tieneUsuario = $data->getUsuario() !== null;
         $tieneInvitado = $data->getInvitado() !== null;
 
         if (!$tieneUsuario && !$tieneInvitado) {
-            throw new BadRequestHttpException('Debes indicar un participante (usuario o invitado).');
+            throw new BadRequestHttpException('Debes indicar un participante.');
         }
 
         if ($tieneUsuario && $tieneInvitado) {
             throw new BadRequestHttpException('Solo se puede indicar un participante por selección.');
         }
 
-        // 6. Verificar pertenencia del participante
-        if ($tieneUsuario) {
-            if ($data->getUsuario()->getEntidad()->getId() !== $user->getEntidad()->getId()) {
-                throw new AccessDeniedHttpException('No tienes acceso a este participante.');
-            }
+        if ($tieneUsuario && $data->getUsuario()->getEntidad()->getId() !== $user->getEntidad()->getId()) {
+            throw new AccessDeniedHttpException('No tienes acceso a este participante.');
         }
 
-        if ($tieneInvitado) {
-            if ($data->getInvitado()->getEvento()?->getId() !== $evento->getId()) {
-                throw new AccessDeniedHttpException('Este invitado no pertenece al evento indicado.');
-            }
+        if ($tieneInvitado && $data->getInvitado()->getEvento()?->getId() !== $evento->getId()) {
+            throw new AccessDeniedHttpException('Este invitado no pertenece al evento indicado.');
         }
 
-        // 7. Persistir
         $this->entityManager->persist($data);
         $this->entityManager->flush();
 

@@ -9,8 +9,10 @@ use App\Entity\InscripcionLinea;
 use App\Entity\SeleccionParticipanteEvento;
 use App\Entity\SeleccionParticipanteEventoLinea;
 use App\Entity\Usuario;
-use Symfony\Bundle\SecurityBundle\Security;
+use App\Enum\EstadoInscripcionEnum;
+use App\Service\PriceCalculatorService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
@@ -19,6 +21,7 @@ final class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInte
     public function __construct(
         private readonly Security $security,
         private readonly EntityManagerInterface $entityManager,
+        private readonly PriceCalculatorService $priceCalculator,
     ) {
     }
 
@@ -57,8 +60,24 @@ final class SeleccionParticipantesEventoDeleteProcessor implements ProcessorInte
             $this->entityManager->remove($linea);
         }
 
-        if ($inscripcion !== null && $inscripcion->getLineas()->isEmpty()) {
-            $this->entityManager->remove($inscripcion);
+        if ($inscripcion !== null) {
+            if ($inscripcion->getLineas()->isEmpty()) {
+                $this->entityManager->remove($inscripcion);
+            } else {
+                $inscripcion->setImporteTotal(
+                    $this->priceCalculator->calculateTotal(
+                        $inscripcion->getLineas()->toArray()
+                    )
+                );
+
+                $inscripcion->actualizarEstadoPago();
+
+                if (abs($inscripcion->getImporteTotal()) < 0.00001) {
+                    $inscripcion->setEstadoInscripcion(
+                        EstadoInscripcionEnum::CONFIRMADA
+                    );
+                }
+            }
         }
 
         foreach ($data->getLineas()->toArray() as $lineaSeleccion) {

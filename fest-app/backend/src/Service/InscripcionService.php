@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use ApiPlatform\Metadata\IriConverterInterface;
 use App\Entity\Inscripcion;
 use App\Entity\InscripcionLinea;
 use App\Entity\Evento;
@@ -18,6 +19,7 @@ use App\Repository\UsuarioRepository;
 use App\Enum\FranjaComidaEnum;
 use App\Enum\EstadoInscripcionEnum;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
@@ -36,6 +38,7 @@ class InscripcionService
         private ActividadEventoRepository $actividadEventoRepository,
         private InvitadoRepository $invitadoRepository,
         private UsuarioRepository $usuarioRepository,
+        private readonly Security $security,
     ) {}
 
     /**
@@ -43,7 +46,7 @@ class InscripcionService
      */
     public function crearInscripcion(
         string|Evento $eventoInput,
-        string|Usuario $usuarioInput,
+        string|Usuario|Invitado $persona,
         array $lineasData,
     ): Inscripcion {
         if ($lineasData === []) {
@@ -63,18 +66,25 @@ class InscripcionService
             throw new UnprocessableEntityHttpException(self::ERROR_MESSAGE_INSCRIPCION_CERRADA);
         }
 
-        $usuario = $this->resolveUsuario($usuarioInput);
-        if ($usuario === null) {
-            throw new BadRequestHttpException('Usuario no encontrado');
+        $isInvitado = $persona instanceof Invitado;
+
+        /** @var Usuario $usuario */
+        $usuario = $this->security->getUser();
+
+        if (!$usuario instanceof Usuario) {
+            throw new BadRequestHttpException('Usuario no autenticado');
         }
 
-        $inscripcion = $this->inscripcionRepository->findOneByUsuarioAndEvento($usuario->getId(), $evento->getId());
+        $inscripcion = $this->inscripcionRepository->findOneByUsuarioAndEvento(
+            $usuario->getId(),
+            $evento->getId()
+        );
 
         if ($inscripcion === null) {
             $inscripcion = new Inscripcion();
             $inscripcion->setEvento($evento);
             $inscripcion->setEntidad($evento->getEntidad());
-            $inscripcion->setUsuario($usuario);
+            $inscripcion->setUsuario($usuario); // usuario propietario de la inscripción
             $inscripcion->setCodigo($this->generarCodigo($evento));
             $this->entityManager->persist($inscripcion);
         }
@@ -82,27 +92,20 @@ class InscripcionService
         $lineasRegistradasPorParticipanteYFranja = [];
 
         foreach ($lineasData as $lineaData) {
-            $usuarioReference = $lineaData['usuario_id']
-                ?? $lineaData['usuario']
-                ?? $lineaData['persona']
-                ?? null;
 
-            $participanteId = $this->extractResourceId($usuarioReference);
             $actividadId    = $this->extractResourceId($lineaData['actividad'] ?? null);
             $observaciones  = $lineaData['observaciones'] ?? null;
 
-            if (!$participanteId || !$actividadId) {
+            if (!$persona || !$actividadId) {
                 throw new BadRequestHttpException('Se requiere usuario/invitado y actividad');
             }
-
-            $isInvitado = $this->isInvitadoReference($usuarioReference);
 
             if ($isInvitado && !$evento->isPermiteInvitados()) {
                 throw new BadRequestHttpException('Este evento no permite invitados');
             }
 
             [$usuarioParticipante, $invitado] = $this->resolveParticipante(
-                $participanteId, $isInvitado, $evento, $usuario,
+                $persona, $isInvitado, $evento, $usuario,
             );
 
             $actividad = $this->actividadEventoRepository->find($actividadId);
@@ -131,7 +134,7 @@ class InscripcionService
 
             $franjaComida       = $actividad->getFranjaComida();
             $origenParticipante = $isInvitado ? 'invitado' : 'usuario';
-            $claveLinea         = sprintf('%s|%s|%s', $origenParticipante, $participanteId, $franjaComida->value);
+            $claveLinea         = sprintf('%s|%s|%s', $origenParticipante, $persona->getId(), $franjaComida->value);
 
             if (isset($lineasRegistradasPorParticipanteYFranja[$claveLinea])) {
                 throw new BadRequestHttpException('No puedes seleccionar más de una actividad por participante en la misma franja');
@@ -139,8 +142,8 @@ class InscripcionService
             $lineasRegistradasPorParticipanteYFranja[$claveLinea] = true;
 
             $existingLine = $isInvitado
-                ? $this->inscripcionRepository->findLineaActivaInvitadoEnFranja($usuario->getId(), $evento->getId(), $participanteId, $franjaComida)
-                : $this->inscripcionRepository->findLineaActivaUsuarioEnFranja($usuario->getId(), $evento->getId(), $participanteId, $franjaComida);
+                ? $this->inscripcionRepository->findLineaActivaInvitadoEnFranja($usuario->getId(), $evento->getId(), $persona->getId(), $franjaComida)
+                : $this->inscripcionRepository->findLineaActivaUsuarioEnFranja($usuario->getId(), $evento->getId(), $persona->getId(), $franjaComida);
 
             if ($existingLine) {
                 if ($existingLine->isPagada()) {
@@ -257,24 +260,31 @@ class InscripcionService
      * @return array{0: Usuario|null, 1: Invitado|null}
      */
     private function resolveParticipante(
-        string $participanteId,
+        Usuario|Invitado $participante,
         bool $isInvitado,
         Evento $evento,
         Usuario $usuario,
     ): array {
         if ($isInvitado) {
             $invitado = $this->invitadoRepository->findActiveByIdAndEventoAndHouseholdUsuario(
-                $participanteId, $evento, $usuario,
+                $participante->getId(),
+                $evento,
+                $usuario,
             );
+
             if (!$invitado) {
                 throw new BadRequestHttpException('Invitado no encontrado');
             }
+
             return [null, $invitado];
         }
 
-        $usuarioParticipante = $participanteId === $usuario->getId()
+        $usuarioParticipante = $participante->getId() === $usuario->getId()
             ? $usuario
-            : $this->relacionUsuarioRepository->findRelacionadoByUsuarioYRelacionadoId($usuario, $participanteId);
+            : $this->relacionUsuarioRepository->findRelacionadoByUsuarioYRelacionadoId(
+                $usuario,
+                $participante->getId()
+            );
 
         if (!$usuarioParticipante) {
             throw new BadRequestHttpException('Usuario no encontrado o no vinculado a tu cuenta');
@@ -304,20 +314,12 @@ class InscripcionService
         }
     }
 
-    private function isInvitadoReference(mixed $value): bool
-    {
-        return is_string($value) && str_starts_with(trim($value), '/api/invitados/');
-    }
 
     private function resolveEvento(string|Evento $input): ?Evento
     {
         return $input instanceof Evento ? $input : $this->eventoRepository->find($input);
     }
 
-    private function resolveUsuario(string|Usuario $input): ?Usuario
-    {
-        return $input instanceof Usuario ? $input : $this->usuarioRepository->find($input);
-    }
 
     private function extractResourceId(mixed $value): ?string
     {

@@ -4,11 +4,8 @@ namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Entity\ActividadEvento;
 use App\Entity\InscripcionLinea;
 use App\Enum\EstadoLineaInscripcionEnum;
-use App\Enum\TipoActividadEnum;
-use App\Enum\TipoPersonaEnum;
 use App\Service\EmailQueueService;
 use App\Service\InscripcionService;
 use App\Service\PriceCalculatorService;
@@ -18,7 +15,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 /**
  * @implements ProcessorInterface<InscripcionLinea, InscripcionLinea>
  */
-class InscripcionLineaPatchProcessor implements ProcessorInterface
+final class InscripcionLineaPatchProcessor implements ProcessorInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -38,6 +35,7 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
 
         if ($data->getEstadoLinea() === EstadoLineaInscripcionEnum::CANCELADA) {
             $this->inscripcionService->cancelarLineaInscripcion($inscripcion, $data);
+
             return $data;
         }
 
@@ -46,9 +44,11 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
         }
 
         $actividad = $data->getActividad();
+
         if ($actividad === null) {
             throw new BadRequestHttpException('Debes indicar una actividad válida. Para no incluir, usa DELETE sobre la línea.');
         }
+
         if ($actividad->getEvento()->getId() !== $inscripcion->getEvento()->getId()) {
             throw new BadRequestHttpException('La actividad no pertenece a este evento.');
         }
@@ -58,24 +58,41 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
         }
 
         $tipoPersona = $data->getInvitado()?->getTipoPersona() ?? $data->getUsuario()?->getTipoPersona();
+
+        if ($tipoPersona === null) {
+            throw new BadRequestHttpException('La línea no tiene tipo de persona válido.');
+        }
+
         if (!$actividad->esCompatibleConTipoPersona($tipoPersona)) {
             throw new BadRequestHttpException('La actividad seleccionada no es compatible con el tipo de persona.');
         }
 
-        if ($data->getInvitado() !== null) {
-            $precio = $this->calculatePriceForInvitado($actividad);
-        } else {
-            $usuario = $data->getUsuario();
-            if ($usuario === null) {
-                throw new BadRequestHttpException('La línea no tiene participante válido.');
-            }
-            $precio = $this->priceCalculatorService->calculatePrice($usuario, $actividad);
+        $isInvitado = $data->getInvitado() !== null;
+
+        if ($isInvitado && !$actividad->isPermiteInvitados()) {
+            throw new BadRequestHttpException('La actividad seleccionada no permite invitados.');
         }
 
-        $data->setPrecioUnitario($precio);
+        if (!$isInvitado && $data->getUsuario() === null) {
+            throw new BadRequestHttpException('La línea no tiene participante válido.');
+        }
+
+        $data->setPrecioUnitario(
+            $this->priceCalculatorService->calculatePriceForParticipant(
+                $tipoPersona->value,
+                $isInvitado,
+                $actividad,
+            )
+        );
+
         $data->crearSnapshot();
 
-        $inscripcion->setImporteTotal($inscripcion->calcularImporteTotal());
+        $inscripcion->setImporteTotal(
+            $this->priceCalculatorService->calculateTotal(
+                $inscripcion->getLineas()->toArray()
+            )
+        );
+
         $inscripcion->actualizarEstadoPago();
 
         $this->entityManager->flush();
@@ -83,29 +100,4 @@ class InscripcionLineaPatchProcessor implements ProcessorInterface
 
         return $data;
     }
-
-    private function calculatePriceForInvitado(ActividadEvento $actividad): float
-    {
-        // If activity does not allow invitados, price for invitados is zero
-        if (!$actividad->isPermiteInvitados()) {
-            return 0.0;
-        }
-
-        // If the activity admits invitados, show the corresponding external price (if any).
-        // Prefer explicit external prices, then fall back to internal price(s) and finally to base price.
-        if ($actividad->getTipoActividad() === TipoActividadEnum::INFANTIL) {
-            return (float) (
-                $actividad->getPrecioInfantilExterno() ??
-                $actividad->getPrecioInfantil() ??
-                $actividad->getPrecioBase()
-            );
-        }
-
-        return (float) (
-            $actividad->getPrecioAdultoExterno() ??
-            $actividad->getPrecioAdultoInterno() ??
-            $actividad->getPrecioBase()
-        );
-    }
 }
-

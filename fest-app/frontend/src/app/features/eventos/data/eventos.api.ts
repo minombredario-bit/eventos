@@ -20,7 +20,7 @@ import {
   Invitado,
   MetodoPago,
   ParticipanteSeleccion,
-  RelacionUsuario, EventosAdminParams, EventosPage, InscripcionesPage,
+  RelacionUsuario, EventosAdminParams, EventosPage, InscripcionesPage, InscripcionLinea,
 } from '../domain/eventos.models';
 
 import {
@@ -385,9 +385,13 @@ export class EventosApi {
   actualizarActividadLineaInscripcion(lineaId: string, actividadId: string): Observable<unknown> {
     return this.http.patch(
       `${environment.apiUrl}/inscripcion_lineas/${encodeURIComponent(lineaId)}`,
-      { actividad: `/api/actividades/${actividadId}` },
       {
-        headers: new HttpHeaders({ 'Content-Type': 'application/merge-patch+json' }),
+        actividad: `/api/actividad_eventos/${actividadId}`,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/merge-patch+json',
+        },
       },
     );
   }
@@ -602,20 +606,37 @@ export class EventosApi {
       importeTotal: this.toNumber(item.importeTotal),
       importePagado: this.toNumber(item.importePagado),
       lineas: Array.isArray(item.lineas)
-        ? item.lineas.map((linea) => ({
-          id: this.extractResourceId(linea.id ?? linea['@id'] ?? '', '/api/inscripcion_lineas/') || String(linea.id ?? ''),
-          actividadId: this.extractResourceId(linea.actividad ?? null, '/api/actividades/') || undefined,
-          usuarioId: this.extractResourceId(linea.usuario ?? null, '/api/usuarios/') || undefined,
-          invitadoId: this.extractResourceId(linea.invitado ?? null, '/api/invitados/') || undefined,
-          nombrePersonaSnapshot: String(linea.nombrePersonaSnapshot ?? ''),
-          tipoPersonaSnapshot: typeof linea.tipoPersonaSnapshot === 'string' ? linea.tipoPersonaSnapshot : undefined,
-          nombreActividadSnapshot: String(linea.nombreActividadSnapshot ?? ''),
-          franjaComidaSnapshot: typeof linea.franjaComidaSnapshot === 'string' ? linea.franjaComidaSnapshot : undefined,
-          precioUnitario: this.toNumber(linea.precioUnitario),
-          estadoLinea: String(linea.estadoLinea ?? ''),
-          pagada: Boolean(linea.pagada),
-        }))
+        ? item.lineas.map((linea) => this.mapInscripcionLinea(linea))
         : [],
+    };
+  }
+
+  private mapInscripcionLinea(linea: any): InscripcionLinea {
+    return {
+      id: this.extractResourceId(linea.id ?? linea['@id'] ?? '', '/api/inscripcion_lineas/') || String(linea.id ?? ''),
+
+      actividadId:
+        this.extractResourceId(linea.actividadId ?? null) ||
+        this.extractResourceId(linea.actividad ?? null, '/api/actividad_eventos/') ||
+        undefined,
+
+      usuarioId:
+        this.extractResourceId(linea.usuarioId ?? null) ||
+        this.extractResourceId(linea.usuario ?? null, '/api/usuarios/') ||
+        undefined,
+
+      invitadoId:
+        this.extractResourceId(linea.invitadoId ?? null) ||
+        this.extractResourceId(linea.invitado ?? null, '/api/invitados/') ||
+        undefined,
+
+      nombrePersonaSnapshot: String(linea.nombrePersonaSnapshot ?? ''),
+      tipoPersonaSnapshot: typeof linea.tipoPersonaSnapshot === 'string' ? linea.tipoPersonaSnapshot : undefined,
+      nombreActividadSnapshot: String(linea.nombreActividadSnapshot ?? ''),
+      franjaComidaSnapshot: typeof linea.franjaComidaSnapshot === 'string' ? linea.franjaComidaSnapshot : undefined,
+      precioUnitario: this.toNumber(linea.precioUnitario),
+      estadoLinea: String(linea.estadoLinea ?? ''),
+      pagada: Boolean(linea.pagada),
     };
   }
 
