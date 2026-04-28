@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use ApiPlatform\Metadata\IriConverterInterface;
 use App\Entity\Evento;
+use App\Entity\InscripcionLinea;
 use App\Entity\SeleccionParticipanteEvento;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
@@ -179,7 +180,7 @@ class EventoController extends AbstractController
         return $this->getInvitados($id);
     }
 
-//    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
+    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
     public function getApuntados(string $id, Request $request): JsonResponse
     {
         /** @var Usuario $user */
@@ -346,7 +347,7 @@ class EventoController extends AbstractController
         $opciones = [];
 
         foreach ($lineas as $linea) {
-            if (!$linea instanceof \App\Entity\InscripcionLinea) {
+            if (!$linea instanceof InscripcionLinea) {
                 continue;
             }
 
