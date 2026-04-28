@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { parseCollection } from '../../../core/utils/collection-utils';
+import { parseCollection, parsePaginatedCollection } from '../../../core/utils/collection-utils';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import {catchError, map, Observable, of, switchMap, tap, throwError} from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
@@ -100,24 +100,18 @@ export class EventosApi {
       .get<ApiCollection<EventoAdminListado>>(`${environment.apiUrl}/eventos`, { params: httpParams })
       .pipe(
         map((response) => {
-          const raw = response as unknown as Record<string, any>;
-
-          const members = (raw['member'] ?? raw['hydra:member'] ?? []) as EventoAdminListado[];
-          const items = members.map((item) => this.normalizeEventoListado(item));
-
-          const totalItems = Number(raw['totalItems'] ?? raw['hydra:totalItems'] ?? items.length);
-          const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-          const view = raw['view'] ?? raw['hydra:view'];
+          const parsed = parsePaginatedCollection<EventoAdminListado>(response as unknown);
+          const items = parsed.items.map((item) => this.normalizeEventoListado(item));
+          const totalPages = Math.ceil(parsed.totalItems / itemsPerPage);
 
           return {
             items,
-            totalItems,
+            totalItems: parsed.totalItems,
             totalPages,
             page,
             itemsPerPage,
-            hasNext: Boolean(view?.['next'] ?? view?.['hydra:next']),
-            hasPrevious: Boolean(view?.['previous'] ?? view?.['hydra:previous']),
+            hasNext: parsed.hasNext,
+            hasPrevious: parsed.hasPrevious,
           } satisfies EventosPage;
         }),
       );
@@ -264,23 +258,17 @@ export class EventosApi {
       .get<ApiCollection<Inscripcion>>(`${environment.apiUrl}/inscripcions`, { params })
       .pipe(
         map((response) => {
-          const raw = response as unknown as Record<string, any>;
-
-          const items = (raw['member'] ?? raw['hydra:member'] ?? []) as Inscripcion[];
-
-          const totalItems = Number(raw['totalItems'] ?? raw['hydra:totalItems'] ?? items.length);
-          const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-          const view = raw['view'] ?? raw['hydra:view'];
+          const parsed = parsePaginatedCollection<Inscripcion>(response as unknown);
+          const totalPages = Math.ceil(parsed.totalItems / itemsPerPage);
 
           return {
-            items,
-            totalItems,
+            items: parsed.items,
+            totalItems: parsed.totalItems,
             totalPages,
             page,
             itemsPerPage,
-            hasNext: Boolean(view?.['next'] ?? view?.['hydra:next']),
-            hasPrevious: Boolean(view?.['previous'] ?? view?.['hydra:previous']),
+            hasNext: parsed.hasNext,
+            hasPrevious: parsed.hasPrevious,
           } satisfies InscripcionesPage;
         }),
       );
