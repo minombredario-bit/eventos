@@ -16,7 +16,7 @@ class PushSubscription
     #[ORM\Column(type: 'uuid', unique: true)]
     private ?string $id = null;
 
-    #[ORM\Column(type: Types::TEXT)]
+    #[ORM\Column(type: 'string', length: 768, unique: true)]
     private string $endpoint;
 
     #[ORM\Column(length: 255)]

@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\TipoEntidadEnum;
 use App\Repository\EventoRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -282,6 +283,7 @@ class Evento
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->estado = EstadoEventoEnum::BORRADOR;
+        $this->tipoEvento = TipoEventoEnum::OTRO;
     }
 
     #[ORM\PreUpdate]
