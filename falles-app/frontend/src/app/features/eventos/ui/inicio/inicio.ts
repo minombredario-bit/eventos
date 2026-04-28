@@ -38,6 +38,16 @@ export class Inicio {
   readonly store = inject(EventosStore);
 
   protected readonly weekDays = WEEK_DAYS;
+  protected readonly notificationsSupported =
+    typeof window !== 'undefined' &&
+    'Notification' in window &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window;
+  protected readonly notificationPermission = signal<NotificationPermission>(
+    this.notificationsSupported ? Notification.permission : 'denied',
+  );
+  protected readonly notificationMessage = signal('');
+  protected readonly notificationsBusy = signal(false);
 
   // Signals exposed for template
   protected readonly loading = this.store.loadingEventos;
@@ -125,5 +135,74 @@ export class Inicio {
   protected logout(): void {
     this.auth.logout();
     void this.router.navigateByUrl('/auth/login');
+  }
+
+  protected async enableNotifications(): Promise<void> {
+    if (!this.notificationsSupported) {
+      this.notificationMessage.set('Tu navegador no soporta notificaciones push para esta app.');
+      return;
+    }
+
+    if (this.notificationsBusy()) {
+      return;
+    }
+
+    this.notificationsBusy.set(true);
+
+    try {
+      let permission = this.notificationPermission();
+
+      if (permission !== 'granted') {
+        permission = await Notification.requestPermission();
+        this.notificationPermission.set(permission);
+      }
+
+      if (permission !== 'granted') {
+        this.notificationMessage.set(
+          permission === 'denied'
+            ? 'Permiso denegado. Actívalo desde ajustes del navegador.'
+            : 'Solicitud de permiso pospuesta.',
+        );
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const existingSubscription = await registration.pushManager.getSubscription();
+      const subscription =
+        existingSubscription ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: this.getApplicationServerKey(),
+        }));
+
+      await this.persistSubscription(subscription);
+      this.notificationMessage.set('Notificaciones push activadas correctamente.');
+    } catch {
+      this.notificationMessage.set(
+        'No se pudieron activar las notificaciones push. Inténtalo de nuevo.',
+      );
+    } finally {
+      this.notificationsBusy.set(false);
+    }
+  }
+
+  private async persistSubscription(subscription: PushSubscription): Promise<void> {
+    await fetch('/api/push_subscriptions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(subscription),
+    });
+  }
+
+  private getApplicationServerKey(): Uint8Array {
+    const publicKey =
+      'BElw6xA6o2P7vWQ2UjPjvNiIHTsX4z6s1_bN0L7On2rV7Y5bW6Yb0S9m7mC2fQ2Y0vWkP4vG8oH0aF8q7sM6jCA';
+    const normalized = publicKey.replace(/-/g, '+').replace(/_/g, '/');
+    const padding = '='.repeat((4 - (normalized.length % 4)) % 4);
+    const decoded = atob(`${normalized}${padding}`);
+
+    return Uint8Array.from(decoded, (char) => char.charCodeAt(0));
   }
 }

@@ -14,6 +14,35 @@
       <p class="supporting-copy">Vista mensual con marcadores por día y detalle de la fecha seleccionada.</p>
     </article>
 
+    <article class="panel notifications" aria-label="Activación de notificaciones push">
+      <header class="notifications-header">
+        <h2>Notificaciones push</h2>
+        <span class="permission-chip" [class]="'permission-chip ' + notificationPermission()">
+          {{ notificationPermission() }}
+        </span>
+      </header>
+      <p class="supporting-copy">
+        Recibí recordatorios de inscripción y cambios importantes de eventos.
+      </p>
+      <button
+        type="button"
+        class="notification-button"
+        [disabled]="!notificationsSupported || notificationsBusy() || notificationPermission() === 'granted'"
+        (click)="enableNotifications()"
+      >
+        @if (notificationsBusy()) {
+          Activando...
+        } @else if (notificationPermission() === 'granted') {
+          Notificaciones activas
+        } @else {
+          Activar notificaciones
+        }
+      </button>
+      @if (notificationMessage()) {
+        <p class="empty-copy" role="status">{{ notificationMessage() }}</p>
+      }
+    </article>
+
     <article class="panel selected-day" aria-label="Eventos del día seleccionado">
       <header class="selected-header">
         <h2>{{ selectedDateLabel() }}</h2>
