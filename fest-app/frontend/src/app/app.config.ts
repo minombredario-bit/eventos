@@ -3,7 +3,7 @@ import {
   LOCALE_ID,
   inject,
   provideZoneChangeDetection,
-  provideEnvironmentInitializer,
+  provideEnvironmentInitializer, isDevMode,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { clientPanelInterceptor } from './core/http/client-panel-interceptor';
@@ -40,7 +40,7 @@ export const appConfig: ApplicationConfig = {
     provideServiceWorker('ngsw-worker.js', {
       // FIX: habilitado siempre para que el SW funcione en desarrollo
       // y las notificaciones push puedan registrarse desde cualquier entorno
-      enabled: true,
+      enabled: !isDevMode(),
       // FIX: registerImmediately para que el SW esté activo desde cualquier ruta,
       // no solo desde la raíz, evitando que el botón de notificaciones no haga nada
       registrationStrategy: 'registerImmediately',
