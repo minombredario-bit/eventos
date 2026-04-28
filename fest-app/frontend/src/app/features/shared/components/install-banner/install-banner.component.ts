@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PwaInstallService } from '../../../../services/pwa-install.service';
 import { PushService } from '../../../../core/push/push.service';
@@ -26,9 +26,9 @@ import { ToastService } from '../toast/toast.service';
             class="btn-push"
             type="button"
             [disabled]="push.subscribing()"
-            (click)="enablePush()"
+            (click)="togglePush()"
           >
-            {{ push.subscribing() ? 'Activando…' : push.subscribed() ? '✓ Activadas' : 'Notificaciones' }}
+            {{ push.subscribing() ? 'Procesando…' : push.subscribed() ? 'Desactivar avisos' : 'Activar avisos' }}
           </button>
           <button class="btn-install" type="button" (click)="install()">Instalar</button>
         </div>
@@ -145,8 +145,28 @@ export class InstallBannerComponent {
     await this.pwa.promptInstall();
   }
 
-  // FIX: feedback al usuario con toast según resultado de la suscripción
-  async enablePush(): Promise<void> {
+  async togglePush(): Promise<void> {
+    if (this.push.subscribed()) {
+      const result = await this.push.unsubscribe();
+
+      switch (result) {
+        case 'unsubscribed':
+          this.toast.showSuccess('Notificaciones desactivadas.');
+          break;
+        case 'not_subscribed':
+          this.toast.showInfo('Las notificaciones ya estaban desactivadas.');
+          break;
+        case 'unavailable':
+          this.toast.showError('Las notificaciones no están disponibles en este dispositivo.');
+          break;
+        case 'error':
+          this.toast.showError('No se pudieron desactivar las notificaciones. Inténtalo de nuevo.');
+          break;
+      }
+
+      return;
+    }
+
     const result = await this.push.subscribe();
 
     switch (result) {
