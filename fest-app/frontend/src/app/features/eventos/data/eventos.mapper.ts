@@ -72,13 +72,13 @@ export class EventosMapper {
     const nombre = String(relacionado.nombre ?? '').trim();
     const apellidos = String(relacionado.apellidos ?? '').trim();
     const displayName = nombreCompleto || [nombre, apellidos].filter(Boolean).join(' ').trim() || `Usuario ${id}`;
-console.log(relacionado);
+
     return {
       id,
       name: displayName,
       role: relacion.tipoRelacion || 'Familiar',
       origin: 'familiar',
-      personType: 'adulto',
+      personType: relacion.usuarioDestino.tipoPersona || 'adulto',
       avatarInitial: displayName.charAt(0).toUpperCase() || 'U',
     };
   }

@@ -1,5 +1,3 @@
-import {Usuario} from '../../admin/domain/admin.models';
-
 export type EventStatus = 'abierto' | 'ultimas_plazas' | 'cerrado';
 export type PersonType = 'adulto' | 'infantil';
 export type ParticipantOrigin = 'familiar' | 'invitado';
@@ -81,7 +79,8 @@ export interface MemberEnrollment {
   paymentStatusRaw: string;
 }
 
-export interface ActivityOption {id: string;
+export interface ActivityOption {
+  id: string;
   label: string;
   slot: MealSlot;
   compatibility: 'ambos' | 'infantil' | 'adulto';
@@ -94,7 +93,8 @@ export interface ActivityOption {id: string;
   disabled?: boolean;
 }
 
-export interface ActividadEvento {id: string;
+export interface ActividadEvento {
+  id: string;
   evento?: string | { id?: string };
   nombre: string;
   descripcion?: string | null;
@@ -302,8 +302,22 @@ export interface AltaInvitadoPayload {
 
 export interface RelacionUsuario {
   id: string;
-  usuarioOrigen: { id?: string; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string };
-  usuarioDestino: { id?: string; '@id'?: string; nombre?: string; apellidos?: string; nombreCompleto?: string };
+  usuarioOrigen: {
+    id?: string;
+    '@id'?: string;
+    nombre?: string;
+    apellidos?: string;
+    nombreCompleto?: string,
+    tipoPersona?: PersonType
+  };
+  usuarioDestino: {
+    id?: string;
+    '@id'?: string;
+    nombre?: string;
+    apellidos?: string;
+    nombreCompleto?: string,
+    tipoPersona?: PersonType
+  };
   tipoRelacion: string;
   createdAt: string;
 }
@@ -344,12 +358,12 @@ export interface MetodoPagoOption {
 }
 
 export const METODOS_PAGO_OPTIONS: MetodoPagoOption[] = [
-  { value: 'efectivo', label: 'Efectivo' },
-  { value: 'transferencia', label: 'Transferencia' },
-  { value: 'bizum', label: 'Bizum' },
-  { value: 'tpv', label: 'TPV' },
-  { value: 'online', label: 'Pago online' },
-  { value: 'manual', label: 'Manual' },
+  {value: 'efectivo', label: 'Efectivo'},
+  {value: 'transferencia', label: 'Transferencia'},
+  {value: 'bizum', label: 'Bizum'},
+  {value: 'tpv', label: 'TPV'},
+  {value: 'online', label: 'Pago online'},
+  {value: 'manual', label: 'Manual'},
 ];
 
 export interface NavItem {

@@ -154,7 +154,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private TipoRelacionEconomicaEnum $tipoUsuarioEconomico;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoPersonaEnum::class)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups(['usuario:read', 'usuario:write', 'relacion:read'])]
     #[Assert\NotNull]
     private TipoPersonaEnum $tipoPersona;
 
@@ -903,6 +903,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
                 'usuario_id' => $otro->getId(),
                 'usuario_nombre' => $otro->getNombreCompleto(),
                 'tipoRelacion' => $rel->getTipoRelacion()->value,
+                'tipoPersona' => $rel->getUsuarioDestino()->getTipoPersona()->value,
             ];
         }
 
