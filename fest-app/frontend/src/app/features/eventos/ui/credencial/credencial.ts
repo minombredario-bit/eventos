@@ -108,7 +108,7 @@ export class Credencial {
     }
 
     this.eventosApi
-      .getInscripcionesMias()
+      .getMisInscripciones()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (inscripciones) => {

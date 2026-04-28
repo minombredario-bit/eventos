@@ -169,7 +169,7 @@ export class Inscripciones {
     this.errorMessage.set(null);
 
     this.eventosApi
-      .getInscripcionesMiasCollection({
+      .getMisInscripcionesCollection({
         search: this.searchTerm(),
         page,
         itemsPerPage: Inscripciones.PAGE_SIZE,

@@ -218,7 +218,7 @@ export class EventosApi {
     );
   }
 
-  getInscripcionesMias(): Observable<InscripcionResumen[]> {
+  getMisInscripciones(): Observable<InscripcionResumen[]> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       return of([]);
@@ -236,7 +236,7 @@ export class EventosApi {
       );
   }
 
-  getInscripcionesMiasCollection(options: {
+  getMisInscripcionesCollection(options: {
     search?: string;
     page?: number;
     itemsPerPage?: number;
@@ -276,24 +276,6 @@ export class EventosApi {
         }),
       );
   }
-
-  // getInscripcionesMiasCollection(): Observable<Inscripcion[]> {
-  //   const currentUserId = this.authService.currentUserId;
-  //   if (!currentUserId) {
-  //     return of([]);
-  //   }
-  //
-  //   const params = new HttpParams().set('usuario.id', currentUserId.trim());
-  //
-  //   return this.http
-  //     .get<ApiCollection<InscripcionCollectionItem> | InscripcionCollectionItem[]>(`${environment.apiUrl}/inscripcions`, { params })
-  //     .pipe(
-  //       map((r) => parseCollection<InscripcionCollectionItem>(r as unknown)),
-  //       map((items) => items
-  //         .map((item) => this.toInscripcionCollection(item))
-  //         .filter((item): item is Inscripcion => item !== null)),
-  //     );
-  // }
 
   /**
    * Devuelve la respuesta completa de /seleccion_participantes incluyendo participantes
@@ -421,17 +403,6 @@ export class EventosApi {
 
   // ── Invitados ─────────────────────────────────────────────────────────
 
-  // getInvitadosByEvento(eventoId: string): Observable<Invitado[]> {
-  //   return this.http
-  //     .get<ApiCollection<Invitado> | Invitado[]>(`${this.eventoBasePath(eventoId)}/invitados`)
-  //     .pipe(
-  //       map((r) => this.mapper.mapInvitadosList(parseCollection<Invitado>(r as unknown), eventoId)),
-  //       catchError(() =>
-  //         of(this.mapper.mapInvitadosList(this.readInvitadosFromFallback(eventoId), eventoId)),
-  //       ),
-  //     );
-  // }
-
   getInvitadosByEvento(eventoId: string): Observable<Invitado[]> {
     return this.http
       .get<ApiCollection<Invitado> | Invitado[]>(`${this.eventoBasePath(eventoId)}/invitados`)
@@ -480,16 +451,6 @@ export class EventosApi {
       );
   }
 
-  getSeleccionParticipantes(eventoId: string): Observable<ParticipanteSeleccion[]> {
-    return this.http
-      .get<SeleccionParticipantesResponseApi>(`${this.eventoBasePath(eventoId)}/seleccion_participantes`)
-      .pipe(
-        map((r) => (Array.isArray(r.participantes) ? r.participantes : [])
-          .map((item) => this.normalizeParticipanteSeleccion(item))
-          .filter((item): item is ParticipanteSeleccion => item !== null)),
-      );
-  }
-
   guardarSeleccionParticipantes(
     eventoId: string,
     participantes: ParticipanteSeleccion[],
@@ -529,19 +490,6 @@ export class EventosApi {
   }
 
   // ── Relaciones ────────────────────────────────────────────────────────
-
-  // getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {
-  //   return this.http
-  //     .get<ApiCollection<RelacionUsuarioCollectionItem> | RelacionUsuarioCollectionItem[]>(
-  //       `${environment.apiUrl}/usuarios/${usuarioId}/relaciones`,
-  //     )
-  //     .pipe(
-  //       map((r) => parseCollection<RelacionUsuarioCollectionItem>(r as unknown)),
-  //       map((items) => items
-  //         .map((item) => this.toRelacionUsuario(item))
-  //         .filter((item): item is RelacionUsuario => item !== null)),
-  //     );
-  // }
 
   getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {
     return this.http
@@ -588,94 +536,6 @@ export class EventosApi {
       inscripcionAbierta: item.inscripcionAbierta,
       personasApuntadas: this.toNumber(item.personasApuntadas),
     };
-  }
-
-  private normalizeReportePersonas(
-    response: EventoParticipantesReporteApi,
-  ): EventoParticipantesReporteResponse {
-    return {
-      evento: {
-        id: String(response.evento?.id ?? '').trim(),
-        titulo: String(response.evento?.titulo ?? 'Evento').trim() || 'Evento',
-        fecha: String(response.evento?.fecha ?? '').trim(),
-      },
-      totalPersonas: Number(response.totalPersonas ?? response.personas?.length ?? 0),
-      personas: Array.isArray(response.personas)
-        ? response.personas.map((persona): EventoParticipanteReporte => {
-          const tipoPersona: PersonType = persona.tipoPersona === 'infantil' ? 'infantil' : 'adulto';
-
-          return {
-            nombreCompleto: String(persona.nombreCompleto ?? '').trim(),
-            tipoPersona,
-            actividad: String(persona.actividad ?? '').trim(),
-            franjaComida: this.normalizeMealSlot(persona.franjaComida),
-            observaciones: typeof persona.observaciones === 'string' ? persona.observaciones.trim() : null,
-            inscripcionCodigo: String(persona.inscripcionCodigo ?? '').trim(),
-            inscriptor: String(persona.inscriptor ?? '').trim(),
-          };
-        }).filter((persona) => persona.nombreCompleto.length > 0)
-        : [],
-    };
-  }
-
-  private groupReportePersonasByFranja(
-    personas: EventoParticipanteReporte[],
-    actividades: ActividadEvento[],
-  ): EventoParticipantesAgrupadosPorFranja[] {
-    const actividadPorNombre = new Map(
-      actividades.map((actividad) => [actividad.nombre.trim().toLowerCase(), actividad.franjaComida]),
-    );
-
-    const grupos = new Map<EventoParticipantesAgrupadosPorFranja['franja'], EventoParticipanteReporte[]>();
-
-    for (const persona of personas) {
-      const franja = persona.franjaComida
-        ?? actividadPorNombre.get(persona.actividad.trim().toLowerCase())
-        ?? 'sin_franja';
-
-      const current = grupos.get(franja) ?? [];
-      current.push({
-        ...persona,
-        franjaComida: franja === 'sin_franja' ? null : franja,
-      });
-      grupos.set(franja, current);
-    }
-
-    const order: Array<EventoParticipantesAgrupadosPorFranja['franja']> = ['almuerzo', 'comida', 'merienda', 'cena', 'sin_franja'];
-
-    return order
-      .filter((franja) => (grupos.get(franja) ?? []).length > 0)
-      .map((franja) => ({
-        franja,
-        etiqueta: this.formatMealSlot(franja),
-        participantes: grupos.get(franja) ?? [],
-      }));
-  }
-
-  private normalizeMealSlot(value: string | null | undefined): ActividadEvento['franjaComida'] | null {
-    if (!value) {
-      return null;
-    }
-
-    const normalized = value.trim().toLowerCase();
-    return normalized === 'almuerzo' || normalized === 'comida' || normalized === 'merienda' || normalized === 'cena'
-      ? normalized
-      : null;
-  }
-
-  private formatMealSlot(value: EventoParticipantesAgrupadosPorFranja['franja']): string {
-    if (value === 'sin_franja') {
-      return 'Sin franja';
-    }
-
-    const labels: Record<ActividadEvento['franjaComida'], string> = {
-      almuerzo: 'Almuerzo',
-      comida: 'Comida',
-      merienda: 'Merienda',
-      cena: 'Cena',
-    };
-
-    return labels[value];
   }
 
   private normalizeEventoId(eventoId: string): string {
