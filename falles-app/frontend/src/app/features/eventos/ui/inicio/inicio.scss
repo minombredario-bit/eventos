@@ -67,6 +67,70 @@
   }
 }
 
+.notifications {
+  display: grid;
+  gap: 0.7rem;
+
+  .notifications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .supporting-copy {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+}
+
+.permission-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.26rem 0.64rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.permission-chip.default {
+  color: #92400e;
+  background: #ffedd5;
+  border-color: #fb923c;
+}
+
+.permission-chip.granted {
+  color: #065f46;
+  background: #bbf7d0;
+  border-color: #4ade80;
+}
+
+.permission-chip.denied {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.notification-button {
+  min-height: 44px;
+  border-radius: 0.85rem;
+  border: 1px solid #fb923c;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  color: #9a3412;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.notification-button:disabled {
+  opacity: 0.6;
+}
+
 .calendar {
   .calendar-header {
     display: flex;
