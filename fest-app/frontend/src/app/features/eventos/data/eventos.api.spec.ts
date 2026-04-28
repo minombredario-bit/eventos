@@ -6,7 +6,6 @@ import { EventosMapper } from './eventos.mapper';
 import { AuthService } from '../../../core/auth/auth';
 
 describe('EventosApi altaInvitadoEnEvento', () => {
-  const storageKey = 'asociacion:invitados';
   const payload: AltaInvitadoPayload = {
     nombre: 'Ana',
     apellidos: 'Invitada',
@@ -19,8 +18,6 @@ describe('EventosApi altaInvitadoEnEvento', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
-    window.localStorage.removeItem(storageKey);
-
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
@@ -41,7 +38,6 @@ describe('EventosApi altaInvitadoEnEvento', () => {
 
   afterEach(() => {
     httpMock.verify();
-    window.localStorage.removeItem(storageKey);
   });
 
   it('propaga el 422 y no crea invitado en fallback local', () => {
@@ -63,21 +59,22 @@ describe('EventosApi altaInvitadoEnEvento', () => {
     );
 
     expect((responseError as { status?: number })?.status).toBe(422);
-    expect(window.localStorage.getItem(storageKey)).toBeNull();
   });
 
-  it('si falla por red (status 0), usa fallback y guarda el invitado local', () => {
-    let invitadoId = '';
+  it('si falla por red (status 0), propaga error y no inventa id de invitado', () => {
+    let responseError: unknown;
 
-    api.altaInvitadoEnEvento('evt-1', payload).subscribe((invitado) => {
-      invitadoId = invitado.id;
+    api.altaInvitadoEnEvento('evt-1', payload).subscribe({
+      next: () => fail('No debería emitir invitado cuando hay error de red'),
+      error: (error) => {
+        responseError = error;
+      },
     });
 
     const request = httpMock.expectOne('http://localhost:8080/api/invitados');
     request.error(new ProgressEvent('network-error'), { status: 0, statusText: 'Unknown Error' });
 
-    expect(invitadoId.startsWith('nf-')).toBeTrue();
-    expect(window.localStorage.getItem(storageKey)).toContain('Ana');
+    expect((responseError as { status?: number })?.status).toBe(0);
   });
 });
 
@@ -184,4 +181,3 @@ describe('EventosApi getEventosByDateRange parseCollection behavior', () => {
     req.flush(mock);
   });
 });
-
