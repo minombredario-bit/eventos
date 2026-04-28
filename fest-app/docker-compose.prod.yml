@@ -32,7 +32,7 @@ services:
         container_name: festapp-nginx
         restart: unless-stopped
         ports:
-            - "8081:80"
+            - "127.0.0.1:8081:80"
         volumes:
             - ./docker/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
             - nginx_logs:/var/log/nginx
@@ -54,7 +54,7 @@ services:
         depends_on:
             php:
                 condition: service_healthy
-        command: daemon --docker --config=/etc/ofelia/config.ini
+        command: daemon --config=/etc/ofelia/config.ini
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - ./docker/ofelia/config.ini:/etc/ofelia/config.ini:ro
