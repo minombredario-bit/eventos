@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PwaInstallService } from '../../../../services/pwa-install.service';
 import { PushService } from '../../../../core/push/push.service';
+import { ToastService } from '../toast/toast.service';
 
 @Component({
   selector: 'app-install-banner',
@@ -20,7 +21,15 @@ import { PushService } from '../../../../core/push/push.service';
 
         <div class="install-banner__actions">
           <button class="btn-dismiss" type="button" (click)="pwa.dismiss()">Ahora no</button>
-          <button class="btn-push" type="button" (click)="enablePush()">Notificaciones</button>
+          <!-- FIX: botón deshabilitado mientras se procesa + feedback visual -->
+          <button
+            class="btn-push"
+            type="button"
+            [disabled]="push.subscribing()"
+            (click)="enablePush()"
+          >
+            {{ push.subscribing() ? 'Activando…' : push.subscribed() ? '✓ Activadas' : 'Notificaciones' }}
+          </button>
           <button class="btn-install" type="button" (click)="install()">Instalar</button>
         </div>
       </div>
@@ -100,6 +109,11 @@ import { PushService } from '../../../../core/push/push.service';
       color: #a43a00;
     }
 
+    .btn-push:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .btn-install {
       background: #f05a00;
       color: white;
@@ -124,13 +138,33 @@ import { PushService } from '../../../../core/push/push.service';
 })
 export class InstallBannerComponent {
   readonly pwa = inject(PwaInstallService);
-  private readonly push = inject(PushService);
+  readonly push = inject(PushService);
+  private readonly toast = inject(ToastService);
 
   async install(): Promise<void> {
     await this.pwa.promptInstall();
   }
 
-  enablePush(): void {
-    this.push.subscribe();
+  // FIX: feedback al usuario con toast según resultado de la suscripción
+  async enablePush(): Promise<void> {
+    const result = await this.push.subscribe();
+
+    switch (result) {
+      case 'subscribed':
+        this.toast.showSuccess('Notificaciones activadas correctamente.');
+        break;
+      case 'already_subscribed':
+        this.toast.showInfo('Las notificaciones ya estaban activadas.');
+        break;
+      case 'denied':
+        this.toast.showError('Has bloqueado las notificaciones. Puedes cambiar esto en la configuración del navegador.');
+        break;
+      case 'unavailable':
+        this.toast.showError('Las notificaciones no están disponibles en este dispositivo.');
+        break;
+      case 'error':
+        this.toast.showError('No se pudieron activar las notificaciones. Inténtalo de nuevo.');
+        break;
+    }
   }
 }

@@ -22,22 +22,6 @@ class RegistroController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
     ) {}
 
-    #[Route('/registro/validar-codigo', name: 'api_registro_validar_codigo', methods: ['POST'])]
-    public function validarCodigo(Request $request): JsonResponse
-    {
-        return $this->json([
-            'error' => 'El auto-registro está deshabilitado. Contacta con el administrador de tu entidad.',
-        ], Response::HTTP_GONE);
-    }
-
-    #[Route('/registro/solicitud', name: 'api_registro_solicitud', methods: ['POST'])]
-    public function solicitud(Request $request): JsonResponse
-    {
-        return $this->json([
-            'error' => 'El alta de usuarios solo puede realizarla el administrador de la entidad.',
-        ], Response::HTTP_FORBIDDEN);
-    }
-
     /**
      * Get current user profile.
      */

@@ -10,6 +10,8 @@ export interface ToastMessage {
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
+  // messages$ emite un ToastMessage individual cada vez que se muestra uno,
+  // manteniendo compatibilidad con ToastComponent que acumula la lista internamente.
   private readonly subject = new Subject<ToastMessage>();
   public readonly messages$ = this.subject.asObservable();
 
@@ -22,4 +24,3 @@ export class ToastService {
   showError(text: string) { this.show(text, 'error'); }
   showInfo(text: string) { this.show(text, 'info'); }
 }
-

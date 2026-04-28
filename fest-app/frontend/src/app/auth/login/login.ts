@@ -69,8 +69,13 @@ export class Login {
             return;
           }
 
-          const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/eventos';
-          void this.router.navigateByUrl(returnUrl);
+          // FIX: Validar returnUrl para evitar open redirect — solo se permiten rutas internas
+          const rawReturnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/eventos';
+          const safeReturnUrl =
+            rawReturnUrl.startsWith('/') && !rawReturnUrl.startsWith('//')
+              ? rawReturnUrl
+              : '/eventos';
+          void this.router.navigateByUrl(safeReturnUrl);
         },
         error: (error: HttpErrorResponse) => {
           if (error.status === 401) {

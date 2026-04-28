@@ -89,6 +89,8 @@ export const routes: Routes = [
   {
     path: 'admin',
     canActivate: [authGuard, adminGuard],
+    // FIX: canActivateChild protege también accesos directos a rutas hijo del admin
+    canActivateChild: [authGuard, adminGuard],
     loadComponent: () =>
       import('./features/admin/admin-shell').then((m) => m.AdminShell),
     children: [

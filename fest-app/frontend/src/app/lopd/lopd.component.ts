@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -12,6 +12,8 @@ import { MobileHeader } from '../features/shared/components/mobile-header/mobile
   imports: [CommonModule, MobileHeader],
   templateUrl: './lopd.component.html',
   styleUrls: ['./lopd.component.scss'],
+  // FIX: añadido OnPush para consistencia con el resto de componentes
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LopdComponent implements OnInit {
   private readonly lopdService = inject(LopdService);
@@ -53,7 +55,8 @@ export class LopdComponent implements OnInit {
           return;
         }
 
-        void this.router.navigateByUrl('/inicio');
+        // FIX: ruta corregida de '/inicio' (inexistente) a '/eventos/inicio'
+        void this.router.navigateByUrl('/eventos/inicio');
       },
       error: () => {
         this.accepting = false;

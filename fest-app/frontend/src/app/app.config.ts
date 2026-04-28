@@ -3,7 +3,6 @@ import {
   LOCALE_ID,
   inject,
   provideZoneChangeDetection,
-  isDevMode,
   provideEnvironmentInitializer,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -39,8 +38,12 @@ export const appConfig: ApplicationConfig = {
       }),
     }),
     provideServiceWorker('ngsw-worker.js', {
-      enabled: !isDevMode(),
-      registrationStrategy: 'registerWhenStable:30000',
+      // FIX: habilitado siempre para que el SW funcione en desarrollo
+      // y las notificaciones push puedan registrarse desde cualquier entorno
+      enabled: true,
+      // FIX: registerImmediately para que el SW esté activo desde cualquier ruta,
+      // no solo desde la raíz, evitando que el botón de notificaciones no haga nada
+      registrationStrategy: 'registerImmediately',
     }),
   ],
 };

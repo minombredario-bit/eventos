@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string;
   nombre?: string;
   apellidos?: string;
+  // FIX: añadido nombreCompleto para evitar el cast `as any` en perfil.ts
+  nombreCompleto?: string;
   telefono?: string | null;
   formaPagoPreferida?: string | null;
   antiguedad?: number | null;
@@ -16,7 +18,7 @@ export interface AuthUser {
   tipoEntidad?: TipoEntidad | null;
   aceptoLopd?: boolean;
   aceptoLopdAt?: string | null;
-  [key: string]: unknown;
+  // FIX: eliminado [key: string]: unknown — anulaba el tipado estricto de todo el modelo
 }
 
 export interface LoginPayload {
@@ -50,6 +52,7 @@ export interface JwtPayload {
   nombre?: string;
   name?: string;
   apellidos?: string;
+  nombreCompleto?: string;
   telefono?: string | null;
   formaPagoPreferida?: string | null;
   antiguedad?: number | null;

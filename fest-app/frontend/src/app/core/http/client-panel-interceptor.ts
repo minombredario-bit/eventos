@@ -5,6 +5,10 @@ import { AuthStore } from '../auth/auth-store';
 /**
  * Interceptor global que añade cabeceras comunes y X-Client-Panel cuando el
  * usuario es admin. Se aplica a todas las peticiones API.
+ *
+ * FIX: eliminada la lógica duplicada de añadir el token Authorization —
+ * eso ya lo gestiona authInterceptor. Este interceptor solo gestiona
+ * Accept-Language, Content-Type y X-Client-Panel.
  */
 export const clientPanelInterceptor: HttpInterceptorFn = (request, next) => {
   // Si la petición no es API devolvemos tal cual
@@ -32,6 +36,7 @@ export const clientPanelInterceptor: HttpInterceptorFn = (request, next) => {
   // flag en sessionStorage por pestaña. Se debe establecer al entrar al panel admin:
   // sessionStorage.setItem('clientPanel', 'panel')
   const isAdminApp = (typeof window !== 'undefined') && (sessionStorage.getItem('clientPanel') === 'panel');
+
   const setHeaders: Record<string, string> = {
     Accept: accept,
     'Accept-Language': request.headers.get('Accept-Language') ?? idioma,
@@ -45,25 +50,13 @@ export const clientPanelInterceptor: HttpInterceptorFn = (request, next) => {
   // usuario tiene rol de admin. Evita que un admin usando la vista de usuario
   // haga que el backend trate la llamada como desde el panel admin.
   if (isAdminApp && isAdmin) {
-    // Añadir la palabra 'panel' en el valor para que el backend la detecte.
     setHeaders['X-Client-Panel'] = 'admin-panel';
   }
 
-  // Preserve authorization header if present (avoid removing it)
-  const existingAuth = request.headers.get('Authorization');
-  if (existingAuth) {
-    setHeaders['Authorization'] = existingAuth;
-  } else {
-    // fallback: try to read token from auth store
-    try {
-      const token = authStore.getToken?.() ?? null;
-      if (token) setHeaders['Authorization'] = `Bearer ${token}`;
-    } catch {
-      // noop
-    }
-  }
+  // FIX: NO gestionar Authorization aquí — authInterceptor ya se encarga.
+  // Añadir el token en dos interceptores distintos generaba headers duplicados
+  // y posibles inconsistencias si los tokens diferían.
 
   const cloned = request.clone({ setHeaders });
   return next(cloned);
 };
-
