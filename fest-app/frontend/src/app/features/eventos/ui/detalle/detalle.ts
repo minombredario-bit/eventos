@@ -222,24 +222,6 @@ export class Detalle {
     const status: EventSummary['status'] =
       event.inscripcionAbierta === true ? 'abierto' : 'cerrado';
 
-    const now = new Date();
-
-    const fechaInicioInscripcion = event.fechaInicioInscripcion
-      ? new Date(event.fechaInicioInscripcion)
-      : null;
-
-    if (
-      fechaInicioInscripcion &&
-      !Number.isNaN(fechaInicioInscripcion.getTime()) &&
-      event.fechaInicioInscripcion
-    ) {
-      console.log(
-        fechaInicioInscripcion > now
-          ? `La inscripción se abrirá el ${formatLocalDate(event.fechaInicioInscripcion)} a las ${formatTime(event.fechaInicioInscripcion)}`
-          : `La inscripción ya está disponible desde el ${formatLocalDate(event.fechaInicioInscripcion)} a las ${formatTime(event.fechaInicioInscripcion)}`
-      );
-    }
-
     return {
       id: event.id,
       title: event.titulo,
