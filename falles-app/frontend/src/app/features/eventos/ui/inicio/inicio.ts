@@ -38,6 +38,12 @@ export class Inicio {
   readonly store = inject(EventosStore);
 
   protected readonly weekDays = WEEK_DAYS;
+  protected readonly notificationsSupported =
+    typeof window !== 'undefined' && 'Notification' in window;
+  protected readonly notificationPermission = signal<NotificationPermission>(
+    this.notificationsSupported ? Notification.permission : 'denied',
+  );
+  protected readonly notificationMessage = signal('');
 
   // Signals exposed for template
   protected readonly loading = this.store.loadingEventos;
@@ -125,5 +131,49 @@ export class Inicio {
   protected logout(): void {
     this.auth.logout();
     void this.router.navigateByUrl('/auth/login');
+  }
+
+  protected enableNotifications(): void {
+    if (!this.notificationsSupported) {
+      this.notificationMessage.set('Tu navegador no soporta notificaciones push.');
+      return;
+    }
+
+    if (this.notificationPermission() === 'granted') {
+      this.showActivationNotification();
+      this.notificationMessage.set('Notificaciones ya activas en este dispositivo.');
+      return;
+    }
+
+    void Notification.requestPermission().then((permission) => {
+      this.notificationPermission.set(permission);
+
+      if (permission === 'granted') {
+        this.showActivationNotification();
+        this.notificationMessage.set('Notificaciones activadas correctamente.');
+        return;
+      }
+
+      if (permission === 'denied') {
+        this.notificationMessage.set(
+          'Notificaciones bloqueadas. Puedes activarlas desde los ajustes del navegador.',
+        );
+        return;
+      }
+
+      this.notificationMessage.set('Solicitud de notificaciones pospuesta.');
+    });
+  }
+
+  private showActivationNotification(): void {
+    try {
+      new Notification('Entidades Festivas', {
+        body: 'Ya tienes activadas las notificaciones push.',
+      });
+    } catch {
+      this.notificationMessage.set(
+        'Permiso concedido, pero no se pudo mostrar la notificación de prueba.',
+      );
+    }
   }
 }
