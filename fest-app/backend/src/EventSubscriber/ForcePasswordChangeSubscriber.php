@@ -18,7 +18,10 @@ class ForcePasswordChangeSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['onKernelRequest', -5],
+            // FIX: prioridad 0 (mayor que -5 de LopdAcceptanceSubscriber) para garantizar
+            // que el check de contraseña se ejecuta siempre antes que el check de LOPD.
+            // Si un usuario debe cambiar contraseña Y no ha aceptado LOPD, la contraseña tiene precedencia.
+            KernelEvents::REQUEST => ['onKernelRequest', 0],
         ];
     }
 
@@ -54,4 +57,3 @@ class ForcePasswordChangeSubscriber implements EventSubscriberInterface
         ], 403));
     }
 }
-

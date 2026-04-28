@@ -131,20 +131,33 @@ class AuthController extends AbstractController
     }
 
     /**
+     * Normaliza la respuesta del usuario para los endpoints /api/me.
+     * FIX: incluidos todos los campos que el frontend (AuthStore) espera encontrar,
+     * especialmente roles, nombreEntidad, tipoEntidad y aceptoLopd que faltaban
+     * y se perdían al hacer getMe() → merge en el store.
+     *
      * @return array<string, mixed>
      */
     private function normalizeMeResponse(Usuario $user): array
     {
         return [
-            'id' => $user->getId(),
-            'email' => $user->getEmail(),
-            'nombre' => $user->getNombre(),
-            'apellidos' => $user->getApellidos(),
-            'telefono' => $user->getTelefono(),
-            'fechaNacimiento' => $user->getFechaNacimiento()?->format('Y-m-d'),
-            'formaPagoPreferida' => $user->getFormaPagoPreferida()?->value,
+            'id'                  => $user->getId(),
+            'email'               => $user->getEmail(),
+            'nombre'              => $user->getNombre(),
+            'apellidos'           => $user->getApellidos(),
+            'nombreCompleto'      => $user->getNombreCompleto(),
+            'telefono'            => $user->getTelefono(),
+            'fechaNacimiento'     => $user->getFechaNacimiento()?->format('Y-m-d'),
+            'formaPagoPreferida'  => $user->getFormaPagoPreferida()?->value,
             'debeCambiarPassword' => $user->isDebeCambiarPassword(),
-            'tipoUsuarioEconomico' => $user->getTipoUsuarioEconomico()->value,
+            'tipoUsuarioEconomico'=> $user->getTipoUsuarioEconomico()->value,
+            'roles'               => $user->getRoles(),
+            'nombreEntidad'       => $user->getEntidad()->getNombre(),
+            'tipoEntidad'         => mb_strtolower($user->getEntidad()->getTipoEntidad()?->getNombre() ?? ''),
+            'aceptoLopd'          => $user->isAceptoLopd(),
+            'aceptoLopdAt'        => $user->getAceptoLopdAt()?->format(DATE_ATOM),
+            'antiguedad'          => $user->getAntiguedad(),
+            'antiguedadReal'      => $user->getAntiguedadReal(),
         ];
     }
 }

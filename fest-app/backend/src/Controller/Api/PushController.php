@@ -17,16 +17,17 @@ class PushController
     ) {}
 
     #[Route('/push/subscribe', methods: ['POST'])]
-    public function subscribe( Request $request,
-        EntityManagerInterface $em,
-        #[CurrentUser] ?Usuario $user
-    ): JsonResponse
+    public function subscribe(Request $request, EntityManagerInterface $em, #[CurrentUser] ?Usuario $user): JsonResponse
     {
+        if (null === $user) {
+            return new JsonResponse(['error' => 'No autenticado'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $data = json_decode($request->getContent(), true);
 
         $endpoint = $data['endpoint'] ?? null;
-        $p256dh = $data['keys']['p256dh'] ?? null;
-        $auth = $data['keys']['auth'] ?? null;
+        $p256dh   = $data['keys']['p256dh'] ?? null;
+        $auth     = $data['keys']['auth'] ?? null;
 
         if (!$endpoint || !$p256dh || !$auth) {
             return new JsonResponse(['error' => 'Invalid subscription'], 400);
@@ -39,7 +40,10 @@ class PushController
         $subscription->setP256dh($p256dh);
         $subscription->setAuth($auth);
         $subscription->setUpdatedAt(new \DateTimeImmutable());
-        $subscription->setUsuarioId($user?->getId());
+
+        // FIX: vincular la suscripción al usuario y su entidad (ambos vienen del usuario autenticado)
+        $subscription->setUsuarioId((string) $user->getId());
+        $subscription->setEntidadId((string) $user->getEntidad()->getId());
 
         if (!$subscription->getId()) {
             $subscription->setCreatedAt(new \DateTimeImmutable());

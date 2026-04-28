@@ -15,7 +15,7 @@ final class LopdAcceptanceSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        // run after other listeners; mirror ForcePasswordChangeSubscriber behavior
+        // Prioridad -5: se ejecuta después de ForcePasswordChangeSubscriber (prioridad 0)
         return [KernelEvents::REQUEST => ['onKernelRequest', -5]];
     }
 
@@ -61,8 +61,13 @@ final class LopdAcceptanceSubscriber implements EventSubscriberInterface
             return;
         }
 
+        // FIX: permitir el endpoint de suscripción push aunque no se haya aceptado LOPD,
+        // ya que puede necesitarse justo después del login antes de completar el flujo LOPD
+        if ($method === 'POST' && $path === '/api/push/subscribe') {
+            return;
+        }
+
         // Otherwise deny access: user must accept LOPD before using the API
         throw new AccessDeniedHttpException('Debes aceptar las condiciones de uso (LOPD) para continuar.');
     }
 }
-

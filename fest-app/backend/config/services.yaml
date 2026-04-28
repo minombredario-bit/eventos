@@ -1,7 +1,7 @@
 parameters:
     app.cors.allowed_origins:
         - 'http://localhost:4200'
-        - 'http://localhost:4250'
+        # FIX: eliminado duplicado de localhost:4250
         - 'http://localhost:4250'
     app.mailer_from: '%env(MAILER_FROM)%'
     app.uri: '%env(DEFAULT_URI)%'
@@ -52,6 +52,9 @@ services:
             $publicKey: '%env(WEB_PUSH_PUBLIC_KEY)%'
             $privateKey: '%env(WEB_PUSH_PRIVATE_KEY)%'
             $subject: '%env(WEB_PUSH_SUBJECT)%'
+            # FIX: añadido $em y $pushSubscriptionRepository para limpiar suscripciones caducadas (404/410)
+            $em: '@doctrine.orm.entity_manager'
+            $pushSubscriptionRepository: '@App\Repository\PushSubscriptionRepository'
 
     App\EventSubscriber\ApiCorsSubscriber:
         arguments:
@@ -76,12 +79,14 @@ services:
     App\State\EventoWriteProcessor:
         bind:
             $persistProcessor: '@api_platform.doctrine.orm.state.persist_processor'
+            # FIX: pushNotificationService y pushSubscriptionRepository se resuelven
+            # por autowire gracias a los tipos declarados en el constructor.
+            # No requieren bind explícito salvo que autowire esté desactivado.
 
     App\Security\Voter\InscripcionVoter:
         arguments:
             $relacionUsuarioRepository: '@App\Repository\RelacionUsuarioRepository'
         tags: ['security.voter']
-
 
     App\EventListener\JwtCreatedListener:
         tags:
@@ -116,4 +121,3 @@ services:
         arguments:
             $decorated: '@App\ApiPlatform\Serializer\CustomSerializerContextBuilder.inner'
         tags: []
-

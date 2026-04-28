@@ -4,7 +4,6 @@ namespace App\Controller;
 
 use ApiPlatform\Metadata\IriConverterInterface;
 use App\Entity\Evento;
-use App\Entity\InscripcionLinea;
 use App\Entity\SeleccionParticipanteEvento;
 use App\Entity\Usuario;
 use App\Repository\EventoRepository;
@@ -69,11 +68,7 @@ class EventoController extends AbstractController
             'activo' => $actividad->isActivo(),
         ], $actividades)]);
 
-        // Debugging: expose route/path for failing unit test investigation.
-        $response->headers->set('X-Debug-Route', (string) $request->attributes->get('_route'));
-        $response->headers->set('X-Debug-Path', $request->getPathInfo());
-
-        // No deprecation headers are emitted — legacy aliases removed.
+        // FIX: eliminados headers X-Debug-Route y X-Debug-Path — no deben estar en producción
 
         return $response;
     }
@@ -119,7 +114,7 @@ class EventoController extends AbstractController
                 [$personaData],   // el service hace foreach, necesita array de líneas
             );
 
-            $response = $this->json([
+            return $this->json([
                 'id' => $inscripcion->getId(),
                 'codigo' => $inscripcion->getCodigo(),
                 'estado' => $inscripcion->getEstadoInscripcion()->value,
@@ -139,10 +134,6 @@ class EventoController extends AbstractController
                     'pagada' => $linea->isPagada(),
                 ], $inscripcion->getLineas()->toArray()),
             ], 201);
-
-            // No deprecation headers are emitted for responses.
-
-            return $response;
         } catch (UnprocessableEntityHttpException $e) {
             return $this->json([
                 'error' => $e->getMessage(),
@@ -180,7 +171,7 @@ class EventoController extends AbstractController
         return $this->getInvitados($id);
     }
 
-    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
+//    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
     public function getApuntados(string $id, Request $request): JsonResponse
     {
         /** @var Usuario $user */
@@ -347,7 +338,7 @@ class EventoController extends AbstractController
         $opciones = [];
 
         foreach ($lineas as $linea) {
-            if (!$linea instanceof InscripcionLinea) {
+            if (!$linea instanceof \App\Entity\InscripcionLinea) {
                 continue;
             }
 
@@ -391,5 +382,4 @@ class EventoController extends AbstractController
             '@id' => '/api/invitados/' . $invitado->getId(),
         ];
     }
-
 }

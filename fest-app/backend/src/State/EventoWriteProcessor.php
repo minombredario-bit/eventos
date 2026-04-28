@@ -11,6 +11,8 @@ use App\Enum\CompatibilidadPersonaActividadEnum;
 use App\Enum\FranjaComidaEnum;
 use App\Enum\TipoActividadEnum;
 use App\Repository\ActividadEventoRepository;
+use App\Repository\PushSubscriptionRepository;
+use App\Service\PushNotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -23,12 +25,14 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 final class EventoWriteProcessor implements ProcessorInterface
 {
     public function __construct(
-        private readonly EntityManagerInterface    $em,
-        private readonly SluggerInterface          $slugger,
-        private readonly ActividadEventoRepository $actividadRepo,
-        private readonly ProcessorInterface        $persistProcessor,
-        private readonly RequestStack              $requestStack,
-        private readonly Security $security,
+        private readonly EntityManagerInterface     $em,
+        private readonly SluggerInterface           $slugger,
+        private readonly ActividadEventoRepository  $actividadRepo,
+        private readonly ProcessorInterface         $persistProcessor,
+        private readonly RequestStack               $requestStack,
+        private readonly Security                   $security,
+        private readonly PushNotificationService    $pushNotificationService,
+        private readonly PushSubscriptionRepository $pushSubscriptionRepository,
     ) {}
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): Evento
@@ -36,7 +40,11 @@ final class EventoWriteProcessor implements ProcessorInterface
         if (!$data instanceof Evento) {
             throw new BadRequestHttpException('Expected an Evento instance.');
         }
-        $user = $this->security->getUser();
+
+        $user  = $this->security->getUser();
+        $isNew = $operation instanceof Post;
+
+        // La entidad siempre viene del usuario autenticado
         $data->setEntidad($user->getEntidad());
         $this->syncSlug($data, $operation);
         $this->syncActividades($data);
@@ -44,7 +52,30 @@ final class EventoWriteProcessor implements ProcessorInterface
         /** @var Evento $saved */
         $saved = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
+        $this->notificarEvento($saved, $isNew, (string) $user->getEntidad()->getId());
+
         return $saved;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function notificarEvento(Evento $evento, bool $isNew, string $entidadId): void
+    {
+        // FIX: buscar suscripciones directamente por entidadId — más eficiente
+        // que iterar todos los usuarios de la entidad para recoger sus IDs.
+        // entidadId se guarda en la suscripción al momento de registrarse.
+        $subscriptions = $this->pushSubscriptionRepository->findByEntidadId($entidadId);
+
+        if ($subscriptions === []) {
+            return;
+        }
+
+        $title = $isNew ? 'Nuevo evento publicado' : 'Evento actualizado';
+        $body  = $evento->getTitulo();
+        $url   = '/eventos/' . $evento->getId() . '/detalle';
+
+        // sendToMany envía todas en una sola cola WebPush (más eficiente que send() en bucle)
+        $this->pushNotificationService->sendToMany($subscriptions, $title, $body, $url);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -90,29 +121,21 @@ final class EventoWriteProcessor implements ProcessorInterface
             $iri = $data['id'] ?? null;
 
             if ($iri !== null) {
-                // ── Actividad existente ──────────────────────────────────────
                 $uuid = $this->uuidFromIri($iri);
                 if ($uuid === null) {
-                    throw new BadRequestHttpException(
-                        sprintf('IRI inválida: "%s".', $iri)
-                    );
+                    throw new BadRequestHttpException(sprintf('IRI inválida: "%s".', $iri));
                 }
 
                 $actividad = $this->actividadRepo->find($uuid);
                 if ($actividad === null) {
-                    throw new BadRequestHttpException(
-                        sprintf('ActividadEvento "%s" no encontrada.', $iri)
-                    );
+                    throw new BadRequestHttpException(sprintf('ActividadEvento "%s" no encontrada.', $iri));
                 }
 
                 $this->applyFields($data, $actividad);
-
             } else {
-                // ── Nueva actividad ──────────────────────────────────────────
                 $actividad = new ActividadEvento();
                 $actividad->setEvento($evento);
                 $this->applyFields($data, $actividad);
-                // Si no se envió permiteInvitados en payload, heredar del evento
                 if (!array_key_exists('permiteInvitados', $data)) {
                     $actividad->setPermiteInvitados($evento->isPermiteInvitados());
                 }
@@ -122,25 +145,16 @@ final class EventoWriteProcessor implements ProcessorInterface
         }
     }
 
-    /**
-     * Extrae el UUID del último segmento de una IRI.
-     * "/api/actividad_eventos/0b662202-0df8-4b09-9dea-4e15a4847a9c" → "0b662202-..."
-     */
     private function uuidFromIri(string $iri): ?string
     {
         $segment = basename($iri);
-
         if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $segment)) {
             return $segment;
         }
-
         return null;
     }
 
     /**
-     * Aplica solo los campos presentes en el payload sobre la entidad.
-     * Usa array_key_exists para distinguir "no enviado" de "enviado como null".
-     *
      * @param array<string, mixed> $data
      */
     private function applyFields(array $data, ActividadEvento $actividad): void
@@ -152,14 +166,10 @@ final class EventoWriteProcessor implements ProcessorInterface
             $actividad->setDescripcion($data['descripcion']);
         }
         if (isset($data['tipoActividad'])) {
-            $actividad->setTipoActividad(
-                TipoActividadEnum::from($data['tipoActividad'])
-            );
+            $actividad->setTipoActividad(TipoActividadEnum::from($data['tipoActividad']));
         }
         if (isset($data['franjaComida'])) {
-            $actividad->setFranjaComida(
-                FranjaComidaEnum::from($data['franjaComida'])
-            );
+            $actividad->setFranjaComida(FranjaComidaEnum::from($data['franjaComida']));
         }
         if (isset($data['compatibilidadPersona'])) {
             $actividad->setCompatibilidadPersona(
@@ -208,22 +218,16 @@ final class EventoWriteProcessor implements ProcessorInterface
             $actividad->setObservacionesInternas($data['observacionesInternas']);
         }
 
-        // Normalizar precios según reglas: si la actividad no es de pago,
-        // forzar a 0 solo los precios internos. Los externos se conservan
-        // porque los invitados pueden tener precio aunque internos no paguen.
         if (!$actividad->isEsDePago()) {
             $actividad->setPrecioBase(0.0);
             $actividad->setPrecioAdultoInterno(0.0);
             $actividad->setPrecioInfantil(0.0);
-            // precioAdultoExterno y precioInfantilExterno NO se tocan
         }
 
-        // Si la actividad no permite invitados, forzar precios externos a 0
         if (method_exists($actividad, 'isPermiteInvitados') && !$actividad->isPermiteInvitados()) {
             $actividad->setPrecioAdultoExterno(0.0);
             $actividad->setPrecioInfantilExterno(0.0);
         }
-
 
         if (array_key_exists('precioInfantilExterno', $data)) {
             $actividad->setPrecioInfantilExterno(
