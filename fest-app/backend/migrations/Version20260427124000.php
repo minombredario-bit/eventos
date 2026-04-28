@@ -16,14 +16,14 @@ final class Version20260427124000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // Update demo entity (identified by codigo_registro) to start season on 01/03
-        $this->addSql("UPDATE entidad SET temporada_inicio_mes = 3, temporada_inicio_dia = 1 WHERE codigo_registro = 'FALLA2024'");
+        $this->addSql("ALTER TABLE entidad ADD temporada_inicio_mes SMALLINT DEFAULT 1 NOT NULL");
+        $this->addSql("ALTER TABLE entidad ADD temporada_inicio_dia SMALLINT DEFAULT 1 NOT NULL");
     }
 
     public function down(Schema $schema): void
     {
-        // Revert to defaults (1/1) for the demo entity
-        $this->addSql("UPDATE entidad SET temporada_inicio_mes = 1, temporada_inicio_dia = 1 WHERE codigo_registro = 'FALLA2024'");
+        $this->addSql('ALTER TABLE entidad DROP temporada_inicio_mes');
+        $this->addSql('ALTER TABLE entidad DROP temporada_inicio_dia');
     }
 }
 
