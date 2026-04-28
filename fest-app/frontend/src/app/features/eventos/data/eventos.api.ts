@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { parseCollection, parsePaginatedCollection } from '../../../core/utils/collection-utils';
-import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import {catchError, map, Observable, of, switchMap, tap, throwError} from 'rxjs';
 import { EventosMapper } from './eventos.mapper';
 import { AuthService } from '../../../core/auth/auth';
@@ -32,7 +32,6 @@ import {
   EventoApuntadosCollectionResponse,
   InscripcionCollectionItem,
   InscripcionResumenCollectionItem,
-  InvitadoStorageEntry,
   RelacionUsuarioCollectionItem,
   SeleccionParticipantesResponseApi,
 } from '../domain/eventos.api.models';
@@ -431,7 +430,7 @@ export class EventosApi {
   altaInvitadoEnEvento(eventoId: string, payload: AltaInvitadoPayload): Observable<Invitado> {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      return of(this.createInvitadoInFallback(eventoId, payload));
+      return throwError(() => new Error('No se puede crear invitado sin usuario autenticado'));
     }
 
     return this.http
@@ -442,13 +441,7 @@ export class EventosApi {
       })
       .pipe(
         map((r) => this.mapper.mapInvitadoCreate(r, eventoId, payload.nombre, payload.apellidos)),
-        catchError((error: unknown) => {
-          if (this.shouldCreateInvitadoFallback(error)) {
-            return of(this.createInvitadoInFallback(eventoId, payload));
-          }
-
-          return throwError(() => error);
-        }),
+        catchError((error: unknown) => throwError(() => error)),
       );
   }
 
@@ -669,32 +662,9 @@ export class EventosApi {
     return [];
   }
 
-  private createInvitadoInFallback(eventoId: string, payload: AltaInvitadoPayload): Invitado {
-    const created: InvitadoStorageEntry = {
-      id: this.createFallbackInvitadoId(),
-      eventId: eventoId,
-      nombre: payload.nombre.trim(),
-      apellidos: payload.apellidos.trim(),
-      nombreCompleto: `${payload.nombre} ${payload.apellidos}`.trim(),
-      parentesco: payload.parentesco?.trim() || 'Invitado/a',
-      tipoPersona: payload.tipoPersona,
-      observaciones: payload.observaciones?.trim() || null,
-      origen: 'invitado',
-      esInvitado: true,
-      inscripcion: null,
-    };
-
-    const { eventId: _eventId, ...result } = created;
-    return result;
-  }
-
   private deleteInvitadoInFallback(eventoId: string, invitadoId: string): void {
     void eventoId;
     void invitadoId;
-  }
-
-  private createFallbackInvitadoId(): string {
-    return `nf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   }
 
   private toInscripcionResumen(item: InscripcionResumenCollectionItem): InscripcionResumen | null {
@@ -980,11 +950,4 @@ export class EventosApi {
       : `/api/usuarios/${normalizedId}`;
   }
 
-  private shouldCreateInvitadoFallback(error: unknown): boolean {
-    if (!(error instanceof HttpErrorResponse)) {
-      return true;
-    }
-
-    return error.status === 0;
-  }
 }

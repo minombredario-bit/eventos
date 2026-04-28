@@ -61,17 +61,20 @@ describe('EventosApi altaInvitadoEnEvento', () => {
     expect((responseError as { status?: number })?.status).toBe(422);
   });
 
-  it('si falla por red (status 0), devuelve invitado fallback sin persistencia', () => {
-    let invitadoId = '';
+  it('si falla por red (status 0), propaga error y no inventa id de invitado', () => {
+    let responseError: unknown;
 
-    api.altaInvitadoEnEvento('evt-1', payload).subscribe((invitado) => {
-      invitadoId = invitado.id;
+    api.altaInvitadoEnEvento('evt-1', payload).subscribe({
+      next: () => fail('No debería emitir invitado cuando hay error de red'),
+      error: (error) => {
+        responseError = error;
+      },
     });
 
     const request = httpMock.expectOne('http://localhost:8080/api/invitados');
     request.error(new ProgressEvent('network-error'), { status: 0, statusText: 'Unknown Error' });
 
-    expect(invitadoId.startsWith('nf-')).toBeTrue();
+    expect((responseError as { status?: number })?.status).toBe(0);
   });
 });
 
