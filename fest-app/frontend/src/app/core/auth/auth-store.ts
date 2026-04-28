@@ -6,6 +6,7 @@ import {
   PersistedAuthState,
 } from '../models/auth.models';
 import {Router} from '@angular/router';
+import {isTokenExpired} from '../../auth/utils/auth.utils';
 
 type SessionResponse = Pick<LoginResponse, 'token'> & { user?: AuthUser };
 
@@ -23,7 +24,7 @@ export class AuthStore {
   readonly isAuthenticated = computed(() => {
     const token = this._token();
     const user = this._user();
-    return Boolean(token && user && !this.isTokenExpired(token));
+    return Boolean(token && user && !isTokenExpired(token));
   });
 
   constructor() {
@@ -31,7 +32,7 @@ export class AuthStore {
   }
 
   login(response: SessionResponse): void {
-    if (this.isTokenExpired(response.token)) {
+    if (isTokenExpired(response.token)) {
       this.logout();
       return;
     }
@@ -150,7 +151,7 @@ export class AuthStore {
     try {
       const state = JSON.parse(rawState) as Partial<PersistedAuthState>;
 
-      if (!state.token || this.isTokenExpired(state.token)) {
+      if (!state.token || isTokenExpired(state.token)) {
         this.logout();
         return;
       }
@@ -187,20 +188,6 @@ export class AuthStore {
     }
 
     localStorage.removeItem(this.storageKey);
-  }
-
-  private isTokenExpired(token: string): boolean {
-    const decoded = this.decodeJwtPayload(token);
-    if (!decoded) {
-      return true;
-    }
-
-    if (typeof decoded.exp !== 'number') {
-      return false;
-    }
-
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    return decoded.exp <= nowInSeconds;
   }
 
   patchLocalUser(partial: Partial<AuthUser>): void {

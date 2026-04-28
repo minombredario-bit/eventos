@@ -171,7 +171,7 @@ class EventoController extends AbstractController
         return $this->getInvitados($id);
     }
 
-//    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
+    #[Route('/eventos/{id}/apuntados', name: 'api_eventos_apuntados', methods: ['GET'])]
     public function getApuntados(string $id, Request $request): JsonResponse
     {
         /** @var Usuario $user */

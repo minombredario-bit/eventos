@@ -179,10 +179,11 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
         $calledFromAdminPanel = $this->isCalledFromAdminPanel($operation, $context);
 
         if (!$isAdminEntidad || ($isAdminEntidad && !$calledFromAdminPanel)) {
+            // Mostrar solo eventos que NO sean borrador y sean visibles
             $queryBuilder
-                ->andWhere(sprintf('%s.estado != :%s_publicado', $rootAlias, $parameterName))
+                ->andWhere(sprintf('%s.estado != :%s_borrador', $rootAlias, $parameterName))
                 ->andWhere(sprintf('%s.visible = :%s_visible', $rootAlias, $parameterName))
-                ->setParameter(sprintf('%s_publicado', $parameterName), EstadoEventoEnum::BORRADOR)
+                ->setParameter(sprintf('%s_borrador', $parameterName), EstadoEventoEnum::BORRADOR)
                 ->setParameter(sprintf('%s_visible', $parameterName), true);
         }
     }
@@ -236,10 +237,11 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
             ->setParameter($parameterName, $entidad);
 
         if (!$this->security->isGranted('ROLE_ADMIN_ENTIDAD')) {
+            // Mismo criterio que addWhereEvento: estado != borrador y visible = true
             $queryBuilder
-                ->andWhere(sprintf('%s.publicado = :%s_publicado', $eventoAlias, $parameterName))
+                ->andWhere(sprintf('%s.estado != :%s_borrador', $eventoAlias, $parameterName))
                 ->andWhere(sprintf('%s.visible = :%s_visible', $eventoAlias, $parameterName))
-                ->setParameter(sprintf('%s_publicado', $parameterName), true)
+                ->setParameter(sprintf('%s_borrador', $parameterName), EstadoEventoEnum::BORRADOR)
                 ->setParameter(sprintf('%s_visible', $parameterName), true);
         }
     }

@@ -46,7 +46,10 @@ export class EventosApi {
   private readonly http = inject(HttpClient);
   private readonly mapper = inject(EventosMapper);
   private readonly authService = inject(AuthService);
-  private readonly invitadosStorageKey = 'asociacion:invitados';
+  private get invitadosStorageKey(): string {
+    const userId = this.authService.currentUserId ?? 'anon';
+    return `festapp:invitados:${userId}`;
+  }
 
   // ── Eventos ───────────────────────────────────────────────────────────
 
@@ -256,7 +259,7 @@ export class EventosApi {
       .set('itemsPerPage', itemsPerPage)
       .set('order[fechaEvento]', 'desc');
 
-    if (search?.trim() && search.length > 3) {
+    if (search?.trim() && search.length >= 3) {
       params = params.set('titulo', search.trim());
     }
 
@@ -430,13 +433,24 @@ export class EventosApi {
 
   // ── Invitados ─────────────────────────────────────────────────────────
 
+  // getInvitadosByEvento(eventoId: string): Observable<Invitado[]> {
+  //   return this.http
+  //     .get<ApiCollection<Invitado> | Invitado[]>(`${this.eventoBasePath(eventoId)}/invitados`)
+  //     .pipe(
+  //       map((r) => this.mapper.mapInvitadosList(parseCollection<Invitado>(r as unknown), eventoId)),
+  //       catchError(() =>
+  //         of(this.mapper.mapInvitadosList(this.readInvitadosFromFallback(eventoId), eventoId)),
+  //       ),
+  //     );
+  // }
+
   getInvitadosByEvento(eventoId: string): Observable<Invitado[]> {
     return this.http
       .get<ApiCollection<Invitado> | Invitado[]>(`${this.eventoBasePath(eventoId)}/invitados`)
       .pipe(
-        map((r) => this.mapper.mapInvitadosList(parseCollection<Invitado>(r as unknown), eventoId)),
+        map((r) => parseCollection<Invitado>(r as unknown)),
         catchError(() =>
-          of(this.mapper.mapInvitadosList(this.readInvitadosFromFallback(eventoId), eventoId)),
+          of(this.readInvitadosFromFallback(eventoId)),
         ),
       );
   }
@@ -528,16 +542,26 @@ export class EventosApi {
 
   // ── Relaciones ────────────────────────────────────────────────────────
 
+  // getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {
+  //   return this.http
+  //     .get<ApiCollection<RelacionUsuarioCollectionItem> | RelacionUsuarioCollectionItem[]>(
+  //       `${environment.apiUrl}/usuarios/${usuarioId}/relaciones`,
+  //     )
+  //     .pipe(
+  //       map((r) => parseCollection<RelacionUsuarioCollectionItem>(r as unknown)),
+  //       map((items) => items
+  //         .map((item) => this.toRelacionUsuario(item))
+  //         .filter((item): item is RelacionUsuario => item !== null)),
+  //     );
+  // }
+
   getRelacionesByUsuario(usuarioId: string): Observable<RelacionUsuario[]> {
     return this.http
-      .get<ApiCollection<RelacionUsuarioCollectionItem> | RelacionUsuarioCollectionItem[]>(
+      .get<ApiCollection<RelacionUsuario>>(
         `${environment.apiUrl}/usuarios/${usuarioId}/relaciones`,
       )
       .pipe(
-        map((r) => parseCollection<RelacionUsuarioCollectionItem>(r as unknown)),
-        map((items) => items
-          .map((item) => this.toRelacionUsuario(item))
-          .filter((item): item is RelacionUsuario => item !== null)),
+        map((r) => parseCollection<RelacionUsuario>(r as unknown)),
       );
   }
 

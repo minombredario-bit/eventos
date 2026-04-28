@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthStore } from './auth-store';
+import {isTokenExpired} from '../../auth/utils/auth.utils';
 
 let redirectingToLogin = false;
 
@@ -74,19 +75,4 @@ function forceLogoutAndRedirect(authStore: AuthStore, router: Router): void {
   void router.navigateByUrl('/auth/login').finally(() => {
     redirectingToLogin = false;
   });
-}
-
-function isTokenExpired(token: string): boolean {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) return true;
-
-    const decoded = JSON.parse(atob(payload)) as { exp?: number };
-    if (typeof decoded.exp !== 'number') return false;
-
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    return decoded.exp <= nowInSeconds;
-  } catch {
-    return true;
-  }
 }

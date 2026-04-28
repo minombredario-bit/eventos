@@ -72,7 +72,7 @@ export class EventosMapper {
     const nombre = String(relacionado.nombre ?? '').trim();
     const apellidos = String(relacionado.apellidos ?? '').trim();
     const displayName = nombreCompleto || [nombre, apellidos].filter(Boolean).join(' ').trim() || `Usuario ${id}`;
-
+console.log(relacionado);
     return {
       id,
       name: displayName,

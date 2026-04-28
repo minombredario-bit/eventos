@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import {CanActivateFn, Router, UrlTree} from '@angular/router';
 import { AuthStore } from './auth-store';
+import {isTokenExpired} from '../../auth/utils/auth.utils';
 
 export const authGuard: CanActivateFn = (): boolean | UrlTree => {
   const authStore = inject(AuthStore);
@@ -18,28 +19,6 @@ export const authGuard: CanActivateFn = (): boolean | UrlTree => {
   }
 
   return true;
-};
-
-function isTokenExpired(token: string): boolean {
-  try {
-    const payload = token.split('.')[1];
-
-    if (!payload) {
-      return true;
-    }
-
-    const decoded = JSON.parse(atob(payload)) as { exp?: number };
-
-    if (typeof decoded.exp !== 'number') {
-      return false;
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-
-    return decoded.exp <= now;
-  } catch {
-    return true;
-  }
 };
 
 export const adminGuard: CanActivateFn = () => {
