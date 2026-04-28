@@ -1,4 +1,4 @@
-import { parseCollection } from './collection-utils';
+import { parseCollection, parsePaginatedCollection } from './collection-utils';
 
 describe('parseCollection', () => {
   it('returns array when input is array', () => {
@@ -26,3 +26,33 @@ describe('parseCollection', () => {
   });
 });
 
+describe('parsePaginatedCollection', () => {
+  it('builds pagination metadata from hydra payload', () => {
+    const payload = {
+      'hydra:member': [{ id: 'x' }],
+      'hydra:totalItems': 8,
+      'hydra:view': { 'hydra:next': '/api/eventos?page=2' },
+    };
+
+    const result = parsePaginatedCollection<any>(payload);
+
+    expect(result).toEqual({
+      items: [{ id: 'x' }],
+      totalItems: 8,
+      hasNext: true,
+      hasPrevious: false,
+    });
+  });
+
+  it('falls back to parsed collection when pagination metadata is missing', () => {
+    const payload = [{ id: 1 }, { id: 2 }];
+    const result = parsePaginatedCollection<any>(payload);
+
+    expect(result).toEqual({
+      items: payload,
+      totalItems: 2,
+      hasNext: false,
+      hasPrevious: false,
+    });
+  });
+});
