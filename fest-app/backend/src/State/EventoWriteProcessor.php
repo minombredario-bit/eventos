@@ -8,6 +8,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\ActividadEvento;
 use App\Entity\Evento;
 use App\Enum\CompatibilidadPersonaActividadEnum;
+use App\Enum\EstadoEventoEnum;
 use App\Enum\FranjaComidaEnum;
 use App\Enum\TipoActividadEnum;
 use App\Repository\ActividadEventoRepository;
@@ -44,7 +45,6 @@ final class EventoWriteProcessor implements ProcessorInterface
         $user  = $this->security->getUser();
         $isNew = $operation instanceof Post;
 
-        // La entidad siempre viene del usuario autenticado
         $data->setEntidad($user->getEntidad());
         $this->syncSlug($data, $operation);
         $this->syncActividades($data);
@@ -52,7 +52,9 @@ final class EventoWriteProcessor implements ProcessorInterface
         /** @var Evento $saved */
         $saved = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
-        $this->notificarEvento($saved, $isNew, (string) $user->getEntidad()->getId());
+        if ($saved->isVisible() && $saved->getEstado() !== EstadoEventoEnum::BORRADOR) {
+            $this->notificarEvento($saved, $isNew, (string) $user->getEntidad()->getId());
+        }
 
         return $saved;
     }

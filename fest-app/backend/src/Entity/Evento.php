@@ -72,9 +72,17 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             output: InvitadoView::class,
             provider: EventoInvitadosProvider::class
         ),
-        new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')", processor: EventoWriteProcessor::class),
-        new Patch(security: "is_granted('EVENTO_EDIT', object)", processor: EventoWriteProcessor::class),
-        new Delete(security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
+        new Post(
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
+            processor: EventoWriteProcessor::class
+        ),
+        new Patch(
+            security: "is_granted('EVENTO_EDIT', object)",
+            processor: EventoWriteProcessor::class
+        ),
+        new Delete(
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"
+        ),
         new Post(
             uriTemplate: '/eventos/{id}/cancelar',
             security: "is_granted('EVENTO_EDIT', object)",
