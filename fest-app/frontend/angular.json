@@ -17,6 +17,13 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
+            "allowedCommonJsDependencies": [
+              "quill",
+              "quill-delta",
+              "parchment",
+              "lodash.clonedeep",
+              "lodash.isequal"
+            ],
             "outputPath": "dist/frontend",
             "index": "src/index.html",
             "browser": "src/main.ts",
