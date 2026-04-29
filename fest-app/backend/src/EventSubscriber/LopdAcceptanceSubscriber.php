@@ -63,7 +63,7 @@ final class LopdAcceptanceSubscriber implements EventSubscriberInterface
 
         // FIX: permitir el endpoint de suscripción push aunque no se haya aceptado LOPD,
         // ya que puede necesitarse justo después del login antes de completar el flujo LOPD
-        if ($method === 'POST' && $path === '/api/push/subscribe') {
+        if ($method === 'POST' && in_array($path, ['/api/push/subscribe', '/api/push/unsubscribe'], true)) {
             return;
         }
 

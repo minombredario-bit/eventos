@@ -4,6 +4,7 @@ namespace App\Controller\Api;
 
 use App\Entity\PushSubscription;
 use App\Entity\Usuario;
+use App\Repository\PushSubscriptionRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,6 +52,34 @@ class PushController
 
         $em->persist($subscription);
         $em->flush();
+
+        return new JsonResponse(['ok' => true]);
+    }
+
+    #[Route('/push/unsubscribe', methods: ['POST'])]
+    public function unsubscribe(
+        Request $request,
+        PushSubscriptionRepository $pushSubscriptionRepository,
+        EntityManagerInterface $em,
+        #[CurrentUser] ?Usuario $user
+    ): JsonResponse {
+        if (null === $user) {
+            return new JsonResponse(['error' => 'No autenticado'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $endpoint = $data['endpoint'] ?? null;
+
+        if (!is_string($endpoint) || $endpoint === '') {
+            return new JsonResponse(['error' => 'Invalid endpoint'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $subscription = $pushSubscriptionRepository->findOneByEndpoint($endpoint);
+
+        if ($subscription !== null && $subscription->getUsuarioId() === (string) $user->getId()) {
+            $em->remove($subscription);
+            $em->flush();
+        }
 
         return new JsonResponse(['ok' => true]);
     }

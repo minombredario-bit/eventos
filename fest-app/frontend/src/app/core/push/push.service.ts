@@ -17,6 +17,10 @@ export class PushService {
   readonly subscribing = signal(false);
   readonly subscribed = signal(false);
 
+  constructor() {
+    this.syncCurrentSubscriptionState();
+  }
+
   subscribe(): Promise<'subscribed' | 'already_subscribed' | 'denied' | 'unavailable' | 'error'> {
     if (!this.swPush.isEnabled) {
       console.warn('Service worker no activo');
@@ -37,7 +41,7 @@ export class PushService {
         this.swPush.requestSubscription({
           serverPublicKey: this.vapidPublicKey
         }).then(subscription => {
-          this.http.post('/api/push/subscribe', subscription).subscribe({
+          this.http.post(`${environment.apiUrl}/push/subscribe`, subscription).subscribe({
             next: () => {
               this.subscribed.set(true);
               this.subscribing.set(false);
@@ -59,6 +63,63 @@ export class PushService {
           }
         });
       });
+    });
+  }
+
+  unsubscribe(): Promise<'unsubscribed' | 'not_subscribed' | 'unavailable' | 'error'> {
+    if (!this.swPush.isEnabled) {
+      return Promise.resolve('unavailable');
+    }
+
+    this.subscribing.set(true);
+
+    return new Promise((resolve) => {
+      this.swPush.subscription.pipe(take(1)).subscribe(existing => {
+        if (!existing) {
+          this.subscribed.set(false);
+          this.subscribing.set(false);
+          resolve('not_subscribed');
+          return;
+        }
+
+        const endpoint = existing.endpoint;
+
+        existing.unsubscribe()
+          .then((browserResult) => {
+            if (!browserResult) {
+              this.subscribing.set(false);
+              resolve('error');
+              return;
+            }
+
+            this.http.post(`${environment.apiUrl}/push/unsubscribe`, { endpoint }).subscribe({
+              next: () => {
+                this.subscribed.set(false);
+                this.subscribing.set(false);
+                resolve('unsubscribed');
+              },
+              error: () => {
+                this.subscribing.set(false);
+                resolve('error');
+              },
+            });
+          })
+          .catch(() => {
+            this.subscribing.set(false);
+            resolve('error');
+          });
+      });
+    });
+  }
+
+  private syncCurrentSubscriptionState(): void {
+    if (!this.swPush.isEnabled) {
+      this.subscribed.set(false);
+      return;
+    }
+
+    this.swPush.subscription.pipe(take(1)).subscribe(subscription => {
+      this.subscribed.set(!!subscription);
     });
   }
 }

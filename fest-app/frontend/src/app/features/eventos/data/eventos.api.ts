@@ -26,8 +26,6 @@ import {
 import {
   ApiCollection,
   CrearInscripcionResponse,
-  EventoListAdminResponse,
-  EventoParticipantesReporteApi,
   EventoWritePayload,
   EventoApuntadosCollectionResponse,
   InscripcionCollectionItem,
@@ -35,8 +33,6 @@ import {
   RelacionUsuarioCollectionItem,
   SeleccionParticipantesResponseApi,
 } from '../domain/eventos.api.models';
-import {Usuario, UsuariosFiltro, UsuariosPage} from '../../admin/domain/admin.models';
-import {Eventos} from '../eventos';
 import {environment} from '../../../../environments/environment';
 
 
