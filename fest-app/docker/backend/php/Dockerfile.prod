@@ -61,7 +61,7 @@ RUN chown -R www-data:www-data /var/www/html \
     && chown -R www-data:www-data var/ config/jwt \
     && chmod 775 config/jwt
 
-COPY docker/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
+COPY docker/backend/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000

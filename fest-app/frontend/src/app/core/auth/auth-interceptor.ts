@@ -8,7 +8,13 @@ import {isTokenExpired} from '../../auth/utils/auth.utils';
 let redirectingToLogin = false;
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
-  if (!isApiRequest(request.url) || isPublicEndpoint(request.url)) {
+  if (!isApiRequest(request.url)) {
+    return next(request);
+  }
+
+  request = withServiceWorkerBypass(request);
+
+  if (isPublicEndpoint(request.url)) {
     return next(request);
   }
 
@@ -74,5 +80,13 @@ function forceLogoutAndRedirect(authStore: AuthStore, router: Router): void {
 
   void router.navigateByUrl('/auth/login').finally(() => {
     redirectingToLogin = false;
+  });
+}
+
+function withServiceWorkerBypass(request: Parameters<HttpInterceptorFn>[0]) {
+  return request.clone({
+    setHeaders: {
+      'ngsw-bypass': 'true',
+    },
   });
 }

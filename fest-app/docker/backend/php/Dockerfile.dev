@@ -26,17 +26,18 @@ RUN docker-php-ext-install \
     zip \
     intl \
     opcache \
-    gd
+    gd \
+    bcmath
 
 # ── Xdebug (solo dev) ─────────────────────────────
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug
 
 # ── Configuración PHP ─────────────────────────────
-COPY docker/php/conf.d/xdebug.ini           /usr/local/etc/php/conf.d/99-xdebug.ini
-COPY docker/php/conf.d/api-platform.dev.ini /usr/local/etc/php/conf.d/api-platform.ini
-COPY docker/php/conf.d/www.conf             /usr/local/etc/php/php-fpm.d/zz-app.conf
-COPY docker/php/php.ini                     /usr/local/etc/php/php.ini
+COPY docker/backend/php/conf.d/xdebug.ini           /usr/local/etc/php/conf.d/99-xdebug.ini
+COPY docker/backend/php/conf.d/api-platform.dev.ini /usr/local/etc/php/conf.d/api-platform.ini
+COPY docker/backend/php/conf.d/www.conf             /usr/local/etc/php/php-fpm.d/zz-app.conf
+COPY docker/backend/php/php.ini                     /usr/local/etc/php/php.ini
 
 # ── SSH: configuración del servidor ──────────────
 RUN mkdir -p /var/run/sshd \
@@ -62,14 +63,14 @@ COPY backend/ .
 ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN composer install --no-interaction --optimize-autoloader
 
-# Permisos
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html \
-    && mkdir -p var/cache var/log \
-    && chown -R www-data:www-data var/
+# Permisos Symfony
+RUN mkdir -p /var/www/html/var/cache /var/www/html/var/log \
+ && chown -R www-data:www-data /var/www/html \
+ && find /var/www/html/var -type d -exec chmod 2775 {} \; \
+ && find /var/www/html/var -type f -exec chmod 0664 {} \;
 
 # ── Entrypoint ────────────────────────────────────
-COPY docker/php/entrypoint.dev.sh /usr/local/bin/entrypoint.sh
+COPY docker/backend/php/entrypoint.dev.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000 22

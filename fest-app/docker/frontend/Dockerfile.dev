@@ -1,0 +1,12 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Herramientas útiles para scripts que usan git/sh.
+RUN apk add --no-cache git
+
+# No copiamos el código en dev: se monta ./frontend:/app desde docker-compose.
+# El node_modules se mantiene en un volumen para no pisarlo desde Windows.
+EXPOSE 4200
+
+CMD ["sh", "-c", "npm install && npm run start -- --host 0.0.0.0 --port 4200"]

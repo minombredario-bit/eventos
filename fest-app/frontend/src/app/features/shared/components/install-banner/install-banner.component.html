@@ -1,43 +1,27 @@
 @if (pwa.canInstall()) {
-  <div class="install-banner">
-    <div class="install-banner__content">
-      <img
-        src="/icons/icon-192x192.png"
-        alt="FestApp"
-        class="install-banner__icon"
-      />
+  <div class="install-banner" aria-label="Acciones de instalación">
+    <img
+      src="/icons/icon-192x192.png"
+      alt="FestApp"
+      class="install-banner__icon"
+    />
 
-      <div class="install-banner__text">
-        <strong>Instalar Festiva</strong>
-        <span>Acceso rápido desde tu pantalla de inicio</span>
-      </div>
-    </div>
+    <button class="icon-btn" type="button" (click)="pwa.dismiss()" aria-label="Cerrar">
+      ✕
+    </button>
 
-    <div class="install-banner__actions">
-      <button
-        class="btn-dismiss"
-        type="button"
-        (click)="pwa.dismiss()"
-      >
-        Ahora no
-      </button>
+    <button
+      class="icon-btn"
+      type="button"
+      [disabled]="push.subscribing()"
+      (click)="togglePush()"
+      aria-label="Activar o desactivar avisos"
+    >
+      🔔
+    </button>
 
-      <button
-        class="btn-push"
-        type="button"
-        [disabled]="push.subscribing()"
-        (click)="togglePush()"
-      >
-        {{ push.subscribing() ? 'Procesando…' : push.subscribed() ? 'Desactivar avisos' : 'Activar avisos' }}
-      </button>
-
-      <button
-        class="btn-install"
-        type="button"
-        (click)="install()"
-      >
-        Instalar
-      </button>
-    </div>
+    <button class="icon-btn icon-btn--primary" type="button" (click)="install()" aria-label="Instalar app">
+      ⬇
+    </button>
   </div>
 }

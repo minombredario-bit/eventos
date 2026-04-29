@@ -3,9 +3,9 @@ services:
         build:
             context: .
             dockerfile: docker/php/Dockerfile.prod
-        image: festapp-php:${APP_VERSION:-latest}
+        image: festiva-php:${APP_VERSION:-latest}
         pull_policy: build
-        container_name: festapp-php
+        container_name: festiva-php
         restart: unless-stopped
         healthcheck:
             test: ["CMD-SHELL", "pgrep php-fpm > /dev/null || exit 1"]
@@ -23,18 +23,18 @@ services:
         networks:
             - backend
 
-    nginx:
+    back-nginx:
         build:
             context: .
-            dockerfile: docker/nginx/Dockerfile.prod
-        image: festapp-nginx:${APP_VERSION:-latest}
+            dockerfile: docker/backend/nginx/Dockerfile.prod
+        image: festiva-nginx:${APP_VERSION:-latest}
         pull_policy: build
-        container_name: festapp-nginx
+        container_name: festiva-back-nginx
         restart: unless-stopped
         ports:
             - "127.0.0.1:8081:80"
         volumes:
-            - ./docker/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
+            - ./docker/backend/nginx/default.prod.conf:/etc/nginx/conf.d/default.conf:ro
             - nginx_logs:/var/log/nginx
         depends_on:
             php:
@@ -43,13 +43,31 @@ services:
             - backend
             - frontend
 
+    front-nginx:
+        build:
+            context: .
+            dockerfile: docker/frontend/nginx/Dockerfile.prod
+        image: festiva-front-nginx:${APP_VERSION:-latest}
+        pull_policy: build
+        container_name: festiva-front-nginx
+        restart: unless-stopped
+        depends_on:
+            - back-nginx
+        ports:
+            - "127.0.0.1:${FRONT_HTTP_PORT:-8081}:80"
+        volumes:
+            - front_nginx_logs:/var/log/nginx
+        networks:
+            - frontend
+            - backend
+
     ofelia:
         build:
             context: .
             dockerfile: docker/ofelia/Dockerfile.prod
-        image: festapp-ofelia:${APP_VERSION:-latest}
+        image: festiva-ofelia:${APP_VERSION:-latest}
         pull_policy: build
-        container_name: festapp-ofelia
+        container_name: festiva-ofelia
         restart: unless-stopped
         depends_on:
             php:

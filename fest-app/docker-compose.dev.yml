@@ -1,12 +1,9 @@
 services:
 
-    # ──────────────────────────────────────────────
-    # PHP-FPM  (Symfony backend)
-    # ──────────────────────────────────────────────
     php:
         build:
             context: .
-            dockerfile: docker/php/Dockerfile.dev
+            dockerfile: docker/backend/php/Dockerfile.dev
         container_name: festapp2-php
         restart: unless-stopped
         ports:
@@ -34,22 +31,46 @@ services:
             - backend
         labels:
             ofelia.enabled: "true"
-            # Cola de correos: cada minuto
             ofelia.job-exec.mail-queue.schedule: "@every 1m"
             ofelia.job-exec.mail-queue.command: "php /var/www/html/bin/console app:mail-queue:process --limit=50 --no-interaction"
-            # Estados de eventos: cada 10 minutos
             ofelia.job-exec.event-status.schedule: "@every 10m"
             ofelia.job-exec.event-status.command: "php /var/www/html/bin/console app:eventos:actualizar-estados --no-interaction"
 
-    # ──────────────────────────────────────────────
-    # OFELIA  – scheduler
-    # Lee las labels del contenedor PHP via Docker socket
-    # ──────────────────────────────────────────────
+    back-nginx:
+        build:
+            context: .
+            dockerfile: docker/backend/nginx/Dockerfile.dev
+        container_name: festapp2-back-nginx
+        restart: unless-stopped
+        ports:
+            - "8080:80"
+        volumes:
+            - app_data:/var/www/html:ro
+        depends_on:
+            - php
+        networks:
+            - backend
+            - frontend
+
+    # Nginx del front separado: solo proxy hacia el contenedor frontend.
+    # Opcionalmente también unifica /api para evitar CORS en desarrollo.
+    front-nginx:
+        image: nginx:1.27-alpine
+        container_name: festapp2-front-nginx
+        ports:
+            - "8082:80"
+        volumes:
+            - ./frontend/dist/frontend/browser:/usr/share/nginx/html:ro
+            - ./docker/frontend/nginx/default.dev.conf:/etc/nginx/conf.d/default.conf:ro
+        depends_on:
+            - back-nginx
+        networks:
+            - frontend
+
     ofelia:
         image: mcuadros/ofelia:latest
         container_name: festapp2-ofelia
         restart: unless-stopped
-        # Sin entrypoint personalizado — usa el comando por defecto de la imagen
         command: daemon --docker
         depends_on:
             - php
@@ -58,27 +79,6 @@ services:
         networks:
             - backend
 
-    # ──────────────────────────────────────────────
-    # NGINX
-    # ──────────────────────────────────────────────
-    nginx:
-        image: nginx:1.27-alpine
-        container_name: festapp2-nginx
-        restart: unless-stopped
-        ports:
-            - "8080:80"
-        volumes:
-            - app_data:/var/www/html:ro
-            - ./docker/nginx/default.dev.conf:/etc/nginx/conf.d/default.conf:ro
-        depends_on:
-            - php
-        networks:
-            - backend
-            - frontend
-
-    # ──────────────────────────────────────────────
-    # MySQL
-    # ──────────────────────────────────────────────
     db:
         image: mysql:8.0
         container_name: festapp2-db
@@ -92,7 +92,7 @@ services:
             MYSQL_PASSWORD: festapp_pass
         volumes:
             - festapp-mysql:/var/lib/mysql
-            - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+            - ./docker/backend/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
         healthcheck:
             test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass_dev"]
             interval: 10s
@@ -101,9 +101,6 @@ services:
         networks:
             - backend
 
-    # ──────────────────────────────────────────────
-    # Herramientas opcionales (activa con: --profile tools)
-    # ──────────────────────────────────────────────
     adminer:
         image: adminer:latest
         container_name: festapp2-adminer
@@ -127,6 +124,7 @@ services:
 volumes:
     app_data:
     festapp-mysql:
+    frontend_node_modules:
 
 networks:
     backend:
