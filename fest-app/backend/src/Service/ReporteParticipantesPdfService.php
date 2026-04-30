@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Evento;
 use App\Entity\Inscripcion;
+use App\Entity\Usuario;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Twig\Environment;
@@ -42,28 +43,63 @@ class ReporteParticipantesPdfService
     }
 
     /**
-     * @return list<array{nombreCompleto: string, tipo: string, actividad: string, franja: string|null}>
+     * @return list<array{
+     *     nombreCompleto: string,
+     *     tipo: string,
+     *     actividad: string,
+     *     franja: string|null,
+     *     grupoRelacionKey: string
+     * }>
      */
     private function collectPersonas(Evento $evento): array
     {
         $personas = [];
 
-        /** @var Inscripcion $inscripcion */
         foreach ($evento->getInscripciones() as $inscripcion) {
             foreach ($inscripcion->getLineas() as $linea) {
-                $actividad  = $linea->getActividad();
+                $actividad = $linea->getActividad();
+                $usuario = method_exists($linea, 'getUsuario') ? $linea->getUsuario() : null;
+
                 $personas[] = [
-                    'nombreCompleto' => $linea->getNombrePersonaSnapshot() ?? '-',
-                    'tipo'           => $linea->getTipoPersonaSnapshot() ?? '-',
-                    'actividad'      => $linea->getNombreActividadSnapshot() ?? ($actividad?->getNombre() ?? '-'),
-                    'franja'         => $actividad?->getFranjaComida()?->value,
+                    'nombreCompleto'    => $linea->getNombrePersonaSnapshot() ?? '-',
+                    'tipo'              => $linea->getTipoPersonaSnapshot() ?? '-',
+                    'actividad'         => $linea->getNombreActividadSnapshot() ?? ($actividad?->getNombre() ?? '-'),
+                    'franja'            => $actividad?->getFranjaComida()?->value,
+                    'grupoRelacionKey'  => $usuario ? $this->buildGrupoRelacionKey($usuario) : 'zzz_' . ($linea->getNombrePersonaSnapshot() ?? uniqid()),
                 ];
             }
         }
 
-        usort($personas, static fn($a, $b) => strcmp($a['nombreCompleto'], $b['nombreCompleto']));
+        usort($personas, static function (array $a, array $b): int {
+            return strcmp($a['grupoRelacionKey'], $b['grupoRelacionKey'])
+                ?: strcmp($a['tipo'], $b['tipo'])
+                    ?: strcmp($a['nombreCompleto'], $b['nombreCompleto']);
+        });
 
         return $personas;
+    }
+
+    private function buildGrupoRelacionKey(Usuario $usuario): string
+    {
+        $ids = [$usuario->getId()];
+
+        foreach ($usuario->getRelacionados() as $relacion) {
+            $origen = $relacion->getUsuarioOrigen();
+            $destino = $relacion->getUsuarioDestino();
+
+            if ($origen?->getId()) {
+                $ids[] = $origen->getId();
+            }
+
+            if ($destino?->getId()) {
+                $ids[] = $destino->getId();
+            }
+        }
+
+        $ids = array_values(array_unique(array_filter($ids)));
+        sort($ids);
+
+        return implode('_', $ids);
     }
 
     /**
