@@ -45,7 +45,8 @@
             ],
             "styles": [
               "src/styles.scss",
-              "node_modules/quill/dist/quill.snow.css"
+              "node_modules/quill/dist/quill.snow.css",
+              "src/assets/css/styles.scss"
             ],
             "scripts": []
           },
@@ -126,7 +127,8 @@
               ],
             "styles": [
               "src/styles.scss",
-              "node_modules/quill/dist/quill.snow.css"
+              "node_modules/quill/dist/quill.snow.css",
+              "src/assets/css/styles.scss"
             ],
             "scripts": []
           }
