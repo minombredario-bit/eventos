@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\Post;
 use App\Dto\AdminCreateUsuarioInput;
 use App\Dto\AdminUpdateUsuarioInput;
+use App\Dto\AdminUsuarioOutput;
 use App\Enum\TipoPersonaEnum;
 use App\Repository\UsuarioRepository;
 use App\State\AdminUsuarioProcessor;
@@ -40,10 +41,12 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(security: "is_granted('VIEW', object)"),
-        // Admin-specific GET that returns fields needed by the admin frontend
         new Get(
             uriTemplate: '/admin/usuarios/{id}',
-            normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
+            normalizationContext: [
+                'groups' => ['usuario:read', 'read_user_admin'],
+                'skip_null_values' => false,
+            ],
             security: "is_granted('ROLE_ADMIN_ENTIDAD')",
         ),
         new GetCollection(
@@ -59,20 +62,28 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new Post(
             uriTemplate: '/admin/usuarios',
-            normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
+            normalizationContext: [
+                'groups' => ['admin_usuario_output', 'usuario:read', 'read_user_admin'],
+                'skip_null_values' => false,
+            ],
             denormalizationContext: ['groups' => ['admin_usuario_create']],
             security: "is_granted('ROLE_ADMIN_ENTIDAD')",
             input: AdminCreateUsuarioInput::class,
+            output: AdminUsuarioOutput::class,
             processor: AdminUsuarioProcessor::class,
         ),
         new Patch(security: "is_granted('EDIT', object)"),
         // Admin-specific PATCH that routes through a processor to handle relaciones and cargos
         new Patch(
             uriTemplate: '/admin/usuarios/{id}',
-            normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
+            normalizationContext: [
+                'groups' => ['admin_usuario_output', 'usuario:read', 'read_user_admin'],
+                'skip_null_values' => false,
+            ],
             denormalizationContext: ['groups' => ['admin_usuario_update']],
             security: "is_granted('ROLE_ADMIN_ENTIDAD')",
             input: AdminUpdateUsuarioInput::class,
+            output: AdminUsuarioOutput::class,
             processor: AdminUsuarioProcessor::class
         ),
     ],
@@ -101,93 +112,172 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['usuario:read', 'usuario:list', 'usuario:collection', 'relacion:read'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:list',
+        'usuario:collection',
+        'relacion:read',
+        'read_user_admin',
+    ])]
     private ?string $id = null;
+
 
     #[ORM\ManyToOne(targetEntity: Entidad::class, inversedBy: 'usuarios')]
     #[ORM\JoinColumn(nullable: false)]
     private Entidad $entidad;
 
     #[ORM\Column(type: Types::STRING, length: 100)]
-    #[Groups(['usuario:read', 'usuario:write', 'usuario:collection'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'usuario:collection',
+        'read_user_admin',
+    ])]
     #[Assert\NotBlank]
     private string $nombre;
 
     #[ORM\Column(type: Types::STRING, length: 150)]
-    #[Groups(['usuario:read', 'usuario:write', 'usuario:collection'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'usuario:collection',
+        'read_user_admin',
+    ])]
     #[Assert\NotBlank]
     private string $apellidos;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
-    #[Groups(['usuario:read', 'relacion:read', 'usuario:list', 'usuario:collection'])]
+    #[Groups([
+        'usuario:read',
+        'relacion:read',
+        'usuario:list',
+        'usuario:collection',
+        'read_user_admin',
+    ])]
     private string $nombreCompleto;
 
     #[ORM\Column(type: Types::STRING, length: 180, nullable: true)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     #[Assert\Email]
     private ?string $email = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
-    #[Groups(['usuario:read', 'usuario:write', 'usuario:list', 'usuario:collection'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'usuario:list',
+        'usuario:collection',
+        'read_user_admin',
+    ])]
     private ?string $telefono = null;
 
     #[ORM\Column(type: Types::STRING)]
     private string $password;
 
-    /** @var string[] */
     #[ORM\Column(type: Types::JSON)]
-    #[Groups(['usuario:read','read_user_admin'])]
+    #[Groups([
+        'usuario:read',
+        'read_user_admin',
+    ])]
     private array $roles = ['ROLE_USER'];
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     private bool $activo = true;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: EstadoValidacionEnum::class)]
-    #[Groups(['usuario:read', 'usuario:write', 'read_user_admin'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     private EstadoValidacionEnum $estadoValidacion = EstadoValidacionEnum::PENDIENTE_VALIDACION;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoRelacionEconomicaEnum::class)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     private TipoRelacionEconomicaEnum $tipoUsuarioEconomico;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoPersonaEnum::class)]
-    #[Groups(['usuario:read', 'usuario:write', 'relacion:read'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'relacion:read',
+        'read_user_admin',
+    ])]
     #[Assert\NotNull]
     private TipoPersonaEnum $tipoPersona;
-
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true, enumType: CensadoViaEnum::class)]
     private ?CensadoViaEnum $censadoVia = null;
 
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
-    #[Groups(['usuario:read', 'usuario:write', 'usuario:collection'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'usuario:collection',
+        'read_user_admin',
+    ])]
     private ?int $antiguedad = null;
 
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
-    #[Groups(['usuario:read', 'usuario:write', 'usuario:collection'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'usuario:collection',
+        'read_user_admin',
+    ])]
     private ?int $antiguedadReal = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true, enumType: MetodoPagoEnum::class)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     private ?MetodoPagoEnum $formaPagoPreferida = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['usuario:read'])]
+    #[Groups([
+        'usuario:read',
+        'read_user_admin',
+    ])]
     private bool $debeCambiarPassword = false;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $passwordActualizadaAt = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     private ?\DateTimeImmutable $fechaAltaCenso = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['usuario:read'])]
+    #[Groups([
+        'usuario:read',
+        'read_user_admin',
+    ])]
     private ?\DateTimeImmutable $fechaBajaCenso = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['usuario:write','read_user_admin'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     private ?string $motivoBajaCenso = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
@@ -201,15 +291,25 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $inscripciones;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
-    #[Groups(['usuario:read', 'usuario:write', 'read_user_admin'])]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     private ?\DateTimeImmutable $fechaNacimiento = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['usuario:read', 'read_user_admin'])]
+    #[Groups([
+        'usuario:read',
+        'read_user_admin',
+    ])]
     private bool $aceptoLopd = false;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['usuario:read', 'read_user_admin'])]
+    #[Groups([
+        'usuario:read',
+        'read_user_admin',
+    ])]
     private ?\DateTimeImmutable $aceptoLopdAt = null;
 
     /** @var Collection<int, RelacionUsuario> */
@@ -237,6 +337,11 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $usuarioReconocimientos;
 
     #[ORM\Column(type: Types::STRING, length: 15, nullable: false)]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
     #[Assert\NotBlank]
     private string $documentoIdentidad;
 
@@ -459,8 +564,14 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setEmail(?string $email): static
     {
-        $email = $email !== null ? trim($email) : null;
-        $this->email = $email !== '' ? mb_strtolower($email) : null;
+        if ($email === null) {
+            $this->email = null;
+            return $this;
+        }
+
+        $email = trim($email);
+
+        $this->email = $email === '' ? null : mb_strtolower($email);
 
         return $this;
     }
@@ -927,16 +1038,22 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         return null;
     }
 
-    private function calcularTipoPersona(\DateTimeImmutable $fechaNacimiento): TipoPersonaEnum
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function syncTipoPersona(): void
     {
-        $hoy = new \DateTimeImmutable('today');
-        $edad = $fechaNacimiento->diff($hoy)->y;
+        if ($this->fechaNacimiento instanceof \DateTimeImmutable) {
+            $hoy = new \DateTimeImmutable('today');
+            $edad = $this->fechaNacimiento->diff($hoy)->y;
 
-        return match (true) {
-            $edad <= 13 => TipoPersonaEnum::INFANTIL,
-            $edad <= 18 => TipoPersonaEnum::CADETE,
-            default => TipoPersonaEnum::ADULTO,
-        };
+            $this->tipoPersona = match (true) {
+                $edad <= 13 => TipoPersonaEnum::INFANTIL,
+                $edad <= 18 => TipoPersonaEnum::CADETE,
+                default => TipoPersonaEnum::ADULTO,
+            };
+        } else {
+            $this->tipoPersona = TipoPersonaEnum::ADULTO;
+        }
     }
 
     public function getDocumentoIdentidad(): ?string
@@ -946,8 +1063,17 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setDocumentoIdentidad(?string $documentoIdentidad): static
     {
-        $documentoIdentidad = $documentoIdentidad !== null ? trim($documentoIdentidad) : null;
-        $this->documentoIdentidad = $documentoIdentidad !== '' ? mb_strtoupper($documentoIdentidad) : null;
+        if ($documentoIdentidad === null) {
+            throw new \InvalidArgumentException('El documento de identidad es obligatorio.');
+        }
+
+        $documentoIdentidad = trim($documentoIdentidad);
+
+        if ($documentoIdentidad === '') {
+            throw new \InvalidArgumentException('El documento de identidad es obligatorio.');
+        }
+
+        $this->documentoIdentidad = mb_strtoupper($documentoIdentidad);
 
         return $this;
     }

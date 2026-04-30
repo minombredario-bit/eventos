@@ -25,6 +25,11 @@ final class AdminCreateUsuarioInput
     public ?string $telefono = null;
 
     #[Groups(['admin_usuario_create'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 15)]
+    public ?string $documentoIdentidad = null;
+
+    #[Groups(['admin_usuario_create'])]
     #[Assert\NotNull]
     #[Assert\Count(min: 1)]
     public array $roles = ['ROLE_USER'];

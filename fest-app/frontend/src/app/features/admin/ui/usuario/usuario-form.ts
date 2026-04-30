@@ -65,6 +65,7 @@ export class AdminUsuarioForm {
   protected readonly successMessage = signal<string | null>(null);
 
   protected readonly usuario = signal<Usuario | null>(null);
+  protected readonly passwordGenerada = signal<string | null>(null);
   protected readonly userId = signal<string | null>(null);
 
   protected readonly cargos = signal<Cargo[]>([]);
@@ -140,6 +141,11 @@ export class AdminUsuarioForm {
     email: this.fb.nonNullable.control('', [Validators.email]),
     telefono: this.fb.nonNullable.control(''),
 
+    documentoIdentidad: this.fb.nonNullable.control('', [
+      Validators.required,
+      Validators.maxLength(15),
+    ]),
+
     activo: this.fb.nonNullable.control(true),
     motivoBajaCenso: this.fb.control<string | null>(null),
 
@@ -179,6 +185,7 @@ export class AdminUsuarioForm {
         if (!id?.trim()) {
           this.userId.set(null);
           this.usuario.set(null);
+          this.passwordGenerada.set(null);
           this.cargosSeleccionados.set([]);
           this.usuariosRelacionadosSeleccionados.set([]);
           this.resetForCreate();
@@ -219,21 +226,22 @@ export class AdminUsuarioForm {
       });
   }
 
-  protected submit(): void {
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
-
-    if (this.form.invalid || this.saving()) {
+  submit(): void {
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
-      if (this.form.invalid) {
-        this.errorMessage.set(
-          'Revisa los campos obligatorios antes de guardar los cambios.'
-        );
-      }
+      this.errorMessage.set('Revisa los campos obligatorios.');
       return;
     }
 
-    this.isEditMode() ? this.updateUsuario() : this.createUsuario();
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    if (this.isEditMode()) {
+      this.updateUsuario();
+      return;
+    }
+
+    this.createUsuario();
   }
 
   protected goBack(): void {
@@ -339,6 +347,7 @@ export class AdminUsuarioForm {
   private createUsuario(): void {
     this.saving.set(true);
     this.errorMessage.set(null);
+    this.passwordGenerada.set(null);
 
     const value = this.form.getRawValue();
 
@@ -364,6 +373,7 @@ export class AdminUsuarioForm {
         return e ? e.toLowerCase() : null;
       })(),
       telefono: value.telefono.trim() || null,
+      documentoIdentidad: value.documentoIdentidad.trim(),
       activo: value.activo,
       motivoBajaCenso: value.activo
         ? null
@@ -390,9 +400,29 @@ export class AdminUsuarioForm {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (created) => {
+        next: (response: any) => {
+          const created: Usuario = response.usuario;
+
           this.successMessage.set('Usuario creado correctamente.');
-          void this.router.navigate(['/admin/usuarios', created.id]);
+
+          if (response.passwordPlano) {
+            this.passwordGenerada.set(response.passwordPlano);
+          } else {
+            this.passwordGenerada.set(null);
+          }
+
+          this.userId.set(created.id ?? null);
+          this.usuario.set(created);
+          this.patchForm(created);
+          this.patchCargos(created);
+          this.patchRelacionUsuarios(created);
+          this.applyFieldPermissions();
+
+          if (created.id) {
+            void this.router.navigate(['/admin/usuarios', created.id], {
+              replaceUrl: true,
+            });
+          }
         },
         error: (error: { error?: { detail?: string; error?: string } }) => {
           this.errorMessage.set(
@@ -406,6 +436,7 @@ export class AdminUsuarioForm {
 
   private updateUsuario(): void {
     const id = this.userId();
+    this.passwordGenerada.set(null);
 
     if (!id) {
       return;
@@ -438,6 +469,7 @@ export class AdminUsuarioForm {
         return e ? e.toLowerCase() : null;
       })(),
       telefono: value.telefono.trim() || null,
+      documentoIdentidad: value.documentoIdentidad.trim(),
       activo: value.activo,
       motivoBajaCenso: value.activo
         ? null
@@ -464,13 +496,18 @@ export class AdminUsuarioForm {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (usuarioActualizado) => {
+        next: (response: any) => {
+          const usuarioActualizado: Usuario = response.usuario ?? response;
+
           this.usuario.set(usuarioActualizado);
           this.patchForm(usuarioActualizado);
           this.patchCargos(usuarioActualizado);
           this.patchRelacionUsuarios(usuarioActualizado);
           this.applyFieldPermissions();
+
           this.successMessage.set('Usuario actualizado correctamente.');
+
+          this.passwordGenerada.set(response.passwordPlano ?? null);
         },
         error: (error: { error?: { detail?: string; error?: string } }) => {
           this.errorMessage.set(
@@ -488,6 +525,7 @@ export class AdminUsuarioForm {
       apellidos: '',
       email: '',
       telefono: '',
+      documentoIdentidad: '',
       activo: true,
       motivoBajaCenso: null,
       fechaNacimiento: null,
@@ -510,6 +548,7 @@ export class AdminUsuarioForm {
       apellidos: usuario.apellidos ?? '',
       email: usuario.email ?? '',
       telefono: usuario.telefono ?? '',
+      documentoIdentidad: usuario.documentoIdentidad ?? '',
       activo: usuario.activo ?? true,
       motivoBajaCenso: usuario.motivoBajaCenso ?? null,
       fechaNacimiento: this.toDateInputValue(usuario.fechaNacimiento),

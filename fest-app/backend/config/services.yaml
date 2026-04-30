@@ -60,6 +60,10 @@ services:
         arguments:
             $allowedOrigins: '%app.cors.allowed_origins%'
 
+    App\State\AdminUsuarioProcessor:
+        arguments:
+            $appUri: '%app.uri%'
+
     App\State\InvitadoDeleteProcessor:
         arguments:
             $entityManager: '@doctrine.orm.entity_manager'

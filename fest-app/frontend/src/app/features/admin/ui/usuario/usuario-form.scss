@@ -38,6 +38,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.85rem;
+  margin-bottom: 20px;
 
   > div {
     padding: 0.9rem;
@@ -359,4 +360,44 @@
   .field input,
   .field select,
   .field textarea { font-size: 16px; }
+}
+
+.password-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 28%, white);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand-primary) 10%, white),
+      var(--surface, #fffdf9)
+    );
+  box-shadow: var(--surface-shadow, 0 8px 22px rgba(90, 30, 0, .08));
+}
+
+.password-box strong {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-primary-900, #5c1a00);
+}
+
+.password-value {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.75rem;
+  background: var(--surface, #fffdf9);
+  border: 1px dashed var(--brand-primary, #e8520a);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary, #1a0a00);
+  word-break: break-all;
+  user-select: all;
 }

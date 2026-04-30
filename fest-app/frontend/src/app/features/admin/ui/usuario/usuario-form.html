@@ -52,6 +52,17 @@
           </div>
 
           <div class="field">
+            <input
+              id="documentoIdentidad"
+              type="text"
+              formControlName="documentoIdentidad"
+              placeholder=" "
+              maxlength="15"
+            />
+            <label for="documentoIdentidad">Documento de identidad</label>
+          </div>
+
+          <div class="field">
             <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
             <label for="fechaNacimiento">{{ 'admin.usuario.fechaNacimiento' | translate }}</label>
           </div>
@@ -245,6 +256,13 @@
 
         @if (successMessage()) {
           <p class="feedback success" role="status">{{ successMessage() }}</p>
+        }
+
+        @if (passwordGenerada()) {
+          <div class="password-box" role="status">
+            <strong>Contraseña generada</strong>
+            <div class="password-value">{{ passwordGenerada() }}</div>
+          </div>
         }
 
         @if (errorMessage()) {

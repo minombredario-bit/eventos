@@ -11,7 +11,7 @@ enum TipoRelacionEnum: string
     {
         return match ($this) {
             self::AMISTAD => 'Amistad',
-            self::FAMILIAR => 'familiar'
+            self::FAMILIAR => 'Familiar'
         };
     }
 }

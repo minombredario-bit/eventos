@@ -125,6 +125,7 @@ interface UsuarioBase {
   apellidos?: string;
   email?: string | null;
   telefono?: string | null;
+  documentoIdentidad: string;
 
   activo?: boolean;
   motivoBajaCenso?: string | null;
@@ -165,6 +166,7 @@ export interface UsuarioCreatePayload {
   nombre: string;
   apellidos: string;
   email?: string | null;
+  documentoIdentidad: string;
   activo: boolean;
   fechaNacimiento: string | null;
   formaPagoPreferida: MetodoPagoPreferida;
