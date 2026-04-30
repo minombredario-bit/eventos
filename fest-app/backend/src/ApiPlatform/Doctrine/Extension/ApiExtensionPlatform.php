@@ -152,11 +152,11 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
             ->andWhere(sprintf('%s.entidad = :%s', $rootAlias, $parameterName))
             ->setParameter($parameterName, $entidad);
 
-        // Solo en colección y para admin entidad: censados por defecto.
-        if (!$isItemOperation && $this->security->isGranted('ROLE_ADMIN_ENTIDAD')) {
+        if (!$this->security->isGranted('ROLE_ADMIN_ENTIDAD')) {
             $queryBuilder
-                ->andWhere(sprintf('%s.fechaAltaCenso IS NOT NULL', $rootAlias))
-                ->andWhere(sprintf('%s.fechaBajaCenso IS NULL', $rootAlias));
+                ->andWhere(sprintf('%s.fechaBajaCenso IS NULL', $rootAlias))
+                ->andWhere(sprintf('%s.activo = :usuario_activo', $rootAlias))
+                ->setParameter('usuario_activo', true);
         }
     }
 

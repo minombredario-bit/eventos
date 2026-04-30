@@ -15,7 +15,7 @@ class UserActiveChecker implements UserCheckerInterface
             return;
         }
 
-        if (!$user->isActivo()) {
+        if (!$user->isActivo() || $user->getFechaBajaCenso() !== null) {
             throw new CustomUserMessageAccountStatusException('Tu usuario está dado de baja o bloqueado.');
         }
 

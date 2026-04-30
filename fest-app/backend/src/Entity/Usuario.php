@@ -122,11 +122,10 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['usuario:read', 'relacion:read', 'usuario:list', 'usuario:collection'])]
     private string $nombreCompleto;
 
-    #[ORM\Column(type: Types::STRING, length: 180, unique: true)]
+    #[ORM\Column(type: Types::STRING, length: 180, nullable: true)]
     #[Groups(['usuario:read', 'usuario:write'])]
-    #[Assert\NotBlank]
     #[Assert\Email]
-    private string $email;
+    private ?string $email = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, nullable: true)]
     #[Groups(['usuario:read', 'usuario:write', 'usuario:list', 'usuario:collection'])]
@@ -236,6 +235,10 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     /** @var Collection<int, UsuarioReconocimiento> */
     #[ORM\OneToMany(targetEntity: UsuarioReconocimiento::class, mappedBy: 'usuario')]
     private Collection $usuarioReconocimientos;
+
+    #[ORM\Column(type: Types::STRING, length: 15, nullable: false)]
+    #[Assert\NotBlank]
+    private string $documentoIdentidad;
 
     public function __construct()
     {
@@ -449,14 +452,16 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         return $ultimo;
     }
 
-    public function getEmail(): string
+    public function getEmail(): ?string
     {
         return $this->email;
     }
 
-    public function setEmail(string $email): static
+    public function setEmail(?string $email): static
     {
-        $this->email = $email;
+        $email = $email !== null ? trim($email) : null;
+        $this->email = $email !== '' ? mb_strtolower($email) : null;
+
         return $this;
     }
 
@@ -671,7 +676,9 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     // UserInterface methods
     public function getUserIdentifier(): string
     {
-        return $this->email;
+        return $this->email
+            ?? $this->documentoIdentidad
+            ?? (string) $this->id;
     }
 
     public function eraseCredentials(): void
@@ -930,5 +937,18 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
             $edad <= 18 => TipoPersonaEnum::CADETE,
             default => TipoPersonaEnum::ADULTO,
         };
+    }
+
+    public function getDocumentoIdentidad(): ?string
+    {
+        return $this->documentoIdentidad;
+    }
+
+    public function setDocumentoIdentidad(?string $documentoIdentidad): static
+    {
+        $documentoIdentidad = $documentoIdentidad !== null ? trim($documentoIdentidad) : null;
+        $this->documentoIdentidad = $documentoIdentidad !== '' ? mb_strtoupper($documentoIdentidad) : null;
+
+        return $this;
     }
 }

@@ -22,7 +22,7 @@ export interface AuthUser {
 }
 
 export interface LoginPayload {
-  email: string;
+  identificador: string;
   password: string;
 }
 

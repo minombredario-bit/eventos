@@ -11,9 +11,7 @@ security:
 
     providers:
         app_user_provider:
-            entity:
-                class: App\Entity\Usuario
-                property: email
+            id: App\Security\UsuarioLoginProvider
 
     firewalls:
         dev:
@@ -27,7 +25,7 @@ security:
             user_checker: App\Security\UserActiveChecker
             json_login:
                 check_path: api_login_check
-                username_path: email
+                username_path: identificador
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
