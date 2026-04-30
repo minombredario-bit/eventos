@@ -18,8 +18,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"),
-        new GetCollection(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new Get(security: "is_granted('ROLE_USER')"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
         new Patch(security: "is_granted('ROLE_SUPERADMIN')"),
     ],

@@ -24,9 +24,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(security: "is_granted('INSCRIPCION_VIEW', object.getInscripcion())"),
-        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
+        new GetCollection(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Post(
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
             securityPostDenormalize: "is_granted('INSCRIPCION_EDIT', object.getInscripcion())",
             processor: PagoWriteProcessor::class,
         ),

@@ -29,7 +29,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiResource(
     operations: [
         new Get(security: "is_granted('EVENTO_VIEW', object.getEvento())"),
-        new GetCollection(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"),
+        new GetCollection(security: "is_granted('ROLE_USER')"),
 
         new Get(
             uriTemplate: '/actividad_eventos/{id}',
@@ -37,7 +37,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new GetCollection(
             uriTemplate: '/actividad_eventos',
-            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"
+            security: "is_granted('ROLE_USER')"
         ),
 
         # new, more natural aliases: /actividades
@@ -47,11 +47,11 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
         new GetCollection(
             uriTemplate: '/actividades',
-            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"
+            security: "is_granted('ROLE_USER')"
         ),
 
         new Post(
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
             securityPostDenormalize: "is_granted('EVENTO_EDIT', object.getEvento())"
         ),
         new Post(

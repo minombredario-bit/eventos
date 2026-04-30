@@ -30,7 +30,7 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
         new Get(security: "is_granted('INSCRIPCION_VIEW', object)"),
         new GetCollection(
             normalizationContext: ['groups' => ['inscripcion:collection']],
-            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"
+            security: "is_granted('ROLE_USER')"
             ),
         new Patch(security: "is_granted('INSCRIPCION_EDIT', object) and object.getEvento().estaInscripcionAbierta()"),
     ],

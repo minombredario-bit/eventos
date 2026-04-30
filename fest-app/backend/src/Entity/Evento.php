@@ -50,7 +50,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
         new GetCollection(
             uriTemplate: '/eventos',
             normalizationContext: ['groups' => ['evento:collection'], 'enable_max_depth' => 1],
-            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"
+            security: "is_granted('ROLE_USER')"
         ),
         new GetCollection(
             uriTemplate: '/eventos/{id}/invitados',
@@ -58,7 +58,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
             normalizationContext: ['groups' => ['invitado:read']],
-            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
+            security: "is_granted('ROLE_USER')",
             output: InvitadoView::class,
             provider: EventoInvitadosProvider::class
         ),
@@ -68,7 +68,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
             normalizationContext: ['groups' => ['invitado:read']],
-            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
+            security: "is_granted('ROLE_USER')",
             output: InvitadoView::class,
             provider: EventoInvitadosProvider::class
         ),
@@ -81,7 +81,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             processor: EventoWriteProcessor::class
         ),
         new Delete(
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')"
         ),
         new Post(
             uriTemplate: '/eventos/{id}/cancelar',
@@ -90,7 +90,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
         ),
         new Post(
             uriTemplate: '/eventos/{id}/force_delete',
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
             processor: EventoForceDeleteProcessor::class
         ),
         new Get(

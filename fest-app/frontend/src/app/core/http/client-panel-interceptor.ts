@@ -30,7 +30,7 @@ export const clientPanelInterceptor: HttpInterceptorFn = (request, next) => {
   const contentType = request.headers.get('Content-Type');
 
   const roles = Array.isArray(user?.roles) ? user.roles : [];
-  const isAdmin = roles.includes('ROLE_ADMIN_ENTIDAD') || roles.includes('ROLE_ADMIN') || roles.includes('ROLE_SUPERADMIN');
+  const isAdmin = roles.includes('ROLE_ADMIN_ENTIDAD') || roles.includes('ROLE_SUPERADMIN');
 
   // Detectar si la app actual es el panel de administración mediante una
   // flag en sessionStorage por pestaña. Se debe establecer al entrar al panel admin:

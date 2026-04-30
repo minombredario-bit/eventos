@@ -44,16 +44,16 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Get(
             uriTemplate: '/admin/usuarios/{id}',
             normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
-            security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
         ),
         new GetCollection(
             normalizationContext: ['groups' => ['usuario:collection']],
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
         ),
         new GetCollection(
             uriTemplate: '/persona_familiares/mias',
             normalizationContext: ['groups' => ['persona_familiar_mia:read']],
-            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
+            security: "is_granted('ROLE_USER')",
             output: PersonaFamiliarView::class,
             provider: PersonaFamiliarMiasProvider::class
         ),
@@ -61,7 +61,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/admin/usuarios',
             normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
             denormalizationContext: ['groups' => ['admin_usuario_create']],
-            security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
             input: AdminCreateUsuarioInput::class,
             processor: AdminUsuarioProcessor::class,
         ),
@@ -71,7 +71,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/admin/usuarios/{id}',
             normalizationContext: ['groups' => ['usuario:read', 'read_user_admin']],
             denormalizationContext: ['groups' => ['admin_usuario_update']],
-            security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
             input: AdminUpdateUsuarioInput::class,
             processor: AdminUsuarioProcessor::class
         ),
