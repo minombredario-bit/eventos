@@ -1,30 +1,23 @@
+// ─── detalle ──────────────────────────────────────────────────────────────────
+// Compartido vía _user-panel.scss (global): .content, .panel, .eyebrow,
+//   .error-card, .cta-wrap, .supporting-copy, .inline-error
+
 .screen {
   position: relative;
+
   &::before {
     content: '';
     position: absolute;
     inset: 0 0 auto;
     height: 260px;
-    background: radial-gradient(130% 100% at 50% 0%, color-mix(in srgb, var(--brand-primary) 14%, transparent) 0%, transparent 74%);
+    background: radial-gradient(
+      130% 100% at 50% 0%,
+      color-mix(in srgb, var(--brand-primary) 14%, transparent) 0%,
+      transparent 74%
+    );
     pointer-events: none;
     z-index: 0;
   }
-}
-
-.content {
-  position: relative;
-  z-index: 1;
-  padding: 1.2rem 1rem calc(var(--bottom-nav-height) + 1.2rem);
-  display: grid;
-  gap: 1rem;
-}
-
-.panel {
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  padding: 1.1rem 1rem;
-  border: 1px solid var(--border-soft);
-  box-shadow: var(--surface-shadow), 0 1px 0 rgba(255,255,255,.85) inset;
 }
 
 h2 {
@@ -35,20 +28,12 @@ h2 {
   font-family: var(--font-display);
 }
 
+// ─── Hero del evento ──────────────────────────────────────────────────────────
+
 .event-hero {
   background: color-mix(in srgb, var(--brand-primary) 9%, var(--surface));
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-elevated), 0 1px 0 rgba(255,255,255,.65) inset;
-
-  .eyebrow {
-    margin: 0 0 0.35rem;
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--brand-accent);
-    font-family: var(--font-body);
-  }
+  box-shadow: var(--shadow-elevated), 0 1px 0 rgba(255, 255, 255, 0.65) inset;
 
   h2 { font-size: 1.22rem; line-height: 1.25; color: var(--text-primary); }
 
@@ -62,6 +47,8 @@ h2 {
   .description { margin: 0.9rem 0 0; color: var(--text-secondary); line-height: 1.45; font-size: 0.9rem; }
 }
 
+// ─── Status chip ──────────────────────────────────────────────────────────────
+
 .status-chip {
   margin-top: 0.9rem;
   display: inline-flex;
@@ -73,33 +60,43 @@ h2 {
   text-transform: uppercase;
   border: 1px solid transparent;
   font-family: var(--font-body);
+
+  &.abierto        { color: #064e35; background: #c6f6d5; border-color: #38a169; }
+  &.ultimas_plazas { color: #7b3a10; background: #fef3c7; border-color: #f59e0b; }
+  &.cerrado        { color: #4a5568; background: #e2e8f0; border-color: #cbd5e1; }
 }
 
-.status-chip.abierto        { color: #064e35; background: #c6f6d5; border-color: #38a169; }
-.status-chip.ultimas_plazas { color: #7b3a10; background: #fef3c7; border-color: #f59e0b; }
-.status-chip.cerrado        { color: #4a5568; background: #e2e8f0; border-color: #cbd5e1; }
+// ─── Family list ─────────────────────────────────────────────────────────────
 
 .family-list {
   display: grid;
   gap: 0.5rem;
   padding-bottom: 0.45rem;
   align-content: start;
+
   h2 { font-size: 1.08rem; margin-bottom: 0.2rem; }
+
+  app-member-row + app-member-row { margin-top: 0.2rem; }
 }
 
-.family-list app-member-row + app-member-row { margin-top: 0.2rem; }
+// ─── Layout ───────────────────────────────────────────────────────────────────
 
-.detail-layout { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+.detail-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
 
 .detail-panels {
   display: grid;
   gap: 1rem;
   grid-template-columns: 1fr;
   align-items: stretch;
+
   > .panel { height: 100%; }
 }
 
-.supporting-copy { margin: 0; color: var(--text-muted); font-size: 0.88rem; line-height: 1.38; }
+// ─── Selection summary ────────────────────────────────────────────────────────
 
 .selection-summary {
   margin: 0;
@@ -116,7 +113,10 @@ h2 {
   font-family: var(--font-body);
 }
 
-.invitados, .no-falleros { display: grid; gap: 0.68rem; align-content: start; }
+// ─── Invitados / no falleros ──────────────────────────────────────────────────
+
+.invitados,
+.no-falleros { display: grid; gap: 0.68rem; align-content: start; }
 
 .invitados-form,
 .no-falleros-form {
@@ -133,7 +133,9 @@ h2 {
     font-family: var(--font-body);
   }
 
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     width: 100%;
     min-height: 44px;
     border-radius: var(--radius-md);
@@ -142,13 +144,13 @@ h2 {
     padding: 0.55rem 0.7rem;
     color: var(--text-primary);
     font-size: 0.92rem;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.85);
-    transition: border-color .15s, box-shadow .15s;
-  }
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transition: border-color 0.15s, box-shadow 0.15s;
 
-  input:focus-visible, select:focus-visible, textarea:focus-visible {
-    border-color: var(--brand-primary);
-    box-shadow: var(--focus-ring);
+    &:focus-visible {
+      border-color: var(--brand-primary);
+      box-shadow: var(--focus-ring);
+    }
   }
 
   textarea { min-height: 80px; resize: vertical; }
@@ -156,23 +158,17 @@ h2 {
 }
 
 .field-grid { display: grid; gap: 0.7rem; }
-.inline-error { margin: 0; color: #b91c1c; font-size: 0.84rem; font-weight: 700; }
-.invitados-list, .no-falleros-list { display: grid; gap: 0.6rem; }
+.invitados-list,
+.no-falleros-list { display: grid; gap: 0.6rem; }
 app-member-row { display: block; }
 
-.cta-wrap {
-  position: sticky;
-  bottom: calc(var(--bottom-nav-height) + 0.75rem);
-  z-index: 2;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--page-bg) 94%, transparent) 42%, var(--page-bg));
-  padding-top: 0.65rem;
-  app-cta-button { display: block; filter: drop-shadow(0 12px 20px color-mix(in srgb, var(--brand-primary-strong) 30%, transparent)); }
-}
+// ─── Responsive ───────────────────────────────────────────────────────────────
 
 @media (min-width: 768px) {
   .content { max-width: 980px; margin: 0 auto; }
   .detail-layout { grid-template-columns: 1fr 1fr; align-items: stretch; }
-  .event-hero, .detail-panels { grid-column: 1 / -1; }
+  .event-hero,
+  .detail-panels { grid-column: 1 / -1; }
   .detail-panels { grid-template-columns: 1fr 1fr; }
   .cta-wrap { position: static; }
   .field-grid { grid-template-columns: 1fr 1fr; }

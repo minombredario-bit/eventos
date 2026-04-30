@@ -1,13 +1,15 @@
-.content {
-  padding: 1.2rem 1rem calc(var(--bottom-nav-height) + 1.2rem);
-}
+// ─── credencial ───────────────────────────────────────────────────────────────
+// Compartido vía _user-panel.scss (global): .content, .eyebrow,
+//   .error-card, .cta-wrap
+
+// ─── Ticket ───────────────────────────────────────────────────────────────────
 
 .ticket {
   position: relative;
   background: var(--surface);
   border-radius: var(--radius-xl);
   padding: 1.2rem;
-  box-shadow: var(--shadow-elevated), 0 2px 0 rgba(255,255,255,.85) inset;
+  box-shadow: var(--shadow-elevated), 0 2px 0 rgba(255, 255, 255, 0.85) inset;
   border: 1px solid var(--border-strong);
 
   .ticket-cut {
@@ -21,6 +23,7 @@
     transform: translateY(-50%);
     z-index: 1;
   }
+
   .ticket-cut-left  { left: -0.58rem; }
   .ticket-cut-right { right: -0.58rem; }
 
@@ -30,11 +33,10 @@
     justify-content: space-between;
     gap: 0.8rem;
     align-items: flex-start;
+
     strong { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.38; font-weight: 700; }
   }
 }
-
-.error-card p { margin: 0.5rem 0 0; color: #7f1d1d; }
 
 .event-name {
   margin: 0;
@@ -44,6 +46,8 @@
   line-height: 1.24;
   font-family: var(--font-display);
 }
+
+// ─── Entry pill ───────────────────────────────────────────────────────────────
 
 .entry-pill {
   border-radius: 999px;
@@ -61,14 +65,18 @@
   font-family: var(--font-body);
 }
 
-.identity { display: grid; gap: 0.15rem; }
-.holder, .zone { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
-.payment-summary { margin: 0.15rem 0 0; color: var(--brand-accent); font-size: 0.84rem; font-weight: 700; }
+// ─── Identity ─────────────────────────────────────────────────────────────────
+
+.identity         { display: grid; gap: 0.15rem; }
+.holder, .zone    { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+.payment-summary  { margin: 0.15rem 0 0; color: var(--brand-accent); font-size: 0.84rem; font-weight: 700; }
 
 .divider {
   margin: 0.95rem -1.1rem 0.85rem;
   border-top: 1.5px dashed var(--border-strong);
 }
+
+// ─── Lines ────────────────────────────────────────────────────────────────────
 
 .lines {
   margin: 0;
@@ -90,6 +98,8 @@
     border: 1px solid var(--border-soft);
     margin-bottom: 0.42rem;
 
+    &:last-child { margin-bottom: 0; }
+
     .line-main {
       margin: 0;
       display: flex;
@@ -98,8 +108,6 @@
       font-size: 0.88rem;
       line-height: 1.38;
     }
-
-    &:last-child { margin-bottom: 0; }
   }
 }
 
@@ -115,11 +123,14 @@
   padding: 0 0.8rem;
   cursor: pointer;
   font-family: var(--font-body);
-  &:disabled { opacity: .65; cursor: not-allowed; }
+
+  &:disabled { opacity: 0.65; cursor: not-allowed; }
 }
 
-.line-status { display: inline-block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.82rem; }
+.line-status  { display: inline-block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.82rem; }
 .action-error { margin: 0.6rem 0 0; color: #b91c1c; font-size: 0.86rem; font-weight: 700; }
+
+// ─── QR ───────────────────────────────────────────────────────────────────────
 
 .qr-block {
   margin-top: 1.1rem;
@@ -155,14 +166,16 @@
   box-shadow: inset 0 0 0 1px var(--border-soft);
   background: var(--surface);
 
-  span { background: var(--surface); }
+  span      { background: var(--surface); }
   span.dark { background: var(--text-primary); }
 }
 
-.token { margin: 0.75rem 0 0; font-size: 0.8rem; color: var(--text-muted); text-align: center; word-break: break-all; }
+.token          { margin: 0.75rem 0 0; font-size: 0.8rem; color: var(--text-muted); text-align: center; word-break: break-all; }
 .ticket-footnote { margin: 0.9rem 0 0; text-align: center; color: var(--text-muted); font-size: 0.76rem; }
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
 
 @media (min-width: 768px) {
   .content { max-width: 720px; margin: 0 auto; }
-  .ticket { padding: 1.4rem; }
+  .ticket  { padding: 1.4rem; }
 }

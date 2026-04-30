@@ -1,0 +1,117 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// _user-panel.scss — Parciales compartidos de la zona usuario (no admin)
+// Importado por: inicio, detalle, actividades, apuntados, credencial, inscripciones
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Screen background ────────────────────────────────────────────────────────
+
+%screen-bg {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 260px;
+    background: radial-gradient(
+      130% 100% at 50% 0%,
+      color-mix(in srgb, var(--brand-primary) 14%, transparent) 0%,
+      transparent 74%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+// ─── Content wrapper ──────────────────────────────────────────────────────────
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 1.2rem 1rem calc(var(--bottom-nav-height, 68px) + 1.2rem);
+  display: grid;
+  gap: 1rem;
+}
+
+// ─── Panel base ───────────────────────────────────────────────────────────────
+
+.panel {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 1.1rem 1rem;
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--surface-shadow), 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+
+  h2 {
+    margin: 0 0 0.72rem;
+    font-size: 1.1rem;
+    line-height: 1.22;
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0.36rem 0 0;
+    color: var(--text-secondary);
+    line-height: 1.38;
+  }
+}
+
+// ─── Eyebrow ──────────────────────────────────────────────────────────────────
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  font-family: var(--font-body);
+}
+
+// ─── Error card ───────────────────────────────────────────────────────────────
+
+.error-card {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+
+  h2 { margin: 0; color: #991b1b; }
+  p  { margin: 0.5rem 0 0; color: #7f1d1d; }
+}
+
+// ─── CTA wrap flotante ────────────────────────────────────────────────────────
+
+.cta-wrap {
+  position: sticky;
+  bottom: calc(var(--bottom-nav-height, 68px) + 0.75rem);
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--page-bg) 94%, transparent) 42%,
+    var(--page-bg)
+  );
+  padding-top: 0.65rem;
+
+  app-cta-button {
+    display: block;
+    filter: drop-shadow(0 12px 20px color-mix(in srgb, var(--brand-primary-strong) 30%, transparent));
+  }
+}
+
+// ─── Inline error ─────────────────────────────────────────────────────────────
+
+.inline-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+// ─── Supporting copy ──────────────────────────────────────────────────────────
+
+.supporting-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.38;
+}

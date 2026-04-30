@@ -1,10 +1,10 @@
+// ─── apuntados ────────────────────────────────────────────────────────────────
+// Compartido vía _user-panel.scss (global): .content, .eyebrow,
+//   .supporting-copy, .inline-error
+
 .apuntados-screen { position: relative; }
 
-.content {
-  position: relative;
-  z-index: 1;
-  padding: 1.2rem 1rem calc(var(--bottom-nav-height) + 1.2rem);
-}
+// ─── Panel ────────────────────────────────────────────────────────────────────
 
 .panel {
   display: grid;
@@ -13,24 +13,13 @@
   border-radius: var(--radius-xl);
   padding: 1.1rem 1rem;
   border: 1px solid var(--border-soft);
-  box-shadow: var(--surface-shadow), 0 1px 0 rgba(255,255,255,.85) inset;
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--brand-accent);
-  font-family: var(--font-body);
+  box-shadow: var(--surface-shadow), 0 1px 0 rgba(255, 255, 255, 0.85) inset;
 }
 
 h2, h3, p { margin: 0; }
-
 h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
 
-.supporting-copy { color: var(--text-secondary); line-height: 1.4; }
+// ─── Search field ─────────────────────────────────────────────────────────────
 
 .search-field {
   display: grid;
@@ -50,7 +39,7 @@ h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
     font-size: 0.88rem;
     color: var(--text-primary);
     font-weight: 600;
-    transition: border-color .15s, box-shadow .15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 
     &:focus-visible {
       outline: none;
@@ -59,6 +48,8 @@ h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
     }
   }
 }
+
+// ─── Rows ─────────────────────────────────────────────────────────────────────
 
 .rows { display: grid; gap: 0.55rem; }
 
@@ -71,13 +62,15 @@ h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
   border: 1px solid var(--border-soft);
-  transition: box-shadow .18s ease;
+  transition: box-shadow 0.18s ease;
 
   &:hover { box-shadow: var(--surface-shadow); }
 
   h3 { font-size: 0.9rem; color: var(--text-primary); font-family: var(--font-body); font-weight: 800; }
   p  { margin-top: 0.15rem; color: var(--text-muted); font-size: 0.8rem; }
 }
+
+// ─── Chip ─────────────────────────────────────────────────────────────────────
 
 .chip {
   min-height: 26px;
@@ -95,6 +88,8 @@ h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
 
 .inline-error { color: #991b1b; }
 
+// ─── Pager ────────────────────────────────────────────────────────────────────
+
 .pager {
   display: flex;
   align-items: center;
@@ -105,9 +100,9 @@ h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-soft);
   background: var(--surface);
-}
 
-.pager--disabled { opacity: .88; }
+  &--disabled { opacity: 0.88; }
+}
 
 .pager__meta {
   flex: 1;
@@ -132,7 +127,7 @@ h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform .16s ease, box-shadow .18s ease;
+  transition: transform 0.16s ease, box-shadow 0.18s ease;
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
@@ -141,6 +136,5 @@ h2 { font-size: 1.08rem; line-height: 1.24; color: var(--text-primary); }
   }
 
   &:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-  &:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 }

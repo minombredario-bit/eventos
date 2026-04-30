@@ -1,5 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  Validators,
+  AbstractControl,
+  ValidationErrors
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
@@ -26,8 +32,31 @@ export class Login {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly showValidationMessages = signal(false);
 
+  // ✅ Validador: email o DNI/NIE
+  static identificador(control: AbstractControl): ValidationErrors | null {
+    const raw = (control.value || '').toString().trim();
+    if (!raw) return null;
+
+    const value = raw.toUpperCase();
+
+    // Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // DNI: 12345678A
+    const dniRegex = /^[0-9]{8}[A-Z]$/;
+
+    // NIE: X1234567A
+    const nieRegex = /^[XYZ][0-9]{7}[A-Z]$/;
+
+    if (emailRegex.test(raw)) return null;
+    if (dniRegex.test(value)) return null;
+    if (nieRegex.test(value)) return null;
+
+    return { identificador: true };
+  }
+
   protected readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    identificador: ['', [Validators.required, Login.identificador]],
     password: ['', [Validators.required]],
   });
 
@@ -45,17 +74,21 @@ export class Login {
       return;
     }
 
-    const { email, password } = this.form.getRawValue();
+    const { identificador, password } = this.form.getRawValue();
+
+    // ✅ Normalización antes de enviar
+    const identificadorNormalizado = identificador.includes('@')
+      ? identificador.trim().toLowerCase()
+      : identificador.trim().toUpperCase();
 
     this.loading.set(true);
     this.errorMessage.set(null);
 
     this.authService
-      .authenticate({ email, password })
+      .authenticate({ identificador: identificadorNormalizado, password })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (response) => {
-          // response is the normalized LoginResponse from AuthService
           const user = response.user;
 
           if (Boolean(user?.debeCambiarPassword)) {
@@ -63,32 +96,35 @@ export class Login {
             return;
           }
 
-          // If the user hasn't accepted the LOPD, redirect to the LOPD screen as the first/only view
           if (!Boolean(user?.aceptoLopd)) {
             void this.router.navigate(['/lopd'], { queryParams: { userId: user?.id } });
             return;
           }
 
-          // FIX: Validar returnUrl para evitar open redirect — solo se permiten rutas internas
           const rawReturnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/eventos';
           const safeReturnUrl =
             rawReturnUrl.startsWith('/') && !rawReturnUrl.startsWith('//')
               ? rawReturnUrl
               : '/eventos';
+
           void this.router.navigateByUrl(safeReturnUrl);
         },
         error: (error: HttpErrorResponse) => {
           if (error.status === 401) {
-            this.errorMessage.set('Email o contraseña incorrectos. Revisalos e intenta de nuevo.');
+            this.errorMessage.set(
+              'Identificador o contraseña incorrectos. Revísalos e intenta de nuevo.'
+            );
             return;
           }
 
-          this.errorMessage.set('No pudimos iniciar sesión. Prueba nuevamente en unos minutos.');
+          this.errorMessage.set(
+            'No pudimos iniciar sesión. Prueba nuevamente en unos minutos.'
+          );
         },
       });
   }
 
-  protected hasError(controlName: 'email' | 'password', errorName: string): boolean {
+  protected hasError(controlName: 'identificador' | 'password', errorName: string): boolean {
     const control = this.form.controls[controlName];
     const shouldShow = control.touched || control.dirty || this.showValidationMessages();
     return shouldShow && control.hasError(errorName);

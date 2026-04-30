@@ -1,25 +1,26 @@
 <main class="login-page">
   <section class="login-card">
     <header class="login-header">
-        <img class="logo" src="../logo.png" alt="Festiva" loading="lazy" />
+      <img class="logo" src="../logo.png" alt="Festiva" loading="lazy" />
     </header>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate aria-describedby="login-help">
       <div class="field-group">
-        <label for="email">Email</label>
+        <label for="identificador">Email / DNI / NIE</label>
         <input
-          id="email"
-          type="email"
-          formControlName="email"
-          autocomplete="email"
-          placeholder="nombre@ejemplo.com"
-          value="juan.perez@example.com"
+          id="identificador"
+          type="text"
+          formControlName="identificador"
+          autocomplete="username"
+          placeholder="Ej: 12345678A o email@dominio.com"
         />
-        @if (hasError('email', 'required')) {
-          <small class="error">El email es obligatorio.</small>
+
+        @if (hasError('identificador', 'required')) {
+          <small class="error">El identificador es obligatorio.</small>
         }
-        @if (hasError('email', 'email')) {
-          <small class="error">Ingresa un email válido.</small>
+
+        @if (hasError('identificador', 'identificador')) {
+          <small class="error">Ingresa un email o documento válido.</small>
         }
       </div>
 
@@ -31,15 +32,17 @@
           formControlName="password"
           autocomplete="current-password"
           placeholder="••••••••"
-          value="user123"
         />
+
         @if (hasError('password', 'required')) {
           <small class="error">La contraseña es obligatoria.</small>
         }
       </div>
 
       @if (errorMessage()) {
-        <p class="error-box" role="alert" aria-live="polite">{{ errorMessage() }}</p>
+        <p class="error-box" role="alert" aria-live="polite">
+          {{ errorMessage() }}
+        </p>
       }
 
       <div class="cta-wrap">
@@ -57,6 +60,7 @@
     <p id="login-help" class="help-text">
       Si no puedes acceder, contacta con el administrador de tu entidad.
     </p>
+
     <a routerLink="/auth/login" class="help-link">Recargar formulario</a>
   </section>
 </main>
