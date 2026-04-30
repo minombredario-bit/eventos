@@ -33,12 +33,12 @@ use Symfony\Component\Validator\Constraints as Assert;
             controller: EntidadAdminCollectionController::class,
             security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"
         ),
-        new Get(security: "is_granted('ROLE_USER')"),
+        new Get(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Get(
             uriTemplate: '/entidad/lopd',
             normalizationContext: ['groups' => ['lopd:read']]
         ),
-        new GetCollection(security: "is_granted('ROLE_USER')"),
+        new GetCollection(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Post(security: "is_granted('ROLE_SUPERADMIN')"),
         new Patch(
             security: "is_granted('ENTIDAD_EDIT', object)"

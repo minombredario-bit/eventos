@@ -31,6 +31,7 @@ final class GenericEnumController extends AbstractController
 
     #[Route('/enums/{enumName}', name: 'generic_enum_choices', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
+    #[IsGranted('ROLE_ADMIN_ENTIDAD')]
     public function __invoke(string $enumName): JsonResponse
     {
         $enumClass = self::ENUM_MAP[$enumName] ?? null;

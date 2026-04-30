@@ -35,7 +35,7 @@ use Symfony\Component\Validator\Constraints as Assert;
                 )
             ],
             normalizationContext: ['groups' => ['relacion:read'], 'enable_max_depth' => 2],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             provider: RelacionUsuarioProvider::class,
         ),
         new Post(
@@ -48,7 +48,7 @@ use Symfony\Component\Validator\Constraints as Assert;
                 )
             ],
             denormalizationContext: ['groups' => ['relacion:write']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             processor: RelacionUsuarioProcessor::class,
         ),
         new Delete(

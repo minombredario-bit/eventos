@@ -161,13 +161,13 @@ class AppFixtures extends Fixture implements DependentFixtureInterface
         $relacionConyuge = new RelacionUsuario();
         $relacionConyuge->setUsuarioOrigen($usuario1);
         $relacionConyuge->setUsuarioDestino($relacionadoConyuge);
-        $relacionConyuge->setTipoRelacion(TipoRelacionEnum::CONYUGE);
+        $relacionConyuge->setTipoRelacion(TipoRelacionEnum::FAMILIAR);
         $manager->persist($relacionConyuge);
 
         $relacionHijo = new RelacionUsuario();
         $relacionHijo->setUsuarioOrigen($usuario1);
         $relacionHijo->setUsuarioDestino($relacionadoHijo);
-        $relacionHijo->setTipoRelacion(TipoRelacionEnum::HIJO);
+        $relacionHijo->setTipoRelacion(TipoRelacionEnum::FAMILIAR);
         $manager->persist($relacionHijo);
 
         $hoy = new \DateTimeImmutable('today');

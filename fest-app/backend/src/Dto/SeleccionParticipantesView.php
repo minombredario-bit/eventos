@@ -21,7 +21,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
                 'eventoId' => new Link(fromClass: Evento::class, identifiers: ['id']),
             ],
             normalizationContext: ['groups' => ['seleccion_participantes_evento_endpoint:read']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             provider: SeleccionParticipantesEventoProvider::class
         ),
         new Put(
@@ -31,7 +31,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
             ],
             normalizationContext: ['groups' => ['seleccion_participantes_evento_endpoint:read']],
             denormalizationContext: ['groups' => ['seleccion_participantes_evento_endpoint:write']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             input: SeleccionParticipantesInput::class,
             output: self::class,
             read: false,
@@ -43,7 +43,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
                 'eventoId' => new Link(fromClass: Evento::class, identifiers: ['id']),
             ],
             status: 204,
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             output: false,
             read: false,
             processor: SeleccionParticipantesEventoDeleteProcessor::class

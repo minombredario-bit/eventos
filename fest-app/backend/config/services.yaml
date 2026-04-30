@@ -66,16 +66,6 @@ services:
             $invitadoRepository: '@App\Repository\InvitadoRepository'
             $seleccionParticipanteEventoRepository: '@App\Repository\SeleccionParticipanteEventoRepository'
 
-    App\State\AdminCreateUsuarioProcessor:
-        arguments:
-            $appUri: '%app.uri%'
-            $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'
-
-    App\State\AdminUpdateUsuarioProcessor:
-        arguments:
-            $appUri: '%app.uri%'
-            $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'
-
     App\State\EventoWriteProcessor:
         bind:
             $persistProcessor: '@api_platform.doctrine.orm.state.persist_processor'

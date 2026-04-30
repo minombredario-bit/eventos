@@ -50,7 +50,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
         new GetCollection(
             uriTemplate: '/eventos',
             normalizationContext: ['groups' => ['evento:collection'], 'enable_max_depth' => 1],
-            security: "is_granted('ROLE_USER')"
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"
         ),
         new GetCollection(
             uriTemplate: '/eventos/{id}/invitados',
@@ -58,7 +58,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
             normalizationContext: ['groups' => ['invitado:read']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             output: InvitadoView::class,
             provider: EventoInvitadosProvider::class
         ),
@@ -68,7 +68,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
             normalizationContext: ['groups' => ['invitado:read']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             output: InvitadoView::class,
             provider: EventoInvitadosProvider::class
         ),

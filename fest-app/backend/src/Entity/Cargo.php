@@ -18,10 +18,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: 'cargo')]
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('ROLE_USER')"),
+        new Get(security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')"),
         new GetCollection(
             normalizationContext: ['groups' => ['cargo:collection']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
         ),
         new Post(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),
         new Patch(security: "is_granted('ROLE_ADMIN_ENTIDAD')"),

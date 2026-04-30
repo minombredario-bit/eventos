@@ -36,7 +36,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             provider: InvitadoProvider::class
         ),
         new Post(
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             securityPostDenormalize: "object.getCreadoPor() == user",
             processor: InvitadoPostProcessor::class
         ),

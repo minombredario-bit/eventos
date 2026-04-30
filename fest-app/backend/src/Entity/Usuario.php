@@ -7,8 +7,7 @@ use App\Dto\AdminCreateUsuarioInput;
 use App\Dto\AdminUpdateUsuarioInput;
 use App\Enum\TipoPersonaEnum;
 use App\Repository\UsuarioRepository;
-use App\State\AdminCreateUsuarioProcessor;
-use App\State\AdminUpdateUsuarioProcessor;
+use App\State\AdminUsuarioProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -54,7 +53,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(
             uriTemplate: '/persona_familiares/mias',
             normalizationContext: ['groups' => ['persona_familiar_mia:read']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             output: PersonaFamiliarView::class,
             provider: PersonaFamiliarMiasProvider::class
         ),
@@ -64,7 +63,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             denormalizationContext: ['groups' => ['admin_usuario_create']],
             security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
             input: AdminCreateUsuarioInput::class,
-            processor: AdminCreateUsuarioProcessor::class,
+            processor: AdminUsuarioProcessor::class,
         ),
         new Patch(security: "is_granted('EDIT', object)"),
         // Admin-specific PATCH that routes through a processor to handle relaciones and cargos
@@ -74,7 +73,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             denormalizationContext: ['groups' => ['admin_usuario_update']],
             security: "is_granted('ROLE_ADMIN') or is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
             input: AdminUpdateUsuarioInput::class,
-            processor: AdminUpdateUsuarioProcessor::class
+            processor: AdminUsuarioProcessor::class
         ),
     ],
     normalizationContext: ['groups' => ['usuario:read']],
@@ -485,14 +484,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        $roles = array_filter(
-            $this->roles,
-            static fn (mixed $role): bool => is_string($role) && $role !== ''
-        );
-
-        $roles[] = 'ROLE_USER';
-
-        return array_values(array_unique($roles));
+        return $this->roles;
     }
 
     public function setRoles(array $roles): static

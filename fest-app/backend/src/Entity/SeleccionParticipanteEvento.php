@@ -37,7 +37,7 @@ use App\State\SeleccionParticipantesEventoDeleteProcessor;
         new Post(
             normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
             denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             processor: SeleccionParticipanteEventoPostProcessor::class,
         ),
         // Nested POST for creating a selection under an evento: /eventos/{eventoId}/seleccion_participantes
@@ -45,7 +45,7 @@ use App\State\SeleccionParticipantesEventoDeleteProcessor;
             uriTemplate: '/eventos/{eventoId}/seleccion_participantes',
             normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
             denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             processor: SeleccionParticipanteEventoPostProcessor::class,
         ),
         new Delete(
@@ -59,7 +59,7 @@ use App\State\SeleccionParticipantesEventoDeleteProcessor;
                     fromClass: SeleccionParticipanteEvento::class
                 ),
             ],
-            security: "is_granted('ROLE_USER')",
+            security: "is_granted('ROLE_USER') or is_granted('ROLE_ADMIN_ENTIDAD')",
             processor: SeleccionParticipantesEventoDeleteProcessor::class,
         ),
     ],
