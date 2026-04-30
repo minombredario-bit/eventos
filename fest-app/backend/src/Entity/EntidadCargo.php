@@ -80,7 +80,7 @@ class EntidadCargo
     #[Groups(['entidad_cargo:read'])]
     private ?string $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Entidad::class)]
+    #[ORM\ManyToOne(targetEntity: Entidad::class, inversedBy: 'entidadCargos')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['entidad_cargo:write'])]
     #[Assert\NotNull]

@@ -39,7 +39,7 @@ class TipoEntidadCargo
     #[Groups(['tipo_entidad_cargo:read'])]
     private ?string $id = null;
 
-    #[ORM\ManyToOne(targetEntity: TipoEntidad::class)]
+    #[ORM\ManyToOne(targetEntity: TipoEntidad::class, inversedBy: 'tipoEntidadCargos')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['tipo_entidad_cargo:write'])]
     #[Assert\NotNull]

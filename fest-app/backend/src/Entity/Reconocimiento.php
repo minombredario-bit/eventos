@@ -23,7 +23,7 @@ class Reconocimiento
     #[Groups(['reconocimiento:read'])]
     private ?string $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Entidad::class)]
+    #[ORM\ManyToOne(targetEntity: Entidad::class, inversedBy: 'reconocimientos')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Groups(['reconocimiento:read', 'reconocimiento:write'])]
     private Entidad $entidad;
