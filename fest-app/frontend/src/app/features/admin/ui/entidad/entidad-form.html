@@ -1,23 +1,23 @@
-<section class="screen admin-entidad-form-screen">
+<section class="screen admin-usuario-screen">
   <app-mobile-header
-    [title]="form.get('nombre')?.value || pageTitle()"
+    [title]="pageTitle()"
     subtitle=""
     [showBack]="true"
     actionType="logout"
     (backPressed)="goBack()"
-    (actionPressed)="logout()">
-  </app-mobile-header>
+    (actionPressed)="logout()"
+  />
 
   <div class="content">
-    @if (loading()) {
-      <article class="panel">
-        <p class="eyebrow">Cargando</p>
-        <h2>Recuperando datos de la entidad</h2>
-      </article>
-    } @else {
-      <form class="edit-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <article class="panel">
+      <div *ngIf="loading()" class="loading-overlay" aria-hidden="true">
+        <div class="loading-inner">
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="loading-text">{{ 'admin.usuario.loading' | translate }}</div>
+        </div>
+      </div>
 
-        <!-- Datos generales -->
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form" [class.is-loading]="loading()">
         <section class="form-section">
           <div class="section-head">
             <div>
@@ -29,30 +29,24 @@
               </h3>
             </div>
           </div>
-
-          <div class="field-grid">
-            <!-- Eliminado el header extra de nombre aquí para ahorrar espacio; el nombre se muestra en la cabecera compacta -->
-            <div class="field">
-              <input id="emailContacto" type="email" formControlName="emailContacto" placeholder=" " />
-              <label for="emailContacto">
-                {{ 'admin.entidad.emailContacto' | translate }}
-                <span class="field-required">*</span>
-              </label>
-            </div>
-
-            <div class="field">
-              <input id="telefono" type="tel" formControlName="telefono" placeholder=" " />
-              <label for="telefono">{{ 'admin.entidad.telefono' | translate }}</label>
-            </div>
-
-            <div class="field field--full">
-              <input id="direccion" type="text" formControlName="direccion" placeholder=" " />
-              <label for="direccion">{{ 'admin.entidad.direccion' | translate }}</label>
-            </div>
+          <div class="field">
+            <input id="emailContacto" type="email" formControlName="emailContacto" placeholder=" " />
+            <label for="emailContacto">
+              {{ 'admin.entidad.emailContacto' | translate }}
+              <span class="field-required">*</span>
+            </label>
           </div>
-        </section>
 
-        <!-- LOPD -->
+          <div class="field">
+            <input id="telefono" type="tel" formControlName="telefono" placeholder=" " />
+            <label for="telefono">{{ 'admin.entidad.telefono' | translate }}</label>
+          </div>
+
+          <div class="field field--full">
+            <input id="direccion" type="text" formControlName="direccion" placeholder=" " />
+            <label for="direccion">{{ 'admin.entidad.direccion' | translate }}</label>
+          </div>
+      </section>
         <section class="form-section">
           <div class="section-head">
             <div>
@@ -87,6 +81,7 @@
             </div>
           </div>
         </section>
+
 
         <!-- Cargos oficiales -->
         @if (availableCargoMasters().length > 0) {
@@ -185,17 +180,14 @@
           }
         </section>
 
-        <!-- Botón final correcto -->
         <button type="submit" class="action-button" [disabled]="saving()">
-          {{ saving()
-          ? ('admin.entidad.saving' | translate)
-          : ('admin.entidad.save' | translate) }}
+          {{ submitLabel() }}
         </button>
-
       </form>
-    }
+    </article>
   </div>
 </section>
+
 @if (showDeleteCargoModal()) {
   <app-confirm-modal
     [title]="'Eliminar cargo'"

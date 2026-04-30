@@ -24,6 +24,7 @@ export class AdminCensoUsuarios {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(true);
+  protected readonly transitioning = signal(false);
   protected readonly importing = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
@@ -43,11 +44,12 @@ export class AdminCensoUsuarios {
   protected readonly usuarios = computed<Usuario[]>(() => this.usuariosPage().items);
   protected readonly totalItems = computed<number>(() => this.usuariosPage().totalItems);
   protected readonly currentPage = computed<number>(() => this.usuariosPage().page);
+  protected readonly totalPages = computed<number>(() => this.usuariosPage().totalPages);
   protected readonly hasNextPage = computed<boolean>(() => this.usuariosPage().hasNext);
   protected readonly hasPreviousPage = computed<boolean>(() => this.usuariosPage().hasPrevious);
 
   constructor() {
-    this.loadUsuarios();
+    this.loadUsuarios(1, true);
   }
 
   protected logout(): void {
@@ -114,7 +116,7 @@ export class AdminCensoUsuarios {
         next: (result) => {
           this.importSummary.set(result);
           this.successMessage.set('Importación finalizada.');
-          this.loadUsuarios();
+          this.loadUsuarios(1, false);
         },
         error: (error: { error?: { error?: string } }) => {
           this.errorMessage.set(error?.error?.error ?? 'No se pudo importar el Excel.');
@@ -130,8 +132,13 @@ export class AdminCensoUsuarios {
     return usuario.antiguedad === null ? '-' : String(usuario.antiguedad);
   }
 
-  private loadUsuarios(page = 1): void {
-    this.loading.set(true);
+  private loadUsuarios(page = 1, isInitial = false): void {
+    if (isInitial) {
+      this.loading.set(true);
+    } else {
+      this.transitioning.set(true);  // ← suave, no borra la tabla
+    }
+
     this.errorMessage.set(null);
 
     this.adminApi

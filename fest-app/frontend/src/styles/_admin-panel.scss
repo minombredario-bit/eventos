@@ -1,0 +1,14 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// _admin-panel.scss — Barrel: re-exporta todos los parciales compartidos
+//
+// Uso en componentes Angular:
+//   @use '../../../../styles/admin-panel' as *;
+//   @use '../../../../styles/admin-panel';        (sin namespace)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+@forward 'admin/tokens';
+@forward 'admin/layout';
+@forward 'admin/fields';
+@forward 'admin/buttons';
+@forward 'admin/chips';
+@forward 'admin/feedback';

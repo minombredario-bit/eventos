@@ -10,10 +10,8 @@
 
   <div class="content">
     @if (loading()) {
-      <article class="panel">
         <p class="eyebrow">Cargando</p>
         <h2>Recuperando evento</h2>
-      </article>
     } @else {
       @if (errorMessage(); as error) {
         <article class="feedback feedback--error">
@@ -24,13 +22,12 @@
 
       @if (successMessage(); as success) {
         <article class="feedback feedback--success">
-          <strong>Hecho.</strong>
           <p>{{ success }}</p>
         </article>
       }
 
-      <form class="edit-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <section class="form-section form-section--fixed">
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form" [class.is-loading]="loading()">
+        <section class="form-section form-section--fixed panel">
           <div class="section-head">
             <div>
               <p class="eyebrow">Cabecera</p>
@@ -175,7 +172,7 @@
           </div>
         </div>
 
-        <section class="form-section form-section--activities">
+        <section class="form-section form-section--activities panel">
           <div class="section-head section-head--actions">
             <div class="section-head__text">
               <p class="eyebrow">Cuerpo del evento</p>
@@ -416,8 +413,8 @@
             }
           </div>
         </section>
-        <div #formEnd></div>
       </form>
+      <div #formEnd></div>
       @if (confirmData(); as cd) {
         <app-confirm-modal
           [title]="cd.title"

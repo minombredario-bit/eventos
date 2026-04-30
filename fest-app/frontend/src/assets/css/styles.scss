@@ -1,0 +1,6 @@
+// ─── assets/css/styles.scss ───────────────────────────────────────────────────
+// Punto de entrada global de estilos. Se referencia en angular.json → styles[].
+// Aquí se importa el barrel compartido para que las clases utilitarias
+// del panel de administración estén disponibles globalmente (sin encapsulación).
+
+@forward '../../../src/styles/_admin-panel';

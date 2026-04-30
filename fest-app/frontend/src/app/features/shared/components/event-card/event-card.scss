@@ -1,3 +1,7 @@
+.content {
+  padding: inherit;
+}
+
 .event-card {
   display: grid;
   grid-template-columns: fit-content(3.25rem) minmax(0, 1fr);
@@ -99,14 +103,9 @@ h3 {
 }
 
 .details-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  margin-top: 0.2rem;
-  color: var(--brand-ink);
-  font-weight: 700;
+  display: block;
   text-decoration: none;
-  font-size: 0.88rem;
+  color: inherit;
 
   &:hover { color: var(--brand-primary); }
 }

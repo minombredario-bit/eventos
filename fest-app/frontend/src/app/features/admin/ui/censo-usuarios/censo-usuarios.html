@@ -1,13 +1,13 @@
 <section class="screen admin-censo-screen">
   <app-mobile-header
     title="Censo y usuarios"
-    subtitle="Administración"
+    subtitle=""
     actionType="logout"
     (actionPressed)="logout()"
   />
 
   <div class="content">
-    <article class="panel actions-panel">
+    <article class="panel actions-panel admin-search-panel">
 
       <!-- Botones de acción: primera fila en mobile, derecha en desktop -->
       <div class="actions-row">
@@ -69,7 +69,7 @@
         <h2>Preparando censo</h2>
       </article>
     } @else {
-      <article class="panel list-panel">
+      <article class="panel list-panel" [class.is-transitioning]="transitioning()">
         <div class="head-row">
           <h2>Usuarios censados</h2>
           <span class="count-chip">{{ totalItems() }}</span>
@@ -109,7 +109,7 @@
             <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="!hasPreviousPage()" (click)="loadPreviousPage()" aria-label="Página anterior">
               <span class="button-icon" aria-hidden="true">&lt;</span>
             </button>
-            <span>Página {{ currentPage() }}</span>
+            <span>Página {{ currentPage() }} / {{ totalPages() }}</span>
             <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="!hasNextPage()" (click)="loadNextPage()" aria-label="Página siguiente">
               <span class="button-icon" aria-hidden="true">&gt;</span>
             </button>

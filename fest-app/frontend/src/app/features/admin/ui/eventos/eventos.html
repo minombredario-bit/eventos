@@ -9,15 +9,7 @@
 
   <div class="content">
 
-    <article class="panel hero-panel filters-panel admin-search-panel">
-      <div class="admin-search-panel__header">
-        <div>
-          <p class="eyebrow">Administración</p>
-          <h2>Listado de eventos</h2>
-          <p>Revisa estados, abre cada evento para editarlo y consulta cuántas personas hay apuntadas.</p>
-        </div>
-      </div>
-
+    <article class="panel filters-panel admin-search-panel">
       <!-- Botones de acción: primera fila en mobile, derecha en desktop -->
       <div class="actions-row">
         <button type="button" class="action-button action-button--icon action-button--sm" (click)="crearEvento()">
@@ -64,100 +56,98 @@
     }
 
     @if (loading()) {
-      <article class="panel loading-panel">
-        <div class="skeleton skeleton--title"></div>
-        <div class="skeleton skeleton--text"></div>
-        <div class="skeleton skeleton--text short"></div>
-        <div class="skeleton skeleton--line"></div>
-        <div class="skeleton skeleton--line"></div>
-      </article>
-    } @else if (paginatedEventos().length === 0) {
-      <article class="panel empty-state">
-        <h3>No hay eventos para mostrar</h3>
-        <p>Prueba a cambiar la búsqueda o el filtro de mes.</p>
-        <button type="button" class="action-button secondary action-button--icon" (click)="clearFilters()">
-          <span class="button-icon" aria-hidden="true">✕</span>
-          <span class="button-text">Limpiar filtros</span>
-        </button>
+      <article class="panel">
+        <p class="eyebrow">Cargando</p>
+        <h2>Preparando eventos</h2>
       </article>
     } @else {
-      <article class="panel">
+      <article class="panel list-panel" [class.is-transitioning]="transitioning()">
         <div class="head-row">
           <h2>Eventos</h2>
-          <span class="count-chip">{{ totalEventosFiltrados() }}</span>
+          <span class="count-chip">{{ totalItems() }}</span>
         </div>
-
-        <section class="event-list" aria-label="Listado de eventos">
-          @for (evento of paginatedEventos(); track evento.id) {
-            <article class="event-row" [ngClass]="statusTone(evento)">
-              <button type="button" class="event-row__main" (click)="abrirEvento(evento.id)">
-                <div class="event-row__date">
-                  <strong>{{ formatDay(evento.fechaEvento) }}</strong>
-                  <span class="month">{{ formatMonth(evento.fechaEvento) }}</span>
-                </div>
-
-                <div class="event-row__body">
-                  <div class="event-row__top">
-                    <div>
-                      <h3>{{ evento.titulo }}</h3>
-                      <p>{{ formatDate(evento.fechaEvento) }}</p>
+        @if (eventos().length === 0) {
+          <article class="panel empty-state">
+            <h3>No hay eventos para mostrar</h3>
+            <p>Prueba a cambiar la búsqueda o el filtro de mes.</p>
+            <button type="button" class="action-button secondary action-button--icon" (click)="clearFilters()">
+              <span class="button-icon" aria-hidden="true">✕</span>
+              <span class="button-text">Limpiar filtros</span>
+            </button>
+          </article>
+        } @else {
+            <section class="event-list" aria-label="Listado de eventos">
+              @for (evento of eventos(); track evento.id) {
+                <article class="event-row" [ngClass]="statusTone(evento)">
+                  <button type="button" class="event-row__main" (click)="abrirEvento(evento.id)">
+                    <div class="event-row__date">
+                      <strong>{{ formatDay(evento.fechaEvento) }}</strong>
+                      <span class="month">{{ formatMonth(evento.fechaEvento) }}</span>
                     </div>
 
-                    <span class="status-badge" [ngClass]="statusTone(evento)">
-                      {{ statusLabel(evento) }}
-                    </span>
-                  </div>
+                    <div class="event-row__body">
+                      <div class="event-row__top">
+                        <div>
+                          <h3>{{ evento.titulo }}</h3>
+                          <p>{{ formatDate(evento.fechaEvento) }}</p>
+                        </div>
 
-                  <div class="event-row__meta">
-                    <span>{{ evento.personasApuntadas ?? 0 }} personas apuntadas</span>
+                        <span class="status-badge" [ngClass]="statusTone(evento)">
+                          {{ statusLabel(evento) }}
+                        </span>
+                      </div>
+
+                      <div class="event-row__meta">
+                        <span>{{ evento.personasApuntadas ?? 0 }} personas apuntadas</span>
+                      </div>
+                    </div>
+                  </button>
+
+                  <div class="event-row__actions">
+    <!--                @if (canToggleState(evento)) {-->
+    <!--                  <button-->
+    <!--                    type="button"-->
+    <!--                    class="action-button secondary action-button&#45;&#45;soft action-button&#45;&#45;icon"-->
+    <!--                    (click)="toggleEstado(evento, $event)"-->
+    <!--                    [disabled]="actionLoadingId() === evento.id"-->
+    <!--                    [attr.aria-label]="actionLabel(evento)"-->
+    <!--                  >-->
+    <!--                    <span class="button-icon" aria-hidden="true">{{ evento.inscripcionAbierta ? '⏸' : '▶' }}</span>-->
+    <!--                    <span class="button-text">-->
+    <!--                      {{ actionLoadingId() === evento.id ? 'Procesando...' : actionLabel(evento) }}-->
+    <!--                    </span>-->
+    <!--                  </button>-->
+    <!--                }-->
+
+                    <button
+                      type="button"
+                      class="action-button action-button--soft action-button--icon"
+                      (click)="descargarParticipantes(evento, $event)"
+                      [disabled]="downloadingId() === evento.id || !evento.personasApuntadas"
+                      [attr.aria-label]="'Descargar participantes'"
+                    >
+                      <span class="button-icon" aria-hidden="true">📄</span>
+                      <span class="button-text">
+                        {{ downloadingId() === evento.id ? 'Descargando...' : 'Descargar participantes' }}
+                      </span>
+                    </button>
                   </div>
-                </div>
+                </article>
+              }
+            </section>
+
+            <div class="pagination-row">
+              <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="currentPage() <= 1" (click)="previousPage()" aria-label="Página anterior">
+                <span class="button-icon" aria-hidden="true">&lt;</span>
               </button>
 
-              <div class="event-row__actions">
-<!--                @if (canToggleState(evento)) {-->
-<!--                  <button-->
-<!--                    type="button"-->
-<!--                    class="action-button secondary action-button&#45;&#45;soft action-button&#45;&#45;icon"-->
-<!--                    (click)="toggleEstado(evento, $event)"-->
-<!--                    [disabled]="actionLoadingId() === evento.id"-->
-<!--                    [attr.aria-label]="actionLabel(evento)"-->
-<!--                  >-->
-<!--                    <span class="button-icon" aria-hidden="true">{{ evento.inscripcionAbierta ? '⏸' : '▶' }}</span>-->
-<!--                    <span class="button-text">-->
-<!--                      {{ actionLoadingId() === evento.id ? 'Procesando...' : actionLabel(evento) }}-->
-<!--                    </span>-->
-<!--                  </button>-->
-<!--                }-->
+              <span>Página {{ currentPage() }} / {{ totalPages() }}</span>
 
-                <button
-                  type="button"
-                  class="action-button action-button--soft action-button--icon"
-                  (click)="descargarParticipantes(evento, $event)"
-                  [disabled]="downloadingId() === evento.id || !evento.personasApuntadas"
-                  [attr.aria-label]="'Descargar participantes'"
-                >
-                  <span class="button-icon" aria-hidden="true">📄</span>
-                  <span class="button-text">
-                    {{ downloadingId() === evento.id ? 'Descargando...' : 'Descargar participantes' }}
-                  </span>
-                </button>
-              </div>
-            </article>
-          }
-        </section>
-
-        <div class="pagination-row">
-          <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="currentPage() <= 1" (click)="previousPage()" aria-label="Página anterior">
-            <span class="button-icon" aria-hidden="true">&lt;</span>
-          </button>
-
-          <span>Página {{ currentPage() }} / {{ totalPages() }}</span>
-
-          <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="currentPage() >= totalPages()" (click)="nextPage()" aria-label="Página siguiente">
-            <span class="button-icon" aria-hidden="true">&gt;</span>
-          </button>
-        </div>
+              <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="currentPage() >= totalPages()" (click)="nextPage()" aria-label="Página siguiente">
+                <span class="button-icon" aria-hidden="true">&gt;</span>
+              </button>
+            </div>
+        }
       </article>
     }
 

@@ -34,7 +34,7 @@ import {
   UsuarioCreatePayload,
   UsuarioPatch,
   UsuarioRelacionadoSeleccionado,
-  UserRole,
+  UserRole, isTipoRelacion,
 } from '../../domain/admin.models';
 import {TranslateModule, TranslateService} from '@ngx-translate/core';
 import {ToastService} from '../../../shared/components/toast/toast.service';
@@ -569,22 +569,9 @@ export class AdminUsuarioForm {
       return null;
     }
 
-    const normalized = value.trim().toLowerCase() as TipoRelacion;
+    const normalized = value.trim().toLowerCase();
 
-    const allowed: TipoRelacion[] = [
-      'conyuge',
-      'padre',
-      'madre',
-      'pareja',
-      'hijo',
-      'hija',
-      'sobrino',
-      'sobrina',
-      'abuelo',
-      'abuela',
-    ];
-
-    return allowed.includes(normalized) ? normalized : null;
+    return isTipoRelacion(normalized) ? normalized : null;
   }
 
   private refreshRelacionTiposFromCatalog(): void {

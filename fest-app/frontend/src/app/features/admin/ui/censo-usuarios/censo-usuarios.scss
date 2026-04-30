@@ -1,3 +1,13 @@
+// ─── censo-usuarios ───────────────────────────────────────────────────────────
+// Clases compartidas: .panel, .content, .action-button, .chip-filter,
+//   .count-chip, .pagination-row, .head-row, .eyebrow, .feedback,
+//   .checkbox-row, .actions-row, .filter-row, .search-field, .chips-row
+// → vienen de _admin-panel.scss (importado globalmente o por angular.json)
+//
+// Este archivo contiene SOLO lo específico de este componente.
+
+// ─── Screen wrapper ───────────────────────────────────────────────────────────
+
 .admin-censo-screen {
   position: relative;
 
@@ -6,300 +16,17 @@
     position: absolute;
     inset: 0 0 auto;
     height: 240px;
-    background: radial-gradient(130% 100% at 50% 0%, rgba(232, 82, 10, 0.16), rgba(253, 243, 231, 0));
+    background: radial-gradient(
+      130% 100% at 50% 0%,
+      rgba(232, 82, 10, 0.16),
+      rgba(253, 243, 231, 0)
+    );
     pointer-events: none;
     z-index: 0;
   }
 }
 
-.content {
-  position: relative;
-  z-index: 1;
-  padding: 1.2rem 1rem calc(var(--bottom-nav-height) + 1.3rem);
-  display: grid;
-  gap: 0.9rem;
-}
-
-// ─── Panel base ────────────────────────────────────────────────────────────────
-
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--surface-shadow);
-  padding: 1rem;
-}
-
-// ─── Actions panel ─────────────────────────────────────────────────────────────
-
-.actions-panel {
-  display: grid;
-  gap: 0.7rem;
-
-  // Mobile: acciones → búsqueda → chips
-  grid-template-areas:
-    "actions"
-    "search"
-    "filters";
-
-  // Desktop: búsqueda full-width, luego chips izq + acciones der
-  @media (min-width: 600px) {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "search  search"
-      "filters actions";
-    align-items: center;
-  }
-}
-
-.search-field {
-  grid-area: search;
-  display: grid;
-  gap: 0.35rem;
-
-  span {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-
-  input {
-    min-height: 44px;
-    border-radius: 0.85rem;
-    border: 1px solid var(--border-soft);
-    padding: 0 0.8rem;
-    background: #ffffff;
-    width: 100%;
-    box-sizing: border-box;
-    font: inherit;
-  }
-}
-
-.filter-row {
-  grid-area: filters;
-  display: flex;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.actions-row {
-  grid-area: actions;
-  display: flex;
-  gap: 0.45rem;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-// ─── Chips ─────────────────────────────────────────────────────────────────────
-
-.chip-filter {
-  min-height: 36px;
-  border: 1px solid var(--border-soft);
-  border-radius: 999px;
-  padding: 0 0.7rem;
-  font-weight: 700;
-  background: #fff;
-  color: var(--text-secondary);
-  cursor: pointer;
-
-  &.active {
-    border-color: var(--border-strong);
-    background: #fff4e6;
-    color: var(--brand-ink);
-  }
-
-  &--clear {
-    color: var(--text-muted);
-    border-style: dashed;
-
-    &:hover {
-      border-color: var(--border-strong);
-      color: var(--brand-ink);
-    }
-  }
-}
-
-// ─── Buttons ───────────────────────────────────────────────────────────────────
-
-.action-button {
-  min-height: 44px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  padding: 0 0.9rem;
-  background: linear-gradient(135deg, var(--brand-primary-strong, #b45309) 0%, var(--brand-primary, #e8520a) 100%);
-  color: #fff;
-  font-weight: 800;
-  cursor: pointer;
-  text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  font: inherit;
-
-  &.secondary {
-    background: #fff4e6;
-    color: var(--brand-ink);
-    border-color: var(--border-strong);
-  }
-
-  &.disabled {
-    opacity: 0.7;
-    pointer-events: none;
-  }
-
-  &[disabled] {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-
-  input[type='file'] {
-    display: none;
-  }
-}
-
-.action-button--icon {
-  gap: 0.45rem;
-}
-
-.action-button--sm {
-  min-height: 36px;
-  padding: 0 0.7rem;
-  font-size: 0.82rem;
-
-  // Mobile-first: solo icono
-  .button-text {
-    display: none;
-  }
-
-  .button-icon {
-    font-size: 1.05rem;
-  }
-
-  @media (min-width: 480px) {
-    .button-text {
-      display: inline-flex;
-    }
-  }
-}
-
-.action-button--pag {
-  min-width: 40px;
-  width: 40px;
-  height: 40px;
-  min-height: 40px;
-  padding: 0;
-
-  .button-icon {
-    font-size: 1.2rem;
-    font-weight: 800;
-  }
-}
-
-.button-icon {
-  font-size: 1em;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-}
-
-.button-text {
-  display: inline-flex;
-  align-items: center;
-}
-
-// ─── Feedback ──────────────────────────────────────────────────────────────────
-
-.feedback {
-  margin: 0;
-  border-radius: 0.7rem;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.84rem;
-  font-weight: 700;
-
-  &.success {
-    color: #166534;
-    background: #ecfdf5;
-    border: 1px solid #86efac;
-  }
-
-  &.error {
-    color: #991b1b;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-  }
-}
-
-.import-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-
-  strong { color: #14532d; }
-  small  { color: #92400e; }
-}
-
-// ─── Misc ──────────────────────────────────────────────────────────────────────
-
-.form-panel {
-  h2 { margin: 0 0 0.7rem; font-size: 1rem; }
-  form { display: grid; gap: 0.55rem; }
-
-  input,
-  select {
-    min-height: 44px;
-    border-radius: 0.8rem;
-    border: 1px solid var(--border-soft);
-    padding: 0 0.75rem;
-    background: #fff;
-  }
-}
-
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--brand-crimson);
-  font-weight: 800;
-}
-
-h2 {
-  margin: 0.35rem 0 0;
-}
-
-// ─── List panel ────────────────────────────────────────────────────────────────
-
-.head-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 0.65rem;
-}
-
-.count-chip {
-  min-width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  background: #fff4e6;
-  font-weight: 800;
-}
+// ─── Tabla de usuarios ────────────────────────────────────────────────────────
 
 .users-table-wrap {
   border: 1px solid var(--border-soft);
@@ -335,10 +62,10 @@ h2 {
 .table-row-link {
   cursor: pointer;
 
-  &:hover {
-    background: #fffaf4;
-  }
+  &:hover { background: #fffaf4; }
 }
+
+// ─── Metadata de fila (chips inline) ─────────────────────────────────────────
 
 .row-meta {
   display: flex;
@@ -357,23 +84,54 @@ h2 {
   }
 }
 
-// ─── Pagination ────────────────────────────────────────────────────────────────
+// ─── Formulario de importación (panel inline) ─────────────────────────────────
 
-.pagination-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-top: 0.8rem;
+.form-panel {
+  h2 { margin: 0 0 0.7rem; font-size: 1rem; }
 
-  span {
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 700;
+  form { display: grid; gap: 0.55rem; }
+
+  input,
+  select {
+    min-height: 44px;
+    border-radius: 0.8rem;
+    border: 1px solid var(--border-soft);
+    padding: 0 0.75rem;
+    background: #fff;
   }
 }
 
-.empty-text {
-  margin: 0;
+// ─── Resumen de importación ───────────────────────────────────────────────────
+
+.import-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.82rem;
   color: var(--text-secondary);
+
+  strong { color: #14532d; }
+  small  { color: #92400e; }
+}
+
+// ─── Botón icon+texto responsivo ─────────────────────────────────────────────
+// Variantes específicas de .action-button para este componente
+
+.action-button--icon { gap: 0.45rem; }
+
+.button-icon {
+  font-size: 1em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.button-text {
+  display: inline-flex;
+  align-items: center;
+}
+
+.action-button input[type='file'] {
+  display: none;
 }

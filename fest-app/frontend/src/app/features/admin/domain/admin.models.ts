@@ -23,19 +23,16 @@ export interface EnumOption<T extends string = string> {
   label: string;
 }
 
-export type TipoRelacion =
-  | 'conyuge'
-  | 'padre'
-  | 'madre'
-  | 'pareja'
-  | 'hijo'
-  | 'hija'
-  | 'sobrino'
-  | 'sobrina'
-  | 'tio'
-  | 'tia'
-  | 'abuelo'
-  | 'abuela';
+export const TIPOS_RELACION = [
+  'familiar',
+  'amistad',
+] as const;
+
+export type TipoRelacion = typeof TIPOS_RELACION[number];
+
+export function isTipoRelacion(value: string): value is TipoRelacion {
+  return (TIPOS_RELACION as readonly string[]).includes(value);
+}
 
 export interface Entidad {
   id?: string;

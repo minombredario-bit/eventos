@@ -13,6 +13,7 @@ import {
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { EventosApi } from '../../../eventos/data/eventos.api';
 import { EventoAdminListado, EventosPage } from '../../../eventos/domain/eventos.models';
+import {Usuario} from '../../domain/admin.models';
 
 @Component({
   selector: 'app-admin-eventos',
@@ -31,6 +32,7 @@ export class AdminEventos {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly loading = signal(true);
+  protected readonly transitioning = signal(false);
   protected readonly actionLoadingId = signal<string | null>(null);
   protected readonly downloadingId = signal<string | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
@@ -50,18 +52,17 @@ export class AdminEventos {
   protected readonly formatDay = formatDay;
   protected readonly formatMonth = formatMonth;
 
-  protected readonly paginatedEventos = computed<EventoAdminListado[]>(() => this.eventosPage().items);
+  protected readonly eventos = computed<EventoAdminListado[]>(() => this.eventosPage().items);
   protected readonly totalEventosFiltrados = computed<number>(() => this.eventosPage().totalItems);
+  protected readonly totalItems = computed<number>(() => this.eventosPage().totalItems);
   protected readonly currentPage = computed<number>(() => this.eventosPage().page);
-  protected readonly totalPages = computed<number>(() =>
-    Math.max(1, Math.ceil(this.totalEventosFiltrados() / AdminEventos.PAGE_SIZE))
-  );
+  protected readonly totalPages = computed<number>(() => this.eventosPage().totalPages);
   protected readonly hasNextPage = computed<boolean>(() => this.eventosPage().hasNext);
   protected readonly hasPreviousPage = computed<boolean>(() => this.eventosPage().hasPrevious);
 
   protected readonly monthChipLabel = computed(() => {
     const currentMonthKey = getCurrentMonthKey();
-    const count = this.paginatedEventos().filter(
+    const count = this.eventos().filter(
       (e) => getMonthKey(e.fechaEvento) === currentMonthKey
     ).length;
     return `Eventos del mes (${count})`;
@@ -69,7 +70,7 @@ export class AdminEventos {
   protected readonly monthChipActive = computed(() => this.monthOnly());
 
   constructor() {
-    this.loadEventos(1);
+    this.loadEventos(1, true);
   }
 
   protected logout(): void {
@@ -217,8 +218,12 @@ export class AdminEventos {
       });
   }
 
-  private loadEventos(page = 1): void {
-    this.loading.set(true);
+  private loadEventos(page = 1, isInitial = false): void {
+    if (isInitial) {
+      this.loading.set(true);
+    } else {
+      this.transitioning.set(true);  // ← suave, no borra la tabla
+    }
     this.errorMessage.set(null);
 
     this.eventosApi

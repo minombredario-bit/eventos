@@ -1,28 +1,54 @@
-@use '../../../../styles/admin-panel' as *;
+@use '../../../../../styles/admin-panel' as *;
 
-/* Component-specific overrides */
+// ─── entidad-form ─────────────────────────────────────────────────────────────
+// Clases compartidas heredadas de _admin-panel:
+//   .panel, .content, .field, .field-grid, .action-button,
+//   .loading-overlay, .spinner, .cargo-pill, .cargo-chips, .eyebrow
+//
+// Este archivo contiene SOLO lo específico de este componente.
+
+// ─── Editor LOPD ─────────────────────────────────────────────────────────────
+
+.hero-panel {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-areas:
+    "search  search"
+    "filters actions";
+  grid-template-columns: 1fr auto;
+  align-items: center;
+
+  // Quitar el flex heredado
+  justify-content: unset;
+  align-items: unset;
+  flex-wrap: unset;
+
+  .filters-panel__search { grid-area: search; }
+  .filters-row           { grid-area: filters; }
+  .actions-row           { grid-area: actions; }
+}
 
 .field--editor {
   grid-column: 1 / -1;
   width: 100%;
   display: block;
-}
 
-.field--editor .editor-label {
-  position: static;
-  transform: none;
-  display: inline-flex;
-  gap: 0.25rem;
-  align-items: center;
-  width: fit-content;
-  margin-bottom: 0.45rem;
-  padding: 0 0.2rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--brand-primary, #e8520a);
-  background: transparent;
-  pointer-events: auto;
+  .editor-label {
+    position: static;
+    transform: none;
+    display: inline-flex;
+    gap: 0.25rem;
+    align-items: center;
+    width: fit-content;
+    margin-bottom: 0.45rem;
+    padding: 0 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--brand-primary, #e8520a);
+    background: transparent;
+    pointer-events: auto;
+  }
 }
 
 .lopd-editor {
@@ -55,9 +81,11 @@
   padding: 1rem;
 }
 
-.action-button {
-  margin-top: 1rem;
-}
+// ─── Ajuste de margen del botón de acción ─────────────────────────────────────
+
+.action-button { margin-top: 1rem; }
+
+// ─── Botón eliminar cargo ─────────────────────────────────────────────────────
 
 .cargo-item__remove {
   appearance: none;
@@ -78,120 +106,40 @@
     background-color 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
-}
 
-.cargo-item__remove-icon {
-  width: 1.15rem;
-  height: 1.15rem;
-  display: block;
-}
+  &-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    display: block;
+  }
 
-.cargo-item__remove:hover:not(:disabled) {
-  background: #ef4444;
-  border-color: #ef4444;
-  color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.22);
-}
+  &:hover:not(:disabled) {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.22);
+  }
 
-.cargo-item__remove:active:not(:disabled) {
-  transform: translateY(0) scale(0.96);
-}
+  &:active:not(:disabled) {
+    transform: translateY(0) scale(0.96);
+  }
 
-.cargo-item__remove:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px rgba(239, 68, 68, 0.18),
-    0 8px 18px rgba(239, 68, 68, 0.18);
-}
+  &:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 3px rgba(239, 68, 68, 0.18),
+      0 8px 18px rgba(239, 68, 68, 0.18);
+  }
 
-.cargo-item__remove:disabled {
-  opacity: 0.55;
-  cursor: wait;
-  box-shadow: none;
-}
-
-.cargo-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 1rem 0 0;
-}
-
-.cargo-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-height: 44px;
-  padding: 0.7rem 1rem;
-  border: 1px solid var(--border-soft, #d6c2ad);
-  border-radius: 999px;
-  background: var(--surface, #fffdf9);
-  color: var(--text-primary, #1a0a00);
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.12s ease;
-}
-
-.cargo-pill:hover {
-  border-color: var(--brand-primary-light, #fdba74);
-  background: color-mix(in srgb, var(--brand-primary) 6%, transparent);
-}
-
-.cargo-pill:active {
-  transform: scale(0.98);
-}
-
-.cargo-pill:focus-visible {
-  outline: none;
-  border-color: var(--brand-primary-strong, #c73d00);
-  box-shadow: var(--focus-ring, 0 0 0 3px rgba(232,82,10,.32));
-}
-
-.cargo-pill--selected {
-  border-color: var(--brand-primary-strong, #c73d00);
-  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
-  color: var(--brand-primary-strong, #c73d00);
-}
-
-.cargo-pill__check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-soft, #d6c2ad);
-  font-size: 0.72rem;
-  font-weight: 900;
-  line-height: 1;
-  color: transparent;
-  background: #fff;
-  flex: 0 0 auto;
-}
-
-.cargo-pill--selected .cargo-pill__check {
-  border-color: var(--brand-primary-strong, #c73d00);
-  background: var(--brand-primary-strong, #c73d00);
-  color: #fff;
-}
-
-.cargo-pill__label {
-  font-size: 0.92rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  .cargo-pill {
-    width: 100%;
-    justify-content: flex-start;
-    border-radius: 1rem;
+  &:disabled {
+    opacity: 0.55;
+    cursor: wait;
+    box-shadow: none;
   }
 }
+
+// ─── Input de nuevo cargo con botón inline ────────────────────────────────────
 
 .cargo-add-row {
   width: 100%;
@@ -210,25 +158,17 @@
   border-radius: 1rem;
   background: #fffdf9;
   color: #2e241c;
-
   padding: 0.9rem 3.8rem 0.9rem 1rem;
   font-size: 0.96rem;
   font-weight: 500;
   line-height: 1.2;
-
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
     background 0.18s ease;
 
-  &::placeholder {
-    color: #a38f7b;
-    font-weight: 400;
-  }
-
-  &:hover {
-    border-color: #cfa47e;
-  }
+  &::placeholder { color: #a38f7b; font-weight: 400; }
+  &:hover        { border-color: #cfa47e; }
 
   &:focus {
     outline: none;
@@ -249,34 +189,21 @@
   top: 50%;
   right: 0.45rem;
   transform: translateY(-50%);
-
   width: 40px;
   height: 40px;
   min-height: 40px;
   padding: 0;
-
   border-radius: 999px;
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
+  &__text { display: none; }
 }
 
-.secondary-button__icon {
-  font-size: 1.25rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.cargo-add-btn__text {
-  display: none;
-}
-
-/* móvil */
+// Móvil: botón debajo del input
 @media (max-width: 767px) {
-  .cargo-input {
-    padding-right: 1rem;
-  }
+  .cargo-input { padding-right: 1rem; }
 
   .cargo-add-btn {
     position: static;
@@ -285,56 +212,26 @@
     height: 48px;
     margin-top: 0.65rem;
     border-radius: 0.9rem;
-  }
 
-  .cargo-add-btn__text {
-    display: inline;
-  }
+    &__text { display: inline; }
 
-  .cargo-add-btn .secondary-button__icon {
-    margin-right: 0.35rem;
+    .secondary-button__icon { margin-right: 0.35rem; }
   }
 }
 
-.cargo-pill--custom {
-  border-style: dashed;
-  padding-right: 0.45rem;
-  cursor: default;
-  margin: 0 5px;
+// ─── Secciones del formulario ─────────────────────────────────────────────────
+
+.form-section {
+  display: grid;
+  gap: 1rem;
 }
 
-.cargo-pill__remove {
-  appearance: none;
-  border: 0;
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-  color: #b91c1c;
-  width: 1.85rem;
-  height: 1.85rem;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-left: 0.15rem;
-  padding: 0;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.12s ease;
-}
+.section-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
 
-.cargo-pill__remove:hover:not(:disabled) {
-  background: #ef4444;
-  color: #fff;
-  transform: scale(1.05);
-}
-
-.cargo-pill__remove:disabled {
-  opacity: 0.5;
-  cursor: wait;
-}
-
-.cargo-pill__remove-icon {
-  width: 1rem;
-  height: 1rem;
+  &__label  { font-weight: 800; }
+  &__sep    { color: var(--text-muted); font-weight: 400; }
+  &__entity { color: var(--brand-primary-strong); font-weight: 700; }
 }

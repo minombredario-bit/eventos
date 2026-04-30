@@ -492,6 +492,26 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
 
   private updateSubmitBarMode(): void {
     const anchorEl = this.submitAnchorRef?.nativeElement;
+
+    if (!anchorEl) return;
+
+    const bottomOffset = this.getBottomOffset();
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const activationLine = window.innerHeight - bottomOffset - anchorEl.offsetHeight;
+
+    // Flotante mientras el anchor esté por encima de la línea de activación.
+    // En cuanto el anchor baja y vuelve a ser visible → normal.
+    // Nunca usamos 'bottom' — el sticky del CSS se encarga de anclarlo al pie.
+    const next: SubmitMode =
+      anchorRect.top > activationLine ? 'normal' : 'floating';
+
+    if (next !== this.submitMode()) {
+      this.submitMode.set(next);
+    }
+  }
+
+  private updateSubmitBarMode2(): void {
+    const anchorEl = this.submitAnchorRef?.nativeElement;
     const endEl = this.formEndRef?.nativeElement;
 
     if (!anchorEl || !endEl) return;
@@ -941,5 +961,3 @@ export class AdminEventoForm implements AfterViewInit, OnDestroy {
     }
   }
 }
-
-// ...existing code...

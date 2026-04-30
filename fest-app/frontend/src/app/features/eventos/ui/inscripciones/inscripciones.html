@@ -8,17 +8,8 @@
 
   <div class="content">
 
-    <article class="panel hero-panel filters-panel admin-search-panel">
-      <div class="admin-search-panel__header">
-        <div>
-          <p class="eyebrow">Mis inscripciones</p>
-          <h2>Eventos inscritos</h2>
-          <p>Cuando te inscribas a un evento, vas a verlo acá para entrar directo a las actividades.</p>
-        </div>
-      </div>
-
-      <div class="actions-row" aria-hidden="true"></div>
-
+    <article class="panel filters-panel admin-search-panel">
+      <!-- Barra de búsqueda -->
       <div class="filters-panel__search">
         <label for="searchInscripciones">Buscar por evento</label>
         <input
@@ -80,8 +71,11 @@
 
                 <div class="inscription-meta">
                   <span>{{ lineasLabel(inscripcion) }}</span>
-                  <span>{{ estadoPagoLabel(inscripcion.estadoPago) }}</span>
-                  <small>{{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.2-2' }}</small>
+                  <span>
+                    {{ estadoPagoLabel(inscripcion.estadoPago) }}
+                    {{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.2-2' }}
+                  </span>
+
                 </div>
               </a>
 

@@ -1,8 +1,15 @@
-:host {
-  display: block;
-}
+// ─── inscripciones ────────────────────────────────────────────────────────────
+// Clases compartidas heredadas de _admin-panel (global):
+//   .panel, .content, .eyebrow, .feedback, .head-row, .count-chip,
+//   .skeleton, .loading-panel, .empty-state, .pagination-row,
+//   .action-button, .button-icon, .button-text,
+//   .filters-panel, .filters-panel__search, .admin-search-panel
+//
+// Este archivo contiene SOLO lo específico de este componente.
 
-// ─── Screen ────────────────────────────────────────────────────────────────────
+:host { display: block; }
+
+// ─── Screen background ────────────────────────────────────────────────────────
 
 .inscripciones-screen {
   position: relative;
@@ -12,205 +19,24 @@
     position: absolute;
     inset: 0 0 auto;
     height: 240px;
-    background: radial-gradient(130% 100% at 50% 0%, rgba(232, 82, 10, 0.16), rgba(253, 243, 231, 0));
+    background: radial-gradient(
+      130% 100% at 50% 0%,
+      rgba(232, 82, 10, 0.16),
+      rgba(253, 243, 231, 0)
+    );
     pointer-events: none;
     z-index: 0;
   }
 }
 
-.content {
-  max-width: 980px;
-  margin: 0 auto;
-  grid-template-columns: 1.1fr 1fr;
-  align-items: start;
-}
-// ─── Panel base ────────────────────────────────────────────────────────────────
-
-.panel,
-.hero-panel,
-.feedback {
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--surface-shadow);
-  padding: 1rem;
-}
-
-// ─── Hero ──────────────────────────────────────────────────────────────────────
-
-.hero-panel {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  border-top: 3px solid var(--brand-primary);
-
-  h2 {
-    margin: 0.35rem 0 0;
-  }
-
-  p {
-    margin: 0.3rem 0 0;
-    color: var(--text-secondary);
-    font-size: 0.88rem;
-    line-height: 1.5;
-  }
-}
-
-// ─── Filters panel ─────────────────────────────────────────────────────────────
-
-.filters-panel {
-  display: grid;
-  gap: 0.7rem;
-  grid-template-areas:
-    "header"
-    "search";
-
-  @media (min-width: 600px) {
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "header header"
-      "search search";
-    align-items: center;
-  }
-}
-
-.filters-panel__search {
-  grid-area: search;
-  display: grid;
-  gap: 0.35rem;
-
-  label {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-
-  input {
-    min-height: 44px;
-    border-radius: 0.85rem;
-    border: 1px solid var(--border-soft);
-    padding: 0 0.8rem;
-    background: #ffffff;
-    font: inherit;
-    color: var(--text-primary);
-    width: 100%;
-    box-sizing: border-box;
-  }
-}
-
-.admin-search-panel {
-  border-top: 3px solid var(--brand-primary);
-  margin: 20px 0;
-  padding: 20px;
-  border-radius: 12px;
-}
-
-.admin-search-panel__header {
-  grid-area: header;
-
-  h2 {
-    margin: 0.35rem 0 0;
-  }
-
-  p {
-    margin: 0.3rem 0 0;
-    color: var(--text-secondary);
-    font-size: 0.88rem;
-    line-height: 1.5;
-  }
-}
-
-// ─── Eyebrow ───────────────────────────────────────────────────────────────────
-
-.eyebrow {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--brand-crimson);
-  font-weight: 800;
-}
-
-// ─── Feedback ──────────────────────────────────────────────────────────────────
-
-.feedback {
-  padding: 0.75rem 0.9rem;
-  font-size: 0.84rem;
-  font-weight: 700;
-
-  &--error {
-    color: #991b1b;
-    background: #fef2f2;
-    border-color: #fecaca;
-  }
-}
-
-// ─── Loading / empty ───────────────────────────────────────────────────────────
-
-.loading-panel,
-.empty-state {
-  padding: 1.25rem;
-
-  h3 {
-    margin: 0 0 0.35rem;
-  }
-
-  p {
-    color: var(--text-secondary);
-    margin: 0 0 0.8rem;
-  }
-}
-
-.skeleton {
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--brand-primary) 10%, var(--surface-muted)) 0%,
-    var(--surface) 50%,
-    color-mix(in srgb, var(--brand-primary) 10%, var(--surface-muted)) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-}
-
-.skeleton--title { width: 55%; height: 1.2rem; margin-bottom: 0.8rem; }
-.skeleton--text  { height: 0.8rem; margin-bottom: 0.55rem; }
-.skeleton--text.short { width: 70%; }
-.skeleton--line  { height: 4.5rem; margin-top: 0.75rem; border-radius: 0.9rem; }
-
-// ─── Head row / count chip ─────────────────────────────────────────────────────
-
-.head-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 0.65rem;
-
-  h2 {
-    margin: 0;
-  }
-}
-
-.count-chip {
-  min-width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  display: inline-grid;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  background: #fff4e6;
-  font-weight: 800;
-  font-size: 0.82rem;
-}
-
-// ─── Inscriptions list ─────────────────────────────────────────────────────────
+// ─── Lista de inscripciones ───────────────────────────────────────────────────
 
 .inscriptions-list {
   display: grid;
   gap: 0.65rem;
 }
+
+// ─── Tarjeta de inscripción ───────────────────────────────────────────────────
 
 .inscription-card {
   display: grid;
@@ -283,6 +109,8 @@
   }
 }
 
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
 .status-badge {
   justify-self: start;
   min-height: 24px;
@@ -302,12 +130,15 @@
   &.closed { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
 }
 
+// ─── Meta chips ───────────────────────────────────────────────────────────────
+
 .inscription-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 
-  span, small {
+  span,
+  small {
     min-height: 28px;
     display: inline-flex;
     align-items: center;
@@ -324,7 +155,7 @@
   small { background: #ecfeff; border-color: #a5f3fc; color: #0e7490; }
 }
 
-// ─── Inscription actions ───────────────────────────────────────────────────────
+// ─── Acciones de inscripción ──────────────────────────────────────────────────
 
 .inscription-actions,
 .inscription-actions-closed {
@@ -358,95 +189,8 @@
 
   &:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
-  &.secondary        { background: #f5f3ff; border-color: #c4b5fd; color: #5b21b6; }
-  &.apuntados-action { background: #5b21b6; border-color: #5b21b6; color: #ffffff; }
-  &.closed-apuntados-link { background: var(--brand-ink); border-color: var(--brand-ink); color: #ffffff; }
-  &.disabled { border-color: var(--border-soft); background: var(--surface-soft); color: var(--text-muted); pointer-events: none; }
-}
-
-// ─── Buttons ───────────────────────────────────────────────────────────────────
-
-.action-button {
-  min-height: 44px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  padding: 0 0.9rem;
-  background: linear-gradient(135deg, var(--brand-primary-strong, #b45309) 0%, var(--brand-primary, #e8520a) 100%);
-  color: #fff;
-  font-weight: 800;
-  cursor: pointer;
-  text-align: center;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  text-decoration: none;
-  font: inherit;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-
-  &.secondary {
-    background: #fff4e6;
-    color: var(--brand-ink);
-    border-color: var(--border-strong);
-  }
-
-  &--pag {
-    min-width: 40px;
-    width: 40px;
-    height: 40px;
-    min-height: 40px;
-    padding: 0;
-    border-radius: 999px;
-
-    .button-icon {
-      font-size: 1.2rem;
-      font-weight: 800;
-    }
-  }
-
-  &--icon { gap: 0.45rem; }
-
-  &:hover { transform: translateY(-1px); }
-
-  &:disabled,
-  &[disabled] {
-    opacity: 0.55;
-    cursor: not-allowed;
-    transform: none;
-  }
-}
-
-.button-icon {
-  font-size: 1em;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-}
-
-.button-text {
-  display: inline-flex;
-  align-items: center;
-}
-
-// ─── Pagination ────────────────────────────────────────────────────────────────
-
-.pagination-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-top: 0.8rem;
-
-  span {
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 700;
-  }
-}
-
-// ─── Animations ────────────────────────────────────────────────────────────────
-
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  &.secondary            { background: #f5f3ff; border-color: #c4b5fd; color: #5b21b6; }
+  &.apuntados-action     { background: #5b21b6; border-color: #5b21b6; color: #ffffff; }
+  &.closed-apuntados-link{ background: var(--brand-ink); border-color: var(--brand-ink); color: #ffffff; }
+  &.disabled             { border-color: var(--border-soft); background: var(--surface-soft); color: var(--text-muted); pointer-events: none; }
 }

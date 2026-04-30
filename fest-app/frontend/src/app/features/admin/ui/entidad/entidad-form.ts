@@ -70,6 +70,20 @@ export class AdminEntidadForm {
     this.authService.hasAnyRole(['ROLE_SUPERADMIN', 'ROLE_ADMIN']),
   );
 
+
+
+
+  protected readonly isEditMode = computed(() => !!this.selectedEntidadId());
+
+  protected readonly submitLabel = computed(() => {
+    if (this.saving()) {
+      return this.isEditMode() ? 'Guardando...' : 'Creando...';
+    }
+
+    return this.isEditMode() ? 'Guardar cambios' : 'Crear asociación';
+  });
+
+
   // ── Form ───────────────────────────────────────────────────────────────────
 
   protected readonly form = this.fb.group({
@@ -334,8 +348,7 @@ export class AdminEntidadForm {
     this.cargoToDelete.set(null);
   }
   // ── Save ───────────────────────────────────────────────────────────────────
-
-  protected save(): void {
+  protected submit(): void {
     const entidadId = this.selectedEntidadId();
     if (!entidadId) {
       this.toast.showError(this.translate.instant('admin.entidad.selectRequired'));

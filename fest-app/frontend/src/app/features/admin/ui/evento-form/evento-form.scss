@@ -1,335 +1,169 @@
-@use '../../../../styles/admin-panel';
+// ─── evento-form ──────────────────────────────────────────────────────────────
 
-:host {
-  display: block;
-}
+:host { display: block; }
+
+// ─── Screen background ────────────────────────────────────────────────────────
 
 .admin-evento-form-screen {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--brand-primary) 16%, transparent), transparent 36%),
-    linear-gradient(180deg, var(--page-bg) 0%, var(--surface-soft) 100%);
 }
 
-.content {
-  display: grid;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.panel,
-.feedback,
-.edit-form {
-  display: grid;
-  gap: 1.25rem;
-  padding: 0 0 1rem;
-  border-radius: 1.25rem;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: var(--surface-shadow);
-}
+// ─── Panel contenedor principal ───────────────────────────────────────────────
+// El <article class="panel"> envuelve todo el form: quitamos su padding
+// para que cada form-section tenga su propio aspecto visual.
 
 .panel {
-  padding: 1.15rem;
+  padding: 0;
+  overflow: hidden;
+
+  // Panel de loading interior sí lleva padding
+  > .panel {
+    padding: 1.15rem;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
 }
 
-.panel--accent {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-  border-top: 4px solid var(--brand-primary);
-}
-
-.panel h2 {
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.panel p,
-.feedback p {
-  margin: 0.4rem 0 0;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
+// ─── Formulario ───────────────────────────────────────────────────────────────
 
 .edit-form {
   display: grid;
-  gap: 1rem;
-  padding: 0 0 1rem;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  gap: 0;
 }
 
-// ─── Form sections ───────────────────────────────────────────────────────────
+// ─── Secciones ────────────────────────────────────────────────────────────────
 
 .form-section {
-  padding: 1rem;
-}
-
-.form-section--activities {
   display: grid;
-  gap: 0.85rem;
-  padding-bottom: 1rem;
-  margin-bottom: calc(2.25rem + var(--bottom-nav-height, 0px));
+  gap: 1rem;
+  padding: 1.25rem;
+
+  & + .form-section,
+  & + .submit-anchor + .form-section {
+    border-top: 1px solid var(--border-soft, #e8d8c8);
+  }
+
+  &--activities {
+    background: color-mix(in srgb, var(--surface-soft, #faf4ec) 60%, transparent);
+    gap: 0.85rem;
+    //padding-bottom: calc(2.5rem + var(--bottom-nav-height, 68px));
+  }
 }
 
-// ─── Section head ────────────────────────────────────────────────────────────
+// ─── Feedback dentro del panel ────────────────────────────────────────────────
+
+.feedback {
+  margin: 1rem 1.25rem 0;
+  border-radius: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+
+  &--success {
+    color: #047857;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+  }
+
+  &--error {
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+  }
+
+  p { margin: 0.4rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+}
+
+// ─── Section head ─────────────────────────────────────────────────────────────
 
 .section-head {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
+
+  &--actions {
+    flex-wrap: wrap;
+  }
+
+  &__text { flex: 1; min-width: 0; }
+  &__add-btn { flex-shrink: 0; align-self: flex-start; margin-left: auto; }
+
+  h3 { margin: 0; color: var(--text-primary); }
+  p  { margin: 0.35rem 0 0; color: var(--text-secondary); line-height: 1.5; }
 }
 
-.section-head--actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
+// ─── Stack note ───────────────────────────────────────────────────────────────
 
-.section-head__text {
-  flex: 1;
-  min-width: 0;
-}
-
-.section-head__add-btn {
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-left: auto;
-}
-
-.section-head h3,
-.activity-card h4 {
+.stack-note {
   margin: 0;
-  color: var(--text-primary);
-}
-
-.section-head p,
-.stack-note,
-.activity-card p {
-  margin: 0.35rem 0 0;
   color: var(--text-secondary);
   line-height: 1.5;
+  font-size: 0.9rem;
 }
 
-// ─── Buttons ─────────────────────────────────────────────────────────────────
+// ─── Submit bar ───────────────────────────────────────────────────────────────
 
-.secondary-button,
-.icon-button {
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, var(--border-soft));
-  border-radius: 999px;
-  min-height: 2.6rem;
-  padding: 0.65rem 0.95rem;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  color: var(--brand-primary-strong);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.cta-icon-btn,
-.icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-}
-
-.button-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.05em;
-  line-height: 1;
-}
-
-.button-text {
-  display: inline-flex;
-  align-items: center;
-}
-
-.icon-button {
-  min-width: 2.6rem;
-  padding: 0.55rem 0.8rem;
-}
-
-.icon-button--danger {
-  border-color: color-mix(in srgb, #ef4444 30%, transparent);
-  color: #b91c1c;
-}
-
-// ─── Feedback ────────────────────────────────────────────────────────────────
-
-.feedback {
-  padding: 1rem 1.1rem;
-}
-
-.feedback--error {
-  background: color-mix(in srgb, #fee2e2 72%, var(--surface) 28%);
-  border-color: color-mix(in srgb, #ef4444 26%, transparent);
-}
-
-.feedback--success {
-  background: color-mix(in srgb, #dcfce7 72%, var(--surface) 28%);
-  border-color: color-mix(in srgb, #22c55e 22%, transparent);
-}
-
-// ─── Fields ──────────────────────────────────────────────────────────────────
-
-.eyebrow {
-  margin: 0 0 0.35rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.72rem;
-  color: var(--brand-primary);
-  font-weight: 700;
-}
-
-.status-chip {
-  padding: 0.55rem 0.85rem;
-  border-radius: 999px;
-  font-weight: 700;
-  background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface));
-  color: var(--brand-primary-strong);
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem;
-  margin-top: 1rem;
-}
-
-.chips-row {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 0.5rem;
-  /* Place chips on their own row; allow chips to wrap inside that row. */
-  flex-wrap: wrap;
-}
-
-.chip {
-  padding: 0.45rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
-  background: var(--surface);
-  color: var(--text-primary);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.chip {
-  white-space: nowrap;
-  flex: 0 0 auto; /* don't grow or shrink; keep intrinsic size */
-}
-
-.chip--active {
-  background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface));
-  color: var(--brand-primary-strong);
-  border-color: color-mix(in srgb, var(--brand-primary) 20%, var(--border-soft));
-}
-
-.field-grid--activity {
-  margin-top: 0.9rem;
-}
-
-.field {
+.submit-anchor {
   position: relative;
-  display: grid;
+  &--reserve { min-height: 3.25rem; }
 }
 
-.field--full {
-  grid-column: 1 / -1;
-}
-
-.field input,
-.field select,
-.field textarea {
+.submit-bar {
   width: 100%;
-  min-height: 56px;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
-  border-radius: 0.95rem;
-  background: var(--surface);
-  padding: 1rem 0.95rem 0.65rem;
+  padding: 0.75rem 1.25rem;
+  transition: opacity 0.15s ease;
+
+  &--floating {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 0.75rem 1rem calc(var(--bottom-nav-height, 0px) + 0.75rem);
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--page-bg) 95%, transparent) 55%,
+      transparent
+    );
+  }
+
+  // ── Cuando llega al final: sticky al pie, sin saltar ──
+  &--bottom {
+    position: sticky;
+    bottom: calc(var(--bottom-nav-height, 0px) + 0.75rem);
+    z-index: 20;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--page-bg) 95%, transparent) 55%,
+      transparent
+    );
+    @extend .submit-bar--floating;
+  }
+}
+
+.submit-button {
+  display: block;
+  cursor: pointer;
+  width: 100%;
+  border: 0;
+  border-radius: 1rem;
+  min-height: 3.25rem;
+  padding: 0.95rem 1rem;
   font: inherit;
-  color: var(--text-primary);
-}
-
-.field textarea {
-  min-height: 8rem;
-  resize: vertical;
-}
-
-.field label {
-  position: absolute;
-  top: 50%;
-  left: 0.95rem;
-  transform: translateY(-50%);
-  padding: 0 0.25rem;
-  font-size: 0.78rem;
   font-weight: 700;
-  color: var(--text-muted);
-  background: transparent;
-  pointer-events: none;
-  transition:
-    top 0.18s ease,
-    transform 0.18s ease,
-    color 0.18s ease,
-    background-color 0.18s ease;
+  background: linear-gradient(135deg, var(--brand-primary, #e8520a), var(--brand-primary-strong, #c73d00));
+  color: #fff;
+  box-shadow: 0 18px 36px rgba(92,26,0,.20), 0 12px 28px rgba(0,0,0,.12);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  &:disabled { opacity: 0.65; cursor: not-allowed; }
+  &:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.02); }
 }
 
-.field input::placeholder,
-.field textarea::placeholder {
-  color: transparent;
-}
-
-.field input:focus + label,
-.field textarea:focus + label,
-.field select:focus + label,
-.field select + label,
-.field input:not(:placeholder-shown) + label,
-.field textarea:not(:placeholder-shown) + label {
-  top: 0;
-  transform: translateY(-50%) scale(0.9);
-  color: var(--brand-primary);
-  background: var(--surface);
-}
-
-.field input:focus,
-.field textarea:focus,
-.field select:focus {
-  border-color: var(--brand-primary-strong);
-  box-shadow: var(--focus-ring);
-}
-
-.checkbox-row {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  color: var(--text-primary);
-  font-weight: 600;
-  min-height: 56px;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
-  border-radius: 0.95rem;
-  background: var(--surface);
-}
-
-.field-required {
-  color: #dc2626;
-  font-weight: 800;
-}
-
-.field-optional {
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-// ─── Activities ──────────────────────────────────────────────────────────────
+// ─── Activity card ────────────────────────────────────────────────────────────
 
 .activities-stack {
   display: grid;
@@ -337,43 +171,46 @@
 }
 
 .activity-card {
-  padding: 1rem;
-  display: grid;
-  gap: 0.85rem;
-  border-top: 4px solid var(--brand-primary);
-  // Evita que el contenido desborde el card
-  min-width: 0;
+  border: 1px solid var(--border-soft, #e8d8c8);
+  border-top: 4px solid var(--brand-primary, #e8520a);
+  border-radius: 1.1rem;
+  background: var(--surface, #fffdf9);
   overflow: hidden;
-}
 
-.activity-card--collapsed {
-  gap: 0;
-}
+  &:not(&--collapsed) .activity-card__header {
+    border-bottom: 1px solid var(--border-soft, #e8d8c8);
+  }
 
-.activity-card__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: flex-start;
-  cursor: pointer;
-  user-select: none;
-  // Impide que el header expanda el card más allá de su contenedor
-  min-width: 0;
-}
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: flex-start;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.85rem 1rem;
 
-.activity-card__header > div:first-child {
-  flex: 1;
-  min-width: 0; // permite que el texto se trunque en vez de empujar las acciones
-}
+    > div:first-child { flex: 1; min-width: 0; }
 
-.activity-card__header h4,
-.activity-card__header p {
-  white-space: nowrap;
-  margin: 0;
-}
+    h4 { margin: 0; color: var(--text-primary); font-size: 0.96rem; }
+    p  {
+      margin: 0.2rem 0 0;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
 
-.activity-card__header p {
-  margin-top: 0.2rem;
+  &__actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.35rem;
+    align-self: flex-start;
+  }
+
+  .field-grid { padding: 1rem; margin: 0; }
 }
 
 .activity-index {
@@ -381,17 +218,8 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.72rem;
-  color: var(--brand-primary);
+  color: var(--brand-primary, #e8520a);
   font-weight: 800;
-}
-
-.activity-card__actions {
-  display: flex;
-  flex-shrink: 0; // nunca encoge: empuja el texto, no al revés
-  flex-wrap: nowrap;
-  gap: 0.35rem;
-  align-self: flex-start; // se ancla arriba junto al eyebrow
-  margin-top: -0.1rem; // ajuste óptico para alinear con titulo
 }
 
 .collapse-indicator {
@@ -404,140 +232,67 @@
   font-size: 0.8rem;
 }
 
-.activity-chip-row {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 0.6rem;
-  /* Activity chips should occupy their own row and wrap as needed */
-  flex-wrap: wrap;
-}
+.activity-controls { grid-column: 1 / -1; }
 
-.activity-chip {
-  padding: 0.45rem 0.8rem;
+// ─── Botones de actividad ─────────────────────────────────────────────────────
+
+.icon-button {
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, var(--border-soft));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface));
+  min-height: 2rem;
+  min-width: 2rem;
+  padding: 0.35rem 0.55rem;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
   color: var(--brand-primary-strong);
   font-weight: 700;
-}
-
-/* Ensure activity controls area (chips inside activity card) always occupies its own row */
-.activity-controls {
-  grid-column: 1 / -1;
-}
-
-.activity-chip--muted {
-  background: color-mix(in srgb, var(--surface-muted) 72%, var(--surface));
-  color: var(--text-secondary);
-}
-
-// ─── Submit bar ──────────────────────────────────────────────────────────────
-
-.submit-anchor {
-  position: relative;
-}
-
-.submit-anchor--reserve {
-  min-height: 3.25rem;
-}
-
-.submit-bar {
-  width: 100%;
-  transition: opacity 0.15s ease;
-}
-
-.submit-bar--floating {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
-  padding: 0.75rem 1rem calc(var(--bottom-nav-height, 0px) + 0.75rem);
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--page-bg) 95%, transparent) 55%,
-    transparent
-  );
-}
-
-.submit-button {
-  display: block;
   cursor: pointer;
-  width: 100%;
-  border: 0;
-  border-radius: 1rem;
-  min-height: 3.25rem;
-  padding: 0.95rem 1rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-strong));
-  color: #fff;
-  box-shadow: var(--shadow-elevated), 0 12px 28px rgba(0, 0, 0, 0.12);
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font: inherit;
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  &--danger {
+    border-color: color-mix(in srgb, #ef4444 30%, transparent);
+    color: #b91c1c;
+  }
 }
 
-// ─── Mobile ───────────────────────────────────────────────────────────────────
+// ─── Botón secundario con icono ───────────────────────────────────────────────
+
+.secondary-button {
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, var(--border-soft));
+  border-radius: 999px;
+  min-height: 2.6rem;
+  padding: 0.65rem 0.95rem;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--brand-primary-strong);
+  font-weight: 700;
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+// ─── Responsive móvil ────────────────────────────────────────────────────────
 
 @media (max-width: 720px) {
-  .panel--accent,
-  .section-head:not(.section-head--actions) {
-    display: grid;
-    gap: 0.75rem;
-    align-items: start;
-  }
-
-  .section-head--actions {
-    // ya es flex por defecto, se mantiene en móvil
-    display: flex;
-  }
-
-  .field-grid {
-    grid-template-columns: 1fr;
-  }
-
-  // Botones icon-only en móvil
-  .cta-icon-btn .button-text {
-    display: none;
-  }
-
-  .cta-icon-btn .button-icon {
-    font-size: 1.15rem;
-  }
+  .cta-icon-btn .button-text { display: none; }
+  .cta-icon-btn .button-icon { font-size: 1.15rem; }
 
   .cta-icon-btn,
   .secondary-button.cta-icon-btn {
     min-height: 2.5rem;
-    width: auto;
     padding: 0.6rem 0.75rem;
     gap: 0;
   }
 
-  // Botones ↑↓ más pequeños para no robar ancho
-  .icon-button:not(.icon-button--danger) {
-    min-width: 2rem;
-    min-height: 2rem;
-    padding: 0.35rem 0.5rem;
-    font-size: 0.9rem;
-  }
-
-  // El danger también más compacto en móvil
   .icon-button--danger {
-    min-width: 2rem;
-    min-height: 2rem;
-    padding: 0.35rem 0.5rem;
-  }
-
-  .icon-button--danger .button-text {
-    display: none;
-  }
-
-  .icon-button--danger .button-icon {
-    margin: 0;
-    font-size: 0.9rem;
-  }
-
-  .secondary-button:not(.cta-icon-btn) {
-    width: 100%;
+    .button-text { display: none; }
+    .button-icon { font-size: 0.9rem; }
   }
 }
