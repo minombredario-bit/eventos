@@ -31,10 +31,10 @@ RUN apk add --no-cache \
     && apk del .build-deps \
     && rm -rf /var/cache/apk/*
 
-COPY docker/php/conf.d/opcache.prod.ini      /usr/local/etc/php/conf.d/opcache.ini
-COPY docker/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platform.ini
-COPY docker/php/conf.d/www.conf              /usr/local/etc/php/php-fpm.d/zz-app.conf
-COPY docker/php/php.prod.ini                 /usr/local/etc/php/php.ini
+COPY docker/backend/php/conf.d/opcache.prod.ini      /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/backend/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platform.ini
+COPY docker/backend/php/conf.d/www.conf              /usr/local/etc/php/php-fpm.d/zz-app.conf
+COPY docker/backend/php/php.prod.ini                 /usr/local/etc/php/php.ini
 
 FROM php_base AS composer_deps
 
