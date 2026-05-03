@@ -1,7 +1,11 @@
 import {
+  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
   computed,
   inject,
   signal,
@@ -17,7 +21,6 @@ import {
   map,
   of,
   Subject,
-  startWith,
   switchMap,
 } from 'rxjs';
 
@@ -39,6 +42,8 @@ import {
 import {TranslateModule, TranslateService} from '@ngx-translate/core';
 import {ToastService} from '../../../shared/components/toast/toast.service';
 
+type SubmitMode = 'floating' | 'bottom' | 'inline';
+
 @Component({
   selector: 'app-admin-usuario-form',
   standalone: true,
@@ -47,14 +52,21 @@ import {ToastService} from '../../../shared/components/toast/toast.service';
   styleUrl: './usuario-form.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AdminUsuarioForm {
+export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
+  @ViewChild('submitAnchor') private submitAnchorRef?: ElementRef<HTMLElement>;
+  @ViewChild('submitBar')    private submitBarRef?:    ElementRef<HTMLElement>;
+  @ViewChild('formEnd')      private formEndRef?:      ElementRef<HTMLElement>;
+
+  private anchorObserver?: IntersectionObserver;
+  private endObserver?:    IntersectionObserver;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly adminApi = inject(AdminApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
-  private readonly toast= inject(ToastService);
+  private readonly toast = inject(ToastService);
   private readonly translate = inject(TranslateService);
 
   private readonly relacionUsuarioSearch$ = new Subject<string>();
@@ -70,47 +82,32 @@ export class AdminUsuarioForm {
 
   protected readonly cargos = signal<Cargo[]>([]);
   protected readonly cargosSeleccionados = signal<string[]>([]);
+
+  protected readonly submitMode = signal<SubmitMode>('floating');
+
   readonly tipoPersonaCargo = computed<CargoTipoPersona>(() => {
     const usuario = this.usuario();
 
-    // Prioridad 1: valor real enviado por backend
-    if (usuario?.tipoPersona === 'infantil') {
-      return 'infantil';
-    }
+    if (usuario?.tipoPersona === 'infantil') return 'infantil';
+    if (usuario?.tipoPersona === 'adulto')   return 'adulto';
 
-    if (usuario?.tipoPersona === 'adulto') {
-      return 'adulto';
-    }
-
-    // Fallback: calcular por fecha del formulario
     const fecha = this.form.controls.fechaNacimiento.value;
-
-    if (!fecha) {
-      return 'adulto';
-    }
+    if (!fecha) return 'adulto';
 
     const [year, month, day] = fecha.split('-').map(Number);
-
-    if (!year || !month || !day) {
-      return 'adulto';
-    }
+    if (!year || !month || !day) return 'adulto';
 
     const hoy = new Date();
     let edad = hoy.getFullYear() - year;
-
     const aunNoCumplio =
       hoy.getMonth() + 1 < month ||
       (hoy.getMonth() + 1 === month && hoy.getDate() < day);
-
-    if (aunNoCumplio) {
-      edad--;
-    }
+    if (aunNoCumplio) edad--;
 
     return edad < 18 ? 'infantil' : 'adulto';
   });
 
   protected readonly tiposRelacion = signal<EnumOption<TipoRelacion>[]>([]);
-
   protected readonly usuariosRelacionadosDisponibles = signal<Usuario[]>([]);
   protected readonly usuariosRelacionadosSeleccionados =
     signal<UsuarioRelacionadoSeleccionado[]>([]);
@@ -125,7 +122,6 @@ export class AdminUsuarioForm {
     if (this.saving()) {
       return this.isEditMode() ? 'Guardando...' : 'Creando...';
     }
-
     return this.isEditMode() ? 'Guardar cambios' : 'Crear usuario';
   });
 
@@ -140,30 +136,18 @@ export class AdminUsuarioForm {
     ]),
     email: this.fb.nonNullable.control('', [Validators.email]),
     telefono: this.fb.nonNullable.control(''),
-
     documentoIdentidad: this.fb.nonNullable.control('', [
       Validators.required,
       Validators.maxLength(15),
     ]),
-
     activo: this.fb.nonNullable.control(true),
     motivoBajaCenso: this.fb.control<string | null>(null),
-
-    fechaNacimiento: this.fb.control<string | null>(null, [
-      Validators.required,
-    ]),
-
+    fechaNacimiento: this.fb.control<string | null>(null, [Validators.required]),
     antiguedad: this.fb.control<number | null>(null),
     antiguedadReal: this.fb.control<number | null>(null),
-
-    formaPagoPreferida: this.fb.nonNullable.control<MetodoPagoPreferida>(
-      'efectivo'
-    ),
-
+    formaPagoPreferida: this.fb.nonNullable.control<MetodoPagoPreferida>('efectivo'),
     debeCambiarPassword: this.fb.nonNullable.control(true),
-
     role: this.fb.nonNullable.control<UserRole>('ROLE_USER'),
-
     relacionUsuarioSearch: this.fb.nonNullable.control(''),
   });
 
@@ -194,7 +178,6 @@ export class AdminUsuarioForm {
         }
 
         this.loading.set(true);
-        // Disable form interactions while loading to improve accessibility
         try { this.form.disable({ emitEvent: false }); } catch {}
 
         this.adminApi
@@ -225,6 +208,47 @@ export class AdminUsuarioForm {
           });
       });
   }
+
+  ngAfterViewInit(): void {
+    this.initSubmitBarObserver();
+  }
+
+  ngOnDestroy(): void {
+    this.anchorObserver?.disconnect();
+    this.endObserver?.disconnect();
+  }
+
+  // ── Submit bar: flotante → fijo al llegar al final ────────────────────────
+
+  private initSubmitBarObserver(): void {
+    if (!this.submitAnchorRef || !this.formEndRef) return;
+
+    // Cuando el anchor sale de la vista → modo flotante
+    this.anchorObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          this.submitMode.set('floating');
+        }
+      },
+      { threshold: 0 }
+    );
+    this.anchorObserver.observe(this.submitAnchorRef.nativeElement);
+
+    // Cuando el final del form entra en la vista → modo bottom (sticky)
+    this.endObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          this.submitMode.set('bottom');
+        } else if (this.submitMode() === 'bottom') {
+          this.submitMode.set('floating');
+        }
+      },
+      { threshold: 0 }
+    );
+    this.endObserver.observe(this.formEndRef.nativeElement);
+  }
+
+  // ── Form actions ──────────────────────────────────────────────────────────
 
   submit(): void {
     if (this.form.invalid) {
@@ -257,15 +281,12 @@ export class AdminUsuarioForm {
     return this.cargosSeleccionados().includes(id);
   }
 
-
   protected toggleCargo(id: string): void {
     const current = this.cargosSeleccionados();
-
     if (current.includes(id)) {
       this.cargosSeleccionados.set(current.filter((x) => x !== id));
       return;
     }
-
     this.cargosSeleccionados.set([...current, id]);
   }
 
@@ -274,47 +295,28 @@ export class AdminUsuarioForm {
   }
 
   protected isUsuarioRelacionadoSelected(id: string | undefined): boolean {
-    if (!id) {
-      return false;
-    }
-
-    return this.usuariosRelacionadosSeleccionados().some(
-      (item) => item.id === id
-    );
+    if (!id) return false;
+    return this.usuariosRelacionadosSeleccionados().some((item) => item.id === id);
   }
 
   protected addUsuarioRelacionado(usuario: Usuario): void {
-    if (!usuario.id || this.isUsuarioRelacionadoSelected(usuario.id)) {
-      return;
-    }
-
-    if (usuario.id === this.userId()) {
-      return;
-    }
+    if (!usuario.id || this.isUsuarioRelacionadoSelected(usuario.id)) return;
+    if (usuario.id === this.userId()) return;
 
     this.usuariosRelacionadosSeleccionados.set([
       ...this.usuariosRelacionadosSeleccionados(),
-      {
-        id: usuario.id,
-        nombreCompleto: usuario.nombreCompleto ?? '',
-        tipoRelacion: null,
-      },
+      { id: usuario.id, nombreCompleto: usuario.nombreCompleto ?? '', tipoRelacion: null },
     ]);
 
-    // Clear the search input and suggestion list so the search disappears
     try {
       this.form.controls.relacionUsuarioSearch.setValue('', { emitEvent: false });
-    } catch (e) {
-      // ignore if control not present
-    }
+    } catch {}
 
     this.usuariosRelacionadosDisponibles.set([]);
   }
 
   protected removeUsuarioRelacionado(id: string): void {
-    const eliminados = this.usuariosRelacionadosSeleccionados().filter(
-      (item) => item.id === id
-    );
+    const eliminados = this.usuariosRelacionadosSeleccionados().filter((item) => item.id === id);
 
     this.usuariosRelacionadosSeleccionados.set(
       this.usuariosRelacionadosSeleccionados().filter((item) => item.id !== id)
@@ -323,26 +325,21 @@ export class AdminUsuarioForm {
     if (eliminados.length > 0) {
       this.usuariosRelacionadosDisponibles.set([
         ...this.usuariosRelacionadosDisponibles(),
-        ...eliminados.map(
-          (item) =>
-            ({
-              id: item.id,
-              nombreCompleto: item.nombreCompleto,
-            }) as Usuario
-        ),
+        ...eliminados.map((item) => ({ id: item.id, nombreCompleto: item.nombreCompleto }) as Usuario),
       ]);
     }
   }
 
   protected setTipoRelacionUsuario(id: string, tipoRelacion: string): void {
     const value = this.normalizeTipoRelacion(tipoRelacion);
-
     this.usuariosRelacionadosSeleccionados.set(
       this.usuariosRelacionadosSeleccionados().map((item) =>
         item.id === id ? { ...item, tipoRelacion: value } : item
       )
     );
   }
+
+  // ── Private helpers ───────────────────────────────────────────────────────
 
   private createUsuario(): void {
     this.saving.set(true);
@@ -356,9 +353,7 @@ export class AdminUsuarioForm {
     );
 
     if (relacionesInvalidas) {
-      this.errorMessage.set(
-        'Debes indicar el tipo de relación de cada usuario relacionado.'
-      );
+      this.errorMessage.set('Debes indicar el tipo de relación de cada usuario relacionado.');
       this.saving.set(false);
       return;
     }
@@ -368,16 +363,11 @@ export class AdminUsuarioForm {
     const payload: UsuarioCreatePayload = {
       nombre: value.nombre.trim(),
       apellidos: value.apellidos.trim(),
-      email: (() => {
-        const e = value.email.trim();
-        return e ? e.toLowerCase() : null;
-      })(),
+      email: (() => { const e = value.email.trim(); return e ? e.toLowerCase() : null; })(),
       telefono: value.telefono.trim() || null,
       documentoIdentidad: value.documentoIdentidad.trim(),
       activo: value.activo,
-      motivoBajaCenso: value.activo
-        ? null
-        : (value.motivoBajaCenso?.trim() || null),
+      motivoBajaCenso: value.activo ? null : (value.motivoBajaCenso?.trim() || null),
       fechaNacimiento: value.fechaNacimiento,
       antiguedad: value.antiguedad,
       antiguedadReal: value.antiguedadReal,
@@ -385,32 +375,20 @@ export class AdminUsuarioForm {
       debeCambiarPassword: value.debeCambiarPassword,
       roles,
       cargos: this.cargosSeleccionados().map((id) => `/api/entidad_cargos/${id}`),
-      relacionUsuarios: this.usuariosRelacionadosSeleccionados().map(
-        (item) => ({
-          usuario: `/api/usuarios/${item.id}`,
-          tipoRelacion: item.tipoRelacion as TipoRelacion,
-        })
-      ),
+      relacionUsuarios: this.usuariosRelacionadosSeleccionados().map((item) => ({
+        usuario: `/api/usuarios/${item.id}`,
+        tipoRelacion: item.tipoRelacion as TipoRelacion,
+      })),
     };
 
     this.adminApi
       .crearUsuario(payload)
-      .pipe(
-        finalize(() => this.saving.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
+      .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response: any) => {
           const created: Usuario = response.usuario;
-
           this.successMessage.set('Usuario creado correctamente.');
-
-          if (response.passwordPlano) {
-            this.passwordGenerada.set(response.passwordPlano);
-          } else {
-            this.passwordGenerada.set(null);
-          }
-
+          this.passwordGenerada.set(response.passwordPlano ?? null);
           this.userId.set(created.id ?? null);
           this.usuario.set(created);
           this.patchForm(created);
@@ -419,16 +397,12 @@ export class AdminUsuarioForm {
           this.applyFieldPermissions();
 
           if (created.id) {
-            void this.router.navigate(['/admin/usuarios', created.id], {
-              replaceUrl: true,
-            });
+            void this.router.navigate(['/admin/usuarios', created.id], { replaceUrl: true });
           }
         },
         error: (error: { error?: { detail?: string; error?: string } }) => {
           this.errorMessage.set(
-            error?.error?.detail ??
-            error?.error?.error ??
-            'No se pudo crear el usuario.'
+            error?.error?.detail ?? error?.error?.error ?? 'No se pudo crear el usuario.'
           );
         },
       });
@@ -437,10 +411,7 @@ export class AdminUsuarioForm {
   private updateUsuario(): void {
     const id = this.userId();
     this.passwordGenerada.set(null);
-
-    if (!id) {
-      return;
-    }
+    if (!id) return;
 
     this.saving.set(true);
     this.errorMessage.set(null);
@@ -452,9 +423,7 @@ export class AdminUsuarioForm {
     );
 
     if (relacionesInvalidas) {
-      this.errorMessage.set(
-        'Debes indicar el tipo de relación de cada usuario relacionado.'
-      );
+      this.errorMessage.set('Debes indicar el tipo de relación de cada usuario relacionado.');
       this.saving.set(false);
       return;
     }
@@ -464,16 +433,11 @@ export class AdminUsuarioForm {
     const payload: UsuarioPatch = {
       nombre: value.nombre.trim(),
       apellidos: value.apellidos.trim(),
-      email: (() => {
-        const e = value.email.trim();
-        return e ? e.toLowerCase() : null;
-      })(),
+      email: (() => { const e = value.email.trim(); return e ? e.toLowerCase() : null; })(),
       telefono: value.telefono.trim() || null,
       documentoIdentidad: value.documentoIdentidad.trim(),
       activo: value.activo,
-      motivoBajaCenso: value.activo
-        ? null
-        : (value.motivoBajaCenso?.trim() || null),
+      motivoBajaCenso: value.activo ? null : (value.motivoBajaCenso?.trim() || null),
       antiguedad: value.antiguedad,
       antiguedadReal: value.antiguedadReal,
       fechaNacimiento: value.fechaNacimiento,
@@ -481,39 +445,29 @@ export class AdminUsuarioForm {
       debeCambiarPassword: value.debeCambiarPassword,
       roles,
       cargos: this.buildCargoIris(this.cargosSeleccionados()),
-      relacionUsuarios: this.usuariosRelacionadosSeleccionados().map(
-        (item) => ({
-          usuario: `/api/usuarios/${item.id}`,
-          tipoRelacion: item.tipoRelacion as TipoRelacion,
-        })
-      ),
+      relacionUsuarios: this.usuariosRelacionadosSeleccionados().map((item) => ({
+        usuario: `/api/usuarios/${item.id}`,
+        tipoRelacion: item.tipoRelacion as TipoRelacion,
+      })),
     };
 
     this.adminApi
       .updateUsuario(id, payload)
-      .pipe(
-        finalize(() => this.saving.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
+      .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response: any) => {
           const usuarioActualizado: Usuario = response.usuario ?? response;
-
           this.usuario.set(usuarioActualizado);
           this.patchForm(usuarioActualizado);
           this.patchCargos(usuarioActualizado);
           this.patchRelacionUsuarios(usuarioActualizado);
           this.applyFieldPermissions();
-
           this.successMessage.set('Usuario actualizado correctamente.');
-
           this.passwordGenerada.set(response.passwordPlano ?? null);
         },
         error: (error: { error?: { detail?: string; error?: string } }) => {
           this.errorMessage.set(
-            error?.error?.detail ??
-            error?.error?.error ??
-            'No se pudo actualizar el usuario.'
+            error?.error?.detail ?? error?.error?.error ?? 'No se pudo actualizar el usuario.'
           );
         },
       });
@@ -521,22 +475,12 @@ export class AdminUsuarioForm {
 
   private resetForCreate(): void {
     this.form.reset({
-      nombre: '',
-      apellidos: '',
-      email: '',
-      telefono: '',
-      documentoIdentidad: '',
-      activo: true,
-      motivoBajaCenso: null,
-      fechaNacimiento: null,
-      antiguedad: null,
-      antiguedadReal: null,
-      formaPagoPreferida: 'efectivo',
-      debeCambiarPassword: true,
-      role: 'ROLE_USER',
-      relacionUsuarioSearch: '',
+      nombre: '', apellidos: '', email: '', telefono: '',
+      documentoIdentidad: '', activo: true, motivoBajaCenso: null,
+      fechaNacimiento: null, antiguedad: null, antiguedadReal: null,
+      formaPagoPreferida: 'efectivo', debeCambiarPassword: true,
+      role: 'ROLE_USER', relacionUsuarioSearch: '',
     });
-
     this.usuariosRelacionadosSeleccionados.set([]);
     this.usuariosRelacionadosDisponibles.set([]);
     try { this.form.enable({ emitEvent: false }); } catch {}
@@ -565,9 +509,8 @@ export class AdminUsuarioForm {
     const uniqueCargoIds = new Set(
       (usuario.cargos ?? [])
         .map((cargo) => this.getCargoSelectionKey(cargo))
-        .filter((cargoId): cargoId is string => cargoId.length > 0)
+        .filter((id): id is string => id.length > 0)
     );
-
     this.cargosSeleccionados.set([...uniqueCargoIds]);
   }
 
@@ -577,45 +520,28 @@ export class AdminUsuarioForm {
       nombreCompleto: item.usuario_nombre ?? '',
       tipoRelacion: this.normalizeTipoRelacion(item.tipoRelacion),
     }));
-
-    this.usuariosRelacionadosSeleccionados.set(
-      relaciones.filter((item) => !!item.id)
-    );
-
+    this.usuariosRelacionadosSeleccionados.set(relaciones.filter((item) => !!item.id));
     this.usuariosRelacionadosDisponibles.set([]);
   }
 
   private toDateInputValue(value: string | null | undefined): string | null {
-    if (!value) {
-      return null;
-    }
-
+    if (!value) return null;
     return value.includes('T') ? value.split('T')[0] : value;
   }
 
   private parseRole(roles: string[] | null | undefined): UserRole {
-    const normalized = new Set((roles ?? []).map((role) => role?.trim()));
-
-    return normalized.has('ROLE_ADMIN_ENTIDAD')
-      ? 'ROLE_ADMIN_ENTIDAD'
-      : 'ROLE_USER';
+    const normalized = new Set((roles ?? []).map((r) => r?.trim()));
+    return normalized.has('ROLE_ADMIN_ENTIDAD') ? 'ROLE_ADMIN_ENTIDAD' : 'ROLE_USER';
   }
 
-  private normalizeTipoRelacion(
-    value: string | null | undefined
-  ): TipoRelacion | null {
-    if (!value) {
-      return null;
-    }
-
+  private normalizeTipoRelacion(value: string | null | undefined): TipoRelacion | null {
+    if (!value) return null;
     const normalized = value.trim().toLowerCase();
-
     return isTipoRelacion(normalized) ? normalized : null;
   }
 
   private refreshRelacionTiposFromCatalog(): void {
     const allowed = new Set(this.tiposRelacion().map((item) => item.value));
-
     this.usuariosRelacionadosSeleccionados.set(
       this.usuariosRelacionadosSeleccionados().map((item) => ({
         ...item,
@@ -629,86 +555,38 @@ export class AdminUsuarioForm {
 
   private initCargoTypeWatcher(): void {
     this.form.controls.fechaNacimiento.valueChanges
-      .pipe(
-        distinctUntilChanged(),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(() => {
-        if (!this.loading()) {
-          this.loadCargos();
-        }
-      });
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { if (!this.loading()) this.loadCargos(); });
   }
 
   private applyFieldPermissions(): void {
     const fechaNacimientoControl = this.form.controls.fechaNacimiento;
+    this.form.controls.email.enable({ emitEvent: false });
 
     if (this.isEditMode()) {
-      this.form.controls.email.enable({ emitEvent: false });
       fechaNacimientoControl.clearValidators();
-      fechaNacimientoControl.updateValueAndValidity({ emitEvent: false });
-      return;
+    } else {
+      fechaNacimientoControl.setValidators([Validators.required]);
     }
 
-    this.form.controls.email.enable({ emitEvent: false });
-    fechaNacimientoControl.setValidators([Validators.required]);
     fechaNacimientoControl.updateValueAndValidity({ emitEvent: false });
   }
 
   private loadCargos(): void {
-    const tipo = this.tipoPersonaCargo(); // 'adulto' | 'infantil'
-
+    const tipo = this.tipoPersonaCargo();
     this.adminApi
       .getCargos(tipo)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (items) => this.cargos.set(items),
-        error: () =>
-          this.toast.showError(
-            this.translate.instant('admin.usuario.error_load_cargos')
-          ),
+        error: () => this.toast.showError(this.translate.instant('admin.usuario.error_load_cargos')),
       });
   }
 
-  private resolveTipoPersonaCargo(): CargoTipoPersona {
-    const fechaNacimiento = this.form.controls.fechaNacimiento.value;
-
-    if (!fechaNacimiento) {
-      const usuarioTipo = this.normalizeTipoPersonaCargo(
-        this.usuario()?.tipoPersona ?? null
-      );
-
-      return usuarioTipo ?? 'adulto';
-    }
-
-    const fecha = new Date(`${fechaNacimiento}T00:00:00`);
-    if (Number.isNaN(fecha.getTime())) {
-      return 'adulto';
-    }
-
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - fecha.getFullYear();
-    const mes = hoy.getMonth() - fecha.getMonth();
-
-    if (mes < 0 || (mes === 0 && hoy.getDate() < fecha.getDate())) {
-      edad -= 1;
-    }
-
-    return edad < 14 ? 'infantil' : 'adulto';
-  }
-
   private normalizeTipoPersonaCargo(value: string | null | undefined): CargoTipoPersona | null {
-    if (!value) {
-      return null;
-    }
-
+    if (!value) return null;
     const normalized = value.trim().toLowerCase();
-
-    if (normalized === 'infantil') {
-      return 'infantil';
-    }
-
-    return 'adulto';
+    return normalized === 'infantil' ? 'infantil' : 'adulto';
   }
 
   private buildCargoIris(cargoIds: string[]): string[] {
@@ -719,20 +597,12 @@ export class AdminUsuarioForm {
   }
 
   private getCargoSelectionKey(cargo: Cargo): string {
-    if (cargo.id?.trim()) {
-      return cargo.id.trim();
-    }
-
-    if (cargo.registroId?.trim()) {
-      return cargo.registroId.trim();
-    }
-
+    if (cargo.id?.trim())        return cargo.id.trim();
+    if (cargo.registroId?.trim()) return cargo.registroId.trim();
     if (cargo.iri) {
       const parts = cargo.iri.split('/').filter(Boolean);
       return parts.at(-1) ?? '';
     }
-
-
     return '';
   }
 
@@ -746,9 +616,7 @@ export class AdminUsuarioForm {
           this.refreshRelacionTiposFromCatalog();
         },
         error: () => {
-          this.errorMessage.set(
-            'No se pudo cargar el listado de tipos de relación.'
-          );
+          this.errorMessage.set('No se pudo cargar el listado de tipos de relación.');
         },
       });
   }
@@ -760,10 +628,7 @@ export class AdminUsuarioForm {
         map((value) => value.trim()),
         distinctUntilChanged(),
         switchMap((value) => {
-          if (value.length < 2) {
-            return of([] as Usuario[]);
-          }
-
+          if (value.length < 2) return of([] as Usuario[]);
           return this.adminApi.buscarUsuariosRelacionados(value);
         }),
         takeUntilDestroyed(this.destroyRef)
@@ -771,26 +636,15 @@ export class AdminUsuarioForm {
       .subscribe({
         next: (items) => {
           const currentUserId = this.userId();
-
           this.usuariosRelacionadosDisponibles.set(
             items.filter((item) => {
-              if (!item.id) {
-                return false;
-              }
-
-              if (currentUserId && item.id === currentUserId) {
-                return false;
-              }
-
-              return !this.usuariosRelacionadosSeleccionados().some(
-                (selected) => selected.id === item.id
-              );
+              if (!item.id) return false;
+              if (currentUserId && item.id === currentUserId) return false;
+              return !this.usuariosRelacionadosSeleccionados().some((s) => s.id === item.id);
             })
           );
         },
-        error: () => {
-          this.usuariosRelacionadosDisponibles.set([]);
-        },
+        error: () => { this.usuariosRelacionadosDisponibles.set([]); },
       });
   }
 }

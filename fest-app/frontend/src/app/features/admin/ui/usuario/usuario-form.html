@@ -9,265 +9,303 @@
   />
 
   <div class="content">
-    <article class="panel">
-      <div *ngIf="loading()" class="loading-overlay" aria-hidden="true">
-        <div class="loading-inner">
-          <div class="spinner" aria-hidden="true"></div>
-          <div class="loading-text">{{ 'admin.usuario.loading' | translate }}</div>
+    @if (loading()) {
+      <p class="eyebrow">{{ 'admin.usuario.loading' | translate }}</p>
+    } @else {
+
+      @if (errorMessage(); as error) {
+        <article class="feedback feedback--error" role="alert">
+          <strong>No se pudo guardar el usuario.</strong>
+          <p>{{ error }}</p>
+        </article>
+      }
+
+      @if (successMessage(); as success) {
+        <article class="feedback feedback--success" role="status">
+          <p>{{ success }}</p>
+        </article>
+      }
+
+      @if (passwordGenerada(); as pwd) {
+        <div class="password-box" role="status">
+          <strong>Contraseña generada</strong>
+          <div class="password-value">{{ pwd }}</div>
         </div>
-      </div>
-        @if (isEditMode() && usuario(); as currentUser) {
-          <div class="grid">
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form" [class.is-loading]="loading()">
+
+        <!-- ── Sección: Datos personales ── -->
+        <section class="form-section form-section--datos panel">
+          <div class="section-head">
             <div>
-              <span>{{ 'admin.usuario.last_reward' | translate }}</span>
-              <strong>{{ currentUser.ultimoReconocimiento }}</strong>
-            </div>
-
-            <div>
-              <span>{{ 'admin.usuario.next_reward' | translate }}</span>
-              <strong>{{ currentUser.proximoReconocimiento || ('admin.usuario.not_set' | translate) }}</strong>
-            </div>
-          </div>
-        }
-
-        <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="edit-form" [class.is-loading]="loading()">
-            <div class="field">
-            <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
-            <label for="nombre">{{ 'admin.usuario.nombre' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
-            <label for="apellidos">{{ 'admin.usuario.apellidos' | translate }}</label>
-          </div>
-
-          <div class="field field--full">
-            <input id="email" type="email" formControlName="email" placeholder=" " />
-            <label for="email">{{ 'admin.usuario.email' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
-            <label for="telefono">{{ 'admin.usuario.telefono' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <input
-              id="documentoIdentidad"
-              type="text"
-              formControlName="documentoIdentidad"
-              placeholder=" "
-              maxlength="15"
-            />
-            <label for="documentoIdentidad">Documento de identidad</label>
-          </div>
-
-          <div class="field">
-            <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
-            <label for="fechaNacimiento">{{ 'admin.usuario.fechaNacimiento' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <input
-              id="antiguedadReal"
-              type="number"
-              formControlName="antiguedadReal"
-              placeholder=" "
-              min="0"
-              step="1"
-            />
-            <label for="antiguedadReal">{{ 'admin.usuario.antiguedadReal' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <input
-              id="antiguedad"
-              type="number"
-              formControlName="antiguedad"
-              placeholder=" "
-              min="0"
-              step="1"
-            />
-              <label for="antiguedad">{{ 'admin.usuario.antiguedad' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <select id="formaPagoPreferida" formControlName="formaPagoPreferida">
-              <option value="efectivo">Efectivo</option>
-              <option value="tarjeta">Tarjeta</option>
-              <option value="transferencia">Transferencia</option>
-              <option value="bizum">Bizum</option>
-            </select>
-            <label for="formaPagoPreferida">{{ 'admin.usuario.formaPagoPreferida' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <div class="field field--full">
-                <select formControlName="role" id="role">
-                  <option value="ROLE_USER">{{ 'admin.usuario.role_user' | translate }}</option>
-                  <option value="ROLE_ADMIN_ENTIDAD">{{ 'admin.usuario.role_admin' | translate }}</option>
-                </select>
-                <label for="role">{{ 'admin.usuario.role' | translate }}</label>
+              <p class="eyebrow">Cabecera</p>
+              <h3>{{ 'admin.usuario.datos_personales' | translate }}</h3>
+              <p>Nombre, contacto e identificación del usuario.</p>
             </div>
           </div>
 
-          <label class="checkbox-row">
-            <input type="checkbox" formControlName="activo" />
-            <span>{{ 'admin.usuario.usuario_activo' | translate }}</span>
-          </label>
-
-          <label class="checkbox-row">
-            <input type="checkbox" formControlName="debeCambiarPassword" />
-            <span>{{ 'admin.usuario.debeCambiarPassword' | translate }}</span>
-          </label>
-
-          @if (form.controls.activo.value === false) {
-            <div class="field field--full">
-              <input
-                id="motivoBajaCenso"
-                type="text"
-                formControlName="motivoBajaCenso"
-                placeholder=" "
-              />
-              <label for="motivoBajaCenso">{{ 'admin.usuario.motivoBajaCenso' | translate }}</label>
+          @if (isEditMode() && usuario(); as currentUser) {
+            <div class="rewards-grid">
+              <div>
+                <span>{{ 'admin.usuario.last_reward' | translate }}</span>
+                <strong>{{ currentUser.ultimoReconocimiento }}</strong>
+              </div>
+              <div>
+                <span>{{ 'admin.usuario.next_reward' | translate }}</span>
+                <strong>{{ currentUser.proximoReconocimiento || ('admin.usuario.not_set' | translate) }}</strong>
+              </div>
             </div>
           }
 
-          <section class="cargo-panel">
-            <div class="cargo-header">
-              <div>
-                <h3>{{ 'admin.usuario.cargos' | translate }}</h3>
-                <p class="cargo-help">
-                  {{ 'admin.usuario.cargos_help' | translate }}
-                  <strong>Tipo:</strong> {{ tipoPersonaCargo() === 'infantil' ? 'Infantil' : 'Adulto' }}.
-                </p>
-              </div>
-              <span>{{ 'admin.usuario.cargos_selected' | translate:{count: cargosSeleccionados().length} }}</span>
+          <div class="field-grid">
+            <div class="field">
+              <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
+              <label for="nombre">{{ 'admin.usuario.nombre' | translate }}</label>
             </div>
 
-            <div class="cargo-pills" role="group" aria-label="Selección de cargos">
-              @for (cargo of cargos(); track cargo.id) {
-                @let cargoKey = cargo.id;
+            <div class="field">
+              <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
+              <label for="apellidos">{{ 'admin.usuario.apellidos' | translate }}</label>
+            </div>
+
+            <div class="field field--full">
+              <input id="email" type="email" formControlName="email" placeholder=" " />
+              <label for="email">{{ 'admin.usuario.email' | translate }}</label>
+            </div>
+
+            <div class="field">
+              <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
+              <label for="telefono">{{ 'admin.usuario.telefono' | translate }}</label>
+            </div>
+
+            <div class="field">
+              <input
+                id="documentoIdentidad"
+                type="text"
+                formControlName="documentoIdentidad"
+                placeholder=" "
+                maxlength="15"
+              />
+              <label for="documentoIdentidad">Documento de identidad</label>
+            </div>
+
+            <div class="field">
+              <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
+              <label for="fechaNacimiento">{{ 'admin.usuario.fechaNacimiento' | translate }}</label>
+            </div>
+
+            <div class="field">
+              <input
+                id="antiguedadReal"
+                type="number"
+                formControlName="antiguedadReal"
+                placeholder=" "
+                min="0"
+                step="1"
+              />
+              <label for="antiguedadReal">{{ 'admin.usuario.antiguedadReal' | translate }}</label>
+            </div>
+
+            <div class="field">
+              <input
+                id="antiguedad"
+                type="number"
+                formControlName="antiguedad"
+                placeholder=" "
+                min="0"
+                step="1"
+              />
+              <label for="antiguedad">{{ 'admin.usuario.antiguedad' | translate }}</label>
+            </div>
+
+            <div class="field">
+              <select id="formaPagoPreferida" formControlName="formaPagoPreferida">
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="bizum">Bizum</option>
+              </select>
+              <label for="formaPagoPreferida">{{ 'admin.usuario.formaPagoPreferida' | translate }}</label>
+            </div>
+
+            <div class="field">
+              <select formControlName="role" id="role">
+                <option value="ROLE_USER">{{ 'admin.usuario.role_user' | translate }}</option>
+                <option value="ROLE_ADMIN_ENTIDAD">{{ 'admin.usuario.role_admin' | translate }}</option>
+              </select>
+              <label for="role">{{ 'admin.usuario.role' | translate }}</label>
+            </div>
+
+            <div class="chips-row">
+              <button
+                type="button"
+                class="chip"
+                [class.chip--active]="form.controls.activo.value"
+                (click)="form.controls.activo.setValue(!form.controls.activo.value)"
+                [attr.aria-pressed]="form.controls.activo.value"
+              >
+                {{ 'admin.usuario.usuario_activo' | translate }}
+              </button>
+
+              <button
+                type="button"
+                class="chip"
+                [class.chip--active]="form.controls.debeCambiarPassword.value"
+                (click)="form.controls.debeCambiarPassword.setValue(!form.controls.debeCambiarPassword.value)"
+                [attr.aria-pressed]="form.controls.debeCambiarPassword.value"
+              >
+                {{ 'admin.usuario.debeCambiarPassword' | translate }}
+              </button>
+            </div>
+
+            @if (form.controls.activo.value === false) {
+              <div class="field field--full">
+                <input
+                  id="motivoBajaCenso"
+                  type="text"
+                  formControlName="motivoBajaCenso"
+                  placeholder=" "
+                />
+                <label for="motivoBajaCenso">{{ 'admin.usuario.motivoBajaCenso' | translate }}</label>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- ── Submit bar ── -->
+        <div
+          #submitAnchor
+          class="submit-anchor"
+          [class.submit-anchor--reserve]="submitMode() === 'floating'"
+        >
+          <div
+            #submitBar
+            class="submit-bar"
+            [class.submit-bar--floating]="submitMode() === 'floating'"
+            [class.submit-bar--bottom]="submitMode() === 'bottom'"
+          >
+            <button type="submit" class="submit-button" [disabled]="saving()">
+              {{ submitLabel() }}
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Sección: Cargos ── -->
+        <section class="form-section form-section--cargos panel">
+          <div class="section-head section-head--actions">
+            <div class="section-head__text">
+              <p class="eyebrow">Cuerpo del usuario</p>
+              <h3>{{ 'admin.usuario.cargos' | translate }}</h3>
+              <p class="cargo-help">
+                {{ 'admin.usuario.cargos_help' | translate }}
+                <strong>Tipo:</strong> {{ tipoPersonaCargo() === 'infantil' ? 'Infantil' : 'Adulto' }}.
+              </p>
+            </div>
+            <span class="section-head__count">{{ 'admin.usuario.cargos_selected' | translate:{count: cargosSeleccionados().length} }}</span>
+          </div>
+
+          <div class="cargo-pills" role="group" aria-label="Selección de cargos">
+            @for (cargo of cargos(); track cargo.id) {
+              @let cargoKey = cargo.id;
+              <button
+                type="button"
+                class="cargo-pill"
+                [class.cargo-pill--selected]="isCargoSelected(cargoKey)"
+                (click)="toggleCargo(cargoKey)"
+                [attr.aria-pressed]="isCargoSelected(cargoKey)"
+              >
+                <span class="cargo-pill__check">
+                  @if (isCargoSelected(cargoKey)) { ✓ }
+                </span>
+                <span class="cargo-pill__label">{{ cargo.nombre }}</span>
+              </button>
+            }
+          </div>
+        </section>
+
+        <!-- ── Sección: Relaciones ── -->
+        <section class="form-section form-section--relaciones panel">
+          <div class="section-head relacion-header">
+            <div class="section-head__text relacion-header__left">
+              <p class="eyebrow">Relaciones</p>
+              <h3>{{ 'admin.usuario.relacion_titulo' | translate }}</h3>
+              <p>{{ 'admin.usuario.relacion_help' | translate }}</p>
+            </div>
+            <div class="relacion-search-wrap">
+              <span class="relacion-search-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <input
+                id="relacionUsuarioSearch"
+                #relacionUsuarioSearchInput
+                type="text"
+                formControlName="relacionUsuarioSearch"
+                placeholder="{{ 'admin.usuario.relacion_search_placeholder' | translate }}"
+                class="relacion-search-input"
+                (input)="onRelacionUsuarioSearch(relacionUsuarioSearchInput.value)"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          @if (usuariosRelacionadosDisponibles().length > 0) {
+            <div class="relacion-suggestions" role="listbox" aria-label="Resultados búsqueda usuario">
+              @for (item of usuariosRelacionadosDisponibles(); track item.id) {
                 <button
                   type="button"
-                  class="cargo-pill"
-                  [class.cargo-pill--selected]="isCargoSelected(cargoKey)"
-                  (click)="toggleCargo(cargoKey)"
-                  [attr.aria-pressed]="isCargoSelected(cargoKey)"
+                  class="relacion-suggestion-item"
+                  (click)="addUsuarioRelacionado(item)"
+                  role="option"
                 >
-                  <span class="cargo-pill__check">
-                    @if (isCargoSelected(cargoKey)) {
-                      ✓
-                    }
-                  </span>
-                  <span class="cargo-pill__label">
-                    {{ cargo.nombre }}
-                  </span>
+                  <span class="relacion-suggestion-avatar">{{ item.nombreCompleto | slice:0:1 }}</span>
+                  <span class="relacion-suggestion-name">{{ item.nombreCompleto }}</span>
+                  <span class="relacion-suggestion-add" aria-hidden="true">+</span>
                 </button>
               }
             </div>
-          </section>
+          }
 
-          <section class="cargo-panel relacion-panel">
-            <div class="cargo-header relacion-header">
-              <div class="relacion-header__left">
-                <h3>{{ 'admin.usuario.relacion_titulo' | translate }}</h3>
-                <p class="cargo-help">{{ 'admin.usuario.relacion_help' | translate }}</p>
-              </div>
-              <div class="relacion-search-wrap">
-                <span class="relacion-search-icon" aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                    <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/>
-                    <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                  </svg>
-                </span>
-                <input
-                  id="relacionUsuarioSearch"
-                  #relacionUsuarioSearchInput
-                  type="text"
-                  formControlName="relacionUsuarioSearch"
-                  placeholder="{{ 'admin.usuario.relacion_search_placeholder' | translate }}"
-                  class="relacion-search-input"
-                  (input)="onRelacionUsuarioSearch(relacionUsuarioSearchInput.value)"
-                  autocomplete="off"
-                />
-              </div>
-            </div>
-
-            @if (usuariosRelacionadosDisponibles().length > 0) {
-              <div class="relacion-suggestions" role="listbox" aria-label="Resultados búsqueda usuario">
-                @for (item of usuariosRelacionadosDisponibles(); track item.id) {
+          @if (usuariosRelacionadosSeleccionados().length > 0) {
+            <div class="relacion-chips" role="group" aria-label="Usuarios relacionados seleccionados">
+              @for (item of usuariosRelacionadosSeleccionados(); track item.id) {
+                <div class="relacion-chip cargo-pill">
+                  <span class="relacion-chip__avatar">{{ item.nombreCompleto | slice:0:1 }}</span>
+                  <div class="relacion-chip__body">
+                    <span class="relacion-chip__name">{{ item.nombreCompleto }}</span>
+                    <select
+                      class="relacion-chip__select"
+                      #tipoRelacionSelect
+                      (change)="setTipoRelacionUsuario(item.id, tipoRelacionSelect.value)"
+                      [attr.aria-label]="'Tipo de relación con ' + item.nombreCompleto"
+                    >
+                      <option [selected]="!item.tipoRelacion" value="">{{ 'admin.usuario.relacion_relation_placeholder' | translate }}</option>
+                      @for (tipo of tiposRelacion(); track tipo.value) {
+                        <option [value]="tipo.value" [selected]="item.tipoRelacion === tipo.value">
+                          {{ tipo.label }}
+                        </option>
+                      }
+                    </select>
+                  </div>
                   <button
                     type="button"
-                    class="relacion-suggestion-item"
-                    (click)="addUsuarioRelacionado(item)"
-                    role="option"
-                  >
-                    <span class="relacion-suggestion-avatar">{{ item.nombreCompleto | slice:0:1 }}</span>
-                    <span class="relacion-suggestion-name">{{ item.nombreCompleto }}</span>
-                    <span class="relacion-suggestion-add" aria-hidden="true">+</span>
-                  </button>
-                }
-              </div>
-            }
+                    class="relacion-chip__remove"
+                    (click)="removeUsuarioRelacionado(item.id)"
+                    [attr.aria-label]="('admin.usuario.relacion_quitar' | translate) + ' ' + item.nombreCompleto"
+                  >✕</button>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="relacion-empty">{{ 'admin.usuario.relacion_none' | translate }}</p>
+          }
+        </section>
 
-            @if (usuariosRelacionadosSeleccionados().length > 0) {
-              <div class="relacion-chips" role="group" aria-label="Usuarios relacionados seleccionados">
-                @for (item of usuariosRelacionadosSeleccionados(); track item.id) {
-                  <div class="relacion-chip cargo-pill">
-                    <span class="relacion-chip__avatar">{{ item.nombreCompleto | slice:0:1 }}</span>
-                    <div class="relacion-chip__body">
-                      <span class="relacion-chip__name">{{ item.nombreCompleto }}</span>
-                      <select
-                        class="relacion-chip__select"
-                        #tipoRelacionSelect
-                        (change)="setTipoRelacionUsuario(item.id, tipoRelacionSelect.value)"
-                        [attr.aria-label]="'Tipo de relación con ' + item.nombreCompleto"
-                      >
-                        <option [selected]="!item.tipoRelacion" value="">{{ 'admin.usuario.relacion_relation_placeholder' | translate }}</option>
-                        @for (tipo of tiposRelacion(); track tipo.value) {
-                          <option
-                            [value]="tipo.value"
-                            [selected]="item.tipoRelacion === tipo.value"
-                          >
-                            {{ tipo.label }}
-                          </option>
-                        }
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      class="relacion-chip__remove"
-                      (click)="removeUsuarioRelacionado(item.id)"
-                      [attr.aria-label]="('admin.usuario.relacion_quitar' | translate) + ' ' + item.nombreCompleto"
-                    >✕</button>
-                  </div>
-                }
-              </div>
-              } @else {
-               <p class="relacion-empty">{{ 'admin.usuario.relacion_none' | translate }}</p>
-             }
-          </section>
-
-          <button type="submit" class="action-button" [disabled]="saving()">
-            {{ submitLabel() }}
-          </button>
-        </form>
-
-        @if (successMessage()) {
-          <p class="feedback success" role="status">{{ successMessage() }}</p>
-        }
-
-        @if (passwordGenerada()) {
-          <div class="password-box" role="status">
-            <strong>Contraseña generada</strong>
-            <div class="password-value">{{ passwordGenerada() }}</div>
-          </div>
-        }
-
-        @if (errorMessage()) {
-          <p class="feedback error" role="alert">{{ errorMessage() }}</p>
-        }
-      </article>
+      </form>
+      <div #formEnd></div>
+    }
   </div>
 </section>

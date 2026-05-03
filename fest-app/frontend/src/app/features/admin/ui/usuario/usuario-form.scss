@@ -1,28 +1,21 @@
-@use '../../../../../styles/admin-panel' as *;
+// Estilos compartidos cargados globalmente en styles.scss — no repetir @use aquí.
+// Clases disponibles del base: .panel, .field, .field--full, .field-grid,
+//   .form-section, .section-head, .submit-anchor, .submit-bar, .submit-button,
+//   .feedback, .eyebrow, .chip, .chips-row, .cargo-pill, .cargo-pills,
+//   .loading-overlay, .spinner
 
-// ─── usuario-form ─────────────────────────────────────────────────────────────
-// Clases compartidas heredadas de _admin-panel:
-//   .panel, .content, .field, .checkbox-row, .action-button,
-//   .loading-overlay, .spinner, .cargo-pill, .cargo-pills, .eyebrow, .feedback
-//
-// Este archivo contiene SOLO lo específico de este componente.
+// ─── Host + tokens locales ────────────────────────────────────────────────────
 
 :host {
   display: block;
   min-height: 100%;
 
-  // Alias locales sobre los tokens del tema global
-  --color-primary:        var(--brand-primary, #e8520a);
-  --color-primary-600:    var(--brand-primary-strong, #c73d00);
-  --color-primary-accent: var(--brand-accent, #8b1a00);
-  --color-primary-100:    color-mix(in srgb, var(--brand-primary) 12%, transparent);
-  --color-primary-50:     color-mix(in srgb, var(--brand-primary) 8%, transparent);
-  --color-primary-200:    color-mix(in srgb, var(--brand-primary) 30%, white);
-  --color-primary-900:    var(--brand-ink, #5c1a00);
-  --color-primary-shadow: var(--shadow-elevated, 0 18px 36px rgba(92,26,0,.20));
+  --color-primary-100: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+  --color-primary-200: color-mix(in srgb, var(--brand-primary) 30%, white);
+  --color-primary-900: var(--brand-ink, #5c1a00);
 }
 
-// ─── Screen background ────────────────────────────────────────────────────────
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 .screen.admin-usuario-screen {
   min-height: 100dvh;
@@ -32,13 +25,27 @@
   color: var(--text-primary, #1a0a00);
 }
 
-// ─── Grid de datos (readonly) ─────────────────────────────────────────────────
+// ─── Form layout ─────────────────────────────────────────────────────────────
+// .edit-form y .field-grid vienen del base; solo sobreescribimos el gap=0
 
-.grid {
+.edit-form { gap: 0; }
+
+.form-section {
+  padding: 1.25rem;
+
+  & + .form-section,
+  & + .submit-anchor + .form-section {
+    border-top: 1px solid var(--border-soft, #e8d8c8);
+  }
+}
+
+// ─── Grid de recompensas (readonly) ──────────────────────────────────────────
+
+.rewards-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 0.85rem;
-  margin-bottom: 20px;
+  margin-bottom: 0.5rem;
 
   > div {
     padding: 0.9rem;
@@ -64,55 +71,28 @@
     color: var(--text-primary, #1a0a00);
     word-break: break-word;
   }
+
+  @media (max-width: 400px) { grid-template-columns: 1fr; }
 }
 
-// ─── Panel de cargos / relaciones ─────────────────────────────────────────────
-
-.cargo-panel,
-.relacion-panel {
-  width: 100%;
-  box-sizing: border-box;
-  max-width: none;
-  margin: 0;
-  border: 1px solid var(--border-strong, #e6d4c2);
-  border-radius: 0.9rem;
-  overflow: hidden;
-  background: var(--surface, #fffdf9);
-  background-clip: padding-box;
-  box-shadow: var(--surface-shadow, 0 8px 22px rgba(90,30,0,.06));
-}
-
-.cargo-header,
-.relacion-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  padding: 0.25rem 0.6rem;
-  min-height: 40px;
-  background: var(--surface-soft, #faf4ec);
-  border-bottom: 1px solid var(--border-strong, #e6d4c2);
-}
-
-.cargo-header span {
-  font-size: 0.82rem;
-  color: #8a6a4f;
-  font-weight: 700;
-  white-space: nowrap;
-}
+// ─── Cargo help ───────────────────────────────────────────────────────────────
 
 .cargo-help {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: #8a6a4f;
+  color: var(--text-muted, #8a6a4f);
 }
 
-// ─── Relación: buscador ───────────────────────────────────────────────────────
+// ─── Buscador de relaciones ───────────────────────────────────────────────────
 
-.relacion-header__left {
-  flex: 1 1 auto;
-  min-width: 0;
+.relacion-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  &__left { flex: 1 1 auto; min-width: 0; }
 }
 
 .relacion-search-wrap {
@@ -120,7 +100,6 @@
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0.05rem 0;
 }
 
 .relacion-search-icon {
@@ -144,21 +123,19 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 
   &::placeholder { color: var(--text-muted, #b09070); font-style: italic; }
-
   &:focus {
     border-color: var(--brand-primary-strong, #c73d00);
-    box-shadow: var(--focus-ring, 0 0 0 3px rgba(232,82,10,.22));
+    box-shadow: 0 0 0 3px rgba(232,82,10,.22);
   }
 }
 
-// ─── Sugerencias de relación ──────────────────────────────────────────────────
+// ─── Sugerencias ─────────────────────────────────────────────────────────────
 
 .relacion-suggestions {
   display: flex;
   flex-direction: column;
-  margin: 0;
-  border-top: 1px solid var(--border-strong, #e6d4c2);
-  border-radius: 0 0 0.85rem 0.85rem;
+  border: 1px solid var(--border-strong, #e6d4c2);
+  border-radius: 0.85rem;
   overflow: hidden;
   background: var(--surface, #fffdf9);
 }
@@ -173,19 +150,14 @@
   background: transparent;
   cursor: pointer;
   text-align: left;
-  transition: background 0.12s, padding 0.06s;
 
   &:last-child { border-bottom: none; }
-
-  &:hover {
-    background: color-mix(in srgb, var(--brand-primary) 6%, transparent);
-  }
+  &:hover { background: color-mix(in srgb, var(--brand-primary) 6%, transparent); }
 }
 
 .relacion-suggestion-avatar {
   flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   background: var(--color-primary-200, #f4c4a0);
   color: var(--color-primary-900, #5c1a00);
@@ -208,19 +180,11 @@
   font-size: 1rem;
   font-weight: 700;
   color: var(--brand-primary, #e8520a);
-  line-height: 1;
 }
 
-// ─── Relación: chips seleccionados ────────────────────────────────────────────
+// ─── Chips de relaciones seleccionadas ───────────────────────────────────────
 
-.relacion-chips {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.6rem;
-  flex-wrap: wrap;
-  align-items: center;
-  background: var(--surface, #fffdf9);
-}
+.relacion-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 .relacion-chip {
   display: inline-flex;
@@ -230,47 +194,28 @@
   border: 1px solid var(--border-soft, #d6c2ad);
   border-radius: 999px;
   background: color-mix(in srgb, var(--brand-primary) 5%, var(--surface, #fffdf9));
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s;
-
-  &:hover {
-    border-color: var(--brand-primary-strong, #c73d00);
-    box-shadow: 0 2px 8px rgba(232,82,10,.08);
-    transform: translateY(-1px);
-  }
 
   &__avatar {
     flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
+    width: 28px; height: 28px;
     border-radius: 50%;
     background: var(--color-primary-200, #f4c4a0);
     color: var(--color-primary-900, #5c1a00);
-    font-size: 0.75rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 0.72rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
     text-transform: uppercase;
   }
 
   &__body {
-    flex: 1;
-    min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    flex: 1; min-width: 0;
+    display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
   }
 
   &__name {
-    font-size: 0.88rem;
-    font-weight: 700;
+    font-size: 0.88rem; font-weight: 700;
     color: var(--text-primary, #1a0a00);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     max-width: 180px;
-
     @media (min-width: 768px) { max-width: 260px; }
   }
 
@@ -280,123 +225,70 @@
     border: 1px solid var(--border-soft, #d6c2ad);
     border-radius: 999px;
     background: var(--surface, #fffdf9);
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: 0.78rem; font-weight: 600;
     color: var(--text-primary, #1a0a00);
-    cursor: pointer;
-    outline: none;
-    appearance: auto;
-    transition: border-color 0.15s;
-    min-width: 8rem;
-    width: auto;
-    max-width: 12rem;
+    cursor: pointer; outline: none; appearance: auto;
+    min-width: 8rem; max-width: 12rem;
 
-    &:focus {
-      border-color: var(--brand-primary-strong, #c73d00);
-      box-shadow: 0 0 0 2px rgba(232,82,10,.2);
-    }
+    &:focus { border-color: var(--brand-primary-strong, #c73d00); box-shadow: 0 0 0 2px rgba(232,82,10,.2); }
   }
 
   &__remove {
     flex: 0 0 auto;
-    width: 24px;
-    height: 24px;
+    width: 24px; height: 24px;
     border-radius: 50%;
     border: 1px solid var(--border-soft, #d6c2ad);
     background: var(--surface, #fffdf9);
     color: var(--text-muted, #8a6a4f);
     font-size: 0.72rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
 
-    &:hover {
-      background: #fef2f2;
-      border-color: #dc2626;
-      color: #dc2626;
-    }
+    &:hover { background: #fef2f2; border-color: #dc2626; color: #dc2626; }
+  }
+
+  @media (max-width: 640px) {
+    width: 100%; border-radius: 1rem;
+    &__body   { flex-direction: column; align-items: flex-start; }
+    &__name   { max-width: 100%; }
+    &__select { width: 100%; max-width: none; }
   }
 }
 
 .relacion-empty {
-  padding: 0.75rem 1rem 1rem;
   font-size: 0.84rem;
   color: var(--text-muted, #8a6a4f);
   font-style: italic;
   margin: 0;
 }
 
-// ─── Responsive ───────────────────────────────────────────────────────────────
-
-@media (min-width: 900px) {
-  .panel { padding: 2rem; }
-}
-
-@media (max-width: 640px) {
-  .panel { padding: 1rem; border-radius: 1rem; }
-
-  .grid { grid-template-columns: 1fr; }
-
-  .cargo-header,
-  .relacion-header { flex-direction: column; align-items: flex-start; }
-
-  .relacion-search-wrap  { width: 100%; flex: 1 1 auto; }
-
-  .relacion-chip {
-    width: 100%;
-    border-radius: 1rem;
-
-    &__body    { flex-direction: column; align-items: flex-start; }
-    &__name    { max-width: 100%; }
-    &__select  { width: 100%; max-width: none; }
-  }
-}
-
-@media (max-width: 420px) {
-  .panel h2 { font-size: 1.15rem; }
-
-  .field input,
-  .field select,
-  .field textarea { font-size: 16px; }
-}
+// ─── Contraseña generada ──────────────────────────────────────────────────────
 
 .password-box {
-  margin-top: 1rem;
   padding: 1rem;
   border-radius: 1rem;
   border: 1px solid color-mix(in srgb, var(--brand-primary) 28%, white);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--brand-primary) 10%, white),
-      var(--surface, #fffdf9)
-    );
-  box-shadow: var(--surface-shadow, 0 8px 22px rgba(90, 30, 0, .08));
-}
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 10%, white), var(--surface, #fffdf9));
+  margin-bottom: 0.75rem;
 
-.password-box strong {
-  display: block;
-  margin-bottom: 0.55rem;
-  font-size: 0.82rem;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-primary-900, #5c1a00);
+  strong {
+    display: block;
+    margin-bottom: 0.55rem;
+    font-size: 0.82rem; font-weight: 900;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--color-primary-900, #5c1a00);
+  }
 }
 
 .password-value {
-  display: inline-flex;
-  align-items: center;
+  display: inline-flex; align-items: center;
   max-width: 100%;
   padding: 0.65rem 0.85rem;
   border-radius: 0.75rem;
   background: var(--surface, #fffdf9);
   border: 1px dashed var(--brand-primary, #e8520a);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 1rem; font-weight: 800;
   color: var(--text-primary, #1a0a00);
   word-break: break-all;
   user-select: all;
