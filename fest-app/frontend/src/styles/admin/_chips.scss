@@ -1,0 +1,212 @@
+@use 'tokens' as t;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _chips.scss — Chips, pills y filtros reutilizables
+// Compartido por: censo-usuarios, eventos, evento-form
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Chip de filtro (toggle) ──────────────────────────────────────────────────
+
+.chip-filter {
+  min-height: t.$control-height-sm;
+  border: 1px solid var(--border-soft);
+  border-radius: t.$radius-pill;
+  padding: 0 0.7rem;
+  font-weight: 700;
+  font: inherit;
+  background: #fff;
+  color: var(--text-secondary);
+  cursor: pointer;
+
+  &.active {
+    border-color: var(--border-strong);
+    background: #fff4e6;
+    color: var(--brand-ink);
+  }
+
+  &--clear {
+    color: var(--text-muted);
+    border-style: dashed;
+
+    &:hover {
+      border-color: var(--border-strong);
+      color: var(--brand-ink);
+    }
+  }
+}
+
+// ─── Chip genérico (evento-form, listados) ────────────────────────────────────
+
+.chip {
+  padding: 0.45rem 0.75rem;
+  border-radius: t.$radius-pill;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+
+  &--active {
+    background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface));
+    color: var(--brand-primary-strong);
+    border-color: color-mix(in srgb, var(--brand-primary) 20%, var(--border-soft));
+  }
+}
+
+// ─── Chips-row (contenedor flex) ──────────────────────────────────────────────
+
+.chips-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+// ─── Count chip (número de resultados) ───────────────────────────────────────
+
+.count-chip {
+  min-width: 30px;
+  height: 30px;
+  border-radius: t.$radius-pill;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  background: #fff4e6;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+// ─── Cargo pill ───────────────────────────────────────────────────────────────
+// Selección de cargos en entidad-form y usuario-form
+
+.cargo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: t.$control-height-md;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border-soft, #d6c2ad);
+  border-radius: t.$radius-pill;
+  background: var(--surface, #fffdf9);
+  color: var(--text-primary, #1a0a00);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.12s ease;
+
+  &:hover {
+    border-color: var(--brand-primary-light, #fdba74);
+    background: color-mix(in srgb, var(--brand-primary) 6%, transparent);
+  }
+
+  &:active { transform: scale(0.98); }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--brand-primary-strong, #c73d00);
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(232,82,10,.32));
+  }
+
+  &--selected {
+    border-color: var(--brand-primary-strong, #c73d00);
+    background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+    color: var(--brand-primary-strong, #c73d00);
+  }
+
+  &--custom {
+    border-style: dashed;
+    padding-right: 0.45rem;
+    cursor: default;
+    margin: 0 5px;
+  }
+
+  &__check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: t.$radius-pill;
+    border: 1px solid var(--border-soft, #d6c2ad);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    color: transparent;
+    background: #fff;
+    flex: 0 0 auto;
+  }
+
+  &--selected &__check {
+    border-color: var(--brand-primary-strong, #c73d00);
+    background: var(--brand-primary-strong, #c73d00);
+    color: #fff;
+  }
+
+  &__label {
+    font-size: 0.92rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  &__remove {
+    appearance: none;
+    border: 0;
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+    color: #b91c1c;
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: t.$radius-pill;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 0.15rem;
+    padding: 0;
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease,
+      transform 0.12s ease;
+
+    &:hover:not(:disabled) {
+      background: #ef4444;
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    &:disabled { opacity: 0.5; cursor: wait; }
+  }
+
+  &__remove-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    &:not(&--custom) {
+      width: 100%;
+      justify-content: flex-start;
+      border-radius: 1rem;
+    }
+  }
+}
+
+// ─── Cargo chips contenedor ───────────────────────────────────────────────────
+
+.cargo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 0 0;
+}
+
+.cargo-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem;
+
+  @media (max-width: 640px) { gap: 0.6rem; }
+}

@@ -1,0 +1,147 @@
+@use 'tokens' as t;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _fields.scss — Campos de formulario con label flotante
+// Compartido por: _admin-panel, evento-form, usuario-form
+// ═══════════════════════════════════════════════════════════════════════════════
+
+.field {
+  position: relative;
+  display: grid;
+
+  // ── Controles ──
+  input,
+  select,
+  textarea {
+    width: 100%;
+    min-height: t.$control-height-lg;
+    border: 1px solid var(--border-soft, #d6c2ad);
+    border-radius: t.$radius-field;
+    background: var(--surface, #fffdf9);
+    padding: 1rem 0.95rem 0.65rem;
+    font: inherit;
+    color: var(--text-primary, #1a0a00);
+    outline: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  textarea {
+    min-height: 8rem;
+    resize: vertical;
+  }
+
+  // ── Label flotante ──
+  label {
+    position: absolute;
+    top: 50%;
+    left: 0.95rem;
+    transform: translateY(-50%);
+    padding: 0 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: transparent;
+    pointer-events: none;
+    transition:
+      top 0.18s ease,
+      transform 0.18s ease,
+      color 0.18s ease,
+      background-color 0.18s ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: transparent;
+  }
+
+  // Label en posición elevada (activo / con valor)
+  input:focus + label,
+  textarea:focus + label,
+  select:focus + label,
+  select + label,
+  input:not(:placeholder-shown) + label,
+  textarea:not(:placeholder-shown) + label {
+    top: 0;
+    transform: translateY(-50%) scale(0.9);
+    color: var(--brand-primary);
+    background: var(--surface);
+  }
+
+  // ── Focus ──
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--brand-primary-strong);
+    box-shadow: var(--focus-ring);
+  }
+
+  // ── Disabled ──
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    background: var(--surface-soft, #f7f1e8);
+    color: var(--text-muted, #8a6a4f);
+    cursor: not-allowed;
+    opacity: 1;
+  }
+
+  // ── Validación Angular ──
+  input.ng-invalid.ng-touched,
+  select.ng-invalid.ng-touched,
+  textarea.ng-invalid.ng-touched {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+
+    + label { color: #dc2626; }
+  }
+
+  // ── Modificadores ──
+  &--full { grid-column: 1 / -1; }
+}
+
+// ─── Ayudantes de campo ───────────────────────────────────────────────────────
+
+.field-required {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.field-optional {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+// ─── Checkbox dentro de formularios ──────────────────────────────────────────
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: t.$control-height-lg;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border-soft, #d6c2ad);
+  border-radius: t.$radius-field;
+  background: var(--surface, #fffdf9);
+  color: var(--text-primary);
+  font-weight: 600;
+
+  input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    min-height: auto;
+    margin: 0;
+    accent-color: var(--brand-primary-strong, #c73d00);
+    cursor: pointer;
+    box-shadow: none;
+  }
+
+  span {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary, #1a0a00);
+  }
+}

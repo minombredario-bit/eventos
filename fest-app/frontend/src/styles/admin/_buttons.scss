@@ -1,0 +1,153 @@
+@use 'tokens' as t;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _buttons.scss — Estilos de botones compartidos en el panel de administración
+// Importado por: censo-usuarios, eventos, evento-form, usuario-form, entidad-form
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Icono / texto dentro de botones ──────────────────────────────────────────
+
+.button-icon {
+  font-size: 1em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-text {
+  display: inline-flex;
+  align-items: center;
+}
+
+// ─── Botón principal (CTA) ─────────────────────────────────────────────────────
+
+.action-button {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  border-radius: t.$radius-pill;
+  min-height: t.$control-height-md;
+  padding: 0 0.9rem;
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary-strong, #b45309) 0%,
+    var(--brand-primary, #e8520a) 100%
+  );
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.2s ease;
+
+  // ── Variantes de estado ──
+  &:hover:not(:disabled):not([disabled]) {
+    transform: translateY(-1px);
+    filter: brightness(1.02);
+  }
+
+  &:active:not(:disabled):not([disabled]) {
+    transform: translateY(0);
+  }
+
+  &:disabled,
+  &[disabled],
+  &.disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  // ── Variantes visuales ──
+  &.secondary {
+    background: #fff4e6;
+    color: var(--brand-ink);
+    border-color: var(--border-strong);
+  }
+
+  &--soft {
+    background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface));
+    color: var(--brand-primary-strong);
+    border-color: transparent;
+    min-height: t.$control-height-sm;
+  }
+
+  // ── Variantes de tamaño ──
+  &--sm {
+    min-height: t.$control-height-sm;
+    padding: 0 0.7rem;
+    font-size: 0.82rem;
+
+    .button-text { display: none; }
+    .button-icon { font-size: 1.05rem; }
+
+    @media (min-width: 480px) {
+      .button-text { display: inline-flex; }
+    }
+  }
+
+  &--icon {
+    gap: 0.45rem;
+  }
+
+  // ── Paginación ──
+  &--pag {
+    min-width: 40px;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: t.$radius-pill;
+
+    .button-icon {
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+  }
+}
+
+// ─── Botón secundario / outline ───────────────────────────────────────────────
+
+.secondary-button,
+.icon-button {
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, var(--border-soft));
+  border-radius: t.$radius-pill;
+  min-height: 2.6rem;
+  padding: 0.65rem 0.95rem;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--brand-primary-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cta-icon-btn,
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.icon-button {
+  min-width: 2.6rem;
+  padding: 0.55rem 0.8rem;
+
+  &--danger {
+    border-color: color-mix(in srgb, #ef4444 30%, transparent);
+    color: #b91c1c;
+  }
+}
+
+// ─── Ayudantes de icono / texto en botones ────────────────────────────────────
+
+.secondary-button__icon {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+}

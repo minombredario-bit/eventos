@@ -1,0 +1,124 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// _feedback.scss — Mensajes de estado, loading overlay y skeleton
+// Compartido por: _admin-panel, censo-usuarios, eventos, evento-form, usuario-form
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Mensajes de feedback ─────────────────────────────────────────────────────
+
+.feedback {
+  margin: 0;
+  border-radius: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+
+  &.success,
+  &--success {
+    color: #047857;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+  }
+
+  &.error,
+  &--error {
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+  }
+
+  p { margin: 0.4rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+}
+
+// ─── Eyebrow (titular de sección) ────────────────────────────────────────────
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brand-primary, #e8520a);
+}
+
+// ─── Loading overlay ─────────────────────────────────────────────────────────
+
+.loading-overlay {
+  position: absolute;
+  inset: 0.6rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+
+.loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 4px solid rgba(0, 0, 0, 0.08);
+  border-top-color: var(--brand-primary);
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.edit-form.is-loading {
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+
+.skeleton {
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--brand-primary) 10%, var(--surface-muted)) 0%,
+    var(--surface) 50%,
+    color-mix(in srgb, var(--brand-primary) 10%, var(--surface-muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+
+  &--title { width: 55%; height: 1.2rem; margin-bottom: 0.8rem; }
+  &--text  { height: 0.8rem; margin-bottom: 0.55rem; }
+  &--text.short { width: 70%; }
+  &--line  { height: 4.5rem; margin-top: 0.75rem; border-radius: 0.9rem; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ─── Estado vacío ────────────────────────────────────────────────────────────
+
+.empty-text,
+.empty-state p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.loading-panel,
+.empty-state {
+  padding: 1.25rem;
+
+  h3 { margin: 0 0 0.35rem; }
+  p  { color: var(--text-secondary); margin: 0 0 0.8rem; }
+}

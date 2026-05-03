@@ -1,0 +1,279 @@
+@use 'tokens' as t;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// _layout.scss — Panel, content, grids de filtros, paginación y cabeceras
+// Compartido por: _admin-panel, censo-usuarios, eventos, evento-form, usuario-form
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Panel base ───────────────────────────────────────────────────────────────
+
+.panel {
+  background: var(--surface, rgba(255, 252, 247, 0.96));
+  border: 1px solid var(--border-soft, rgba(180, 83, 9, 0.16));
+  border-radius: t.$radius-card;
+  padding: 1.25rem;
+  box-shadow: var(--surface-shadow, 0 8px 22px rgba(90,30,0,.12));
+  backdrop-filter: blur(10px);
+  position: relative;
+
+  h2 { margin: 0 0 0.7rem; }
+  p  { margin: 0.3rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+
+  &--accent {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    border-top: 4px solid var(--brand-primary);
+  }
+}
+
+// ─── Content wrapper ──────────────────────────────────────────────────────────
+
+.content {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 1rem 1rem calc(var(--bottom-nav-height, 68px) + 2.5rem);
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.9rem;
+
+  @media (min-width: 1200px) {
+    width: min(100%, 1240px);
+  }
+}
+
+// ─── Formulario / grid de campos ─────────────────────────────────────────────
+
+.edit-form,
+form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+
+  &--activity { margin-top: 0.9rem; }
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ─── Panel de acciones + búsqueda + filtros ───────────────────────────────────
+// Usado por censo-usuarios y eventos
+
+.actions-panel,
+.filters-panel {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-areas:
+    "actions"
+    "search"
+    "filters";
+
+  @media (min-width: 600px) {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "search  search"
+      "filters actions";
+    align-items: center;
+  }
+}
+
+// Variante con cabecera propia (eventos)
+.filters-panel--with-header {
+  grid-template-areas:
+    "header"
+    "actions"
+    "search"
+    "filters";
+
+  @media (min-width: 600px) {
+    grid-template-areas:
+      "header header"
+      "search  search"
+      "filters actions";
+    align-items: center;
+  }
+}
+
+// ─── Search field ─────────────────────────────────────────────────────────────
+
+.search-field,
+.filters-panel__search {
+  grid-area: search;
+  display: grid;
+  gap: 0.35rem;
+
+  span,
+  label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  input {
+    min-height: t.$control-height-md;
+    border-radius: t.$radius-sm;
+    border: 1px solid var(--border-soft);
+    padding: 0 0.8rem;
+    background: #ffffff;
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    color: var(--text-primary);
+  }
+}
+
+// ─── Filter / actions rows ───────────────────────────────────────────────────
+
+.filter-row,
+.filters-row {
+  grid-area: filters;
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  align-items: center;
+
+  @media (min-width: 760px) { flex-wrap: nowrap; }
+}
+
+.actions-row {
+  grid-area: actions;
+  display: flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+// ─── Head row (título + count) ───────────────────────────────────────────────
+
+.head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+
+  h2 { margin: 0; }
+}
+
+// ─── Paginación ──────────────────────────────────────────────────────────────
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+
+  span {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+  }
+}
+
+// ─── Section head (evento-form) ───────────────────────────────────────────────
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+
+  &--actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__add-btn {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-left: auto;
+  }
+
+  h3 { margin: 0; color: var(--text-primary); }
+  p  { margin: 0.35rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+
+  @media (max-width: 720px) {
+    &:not(&--actions) {
+      display: grid;
+      gap: 0.75rem;
+      align-items: start;
+    }
+  }
+}
+
+// ─── Submit bar flotante (evento-form) ───────────────────────────────────────
+
+.submit-anchor {
+  position: relative;
+
+  &--reserve { min-height: 3.25rem; }
+}
+
+.submit-bar {
+  width: 100%;
+  transition: opacity 0.15s ease;
+
+  &--floating {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 0.75rem 1rem calc(var(--bottom-nav-height, 0px) + 0.75rem);
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--page-bg) 95%, transparent) 55%,
+      transparent
+    );
+  }
+}
+
+.submit-button {
+  display: block;
+  cursor: pointer;
+  width: 100%;
+  border: 0;
+  border-radius: 1rem;
+  min-height: 3.25rem;
+  padding: 0.95rem 1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-strong));
+  color: #fff;
+  box-shadow: var(--shadow-elevated), 0 12px 28px rgba(0, 0, 0, 0.12);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+// ─── Admin search panel (eventos) ────────────────────────────────────────────
+
+.admin-search-panel {
+  border-top: 3px solid var(--brand-primary);
+  padding: 20px;
+  border-radius: 12px;
+
+  &__header {
+    grid-area: header;
+
+    h2 { margin: 0.35rem 0 0; }
+    p  { margin: 0.3rem 0 0; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.5; }
+  }
+}

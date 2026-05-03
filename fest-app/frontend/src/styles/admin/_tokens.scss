@@ -1,0 +1,14 @@
+// ─── Design tokens (aliases sobre las CSS vars del tema) ───────────────────────
+// Este archivo NO emite CSS por sí solo; solo define variables SCSS y placeholders.
+
+// Radios reutilizables
+$radius-pill:   999px;
+$radius-card:   1.25rem;
+$radius-field:  0.95rem;
+$radius-sm:     0.85rem;
+
+// Alturas mínimas de controles interactivos
+$control-height-lg: 56px;
+$control-height-md: 44px;
+$control-height-sm: 36px;
+$control-height-xs: 32px;
