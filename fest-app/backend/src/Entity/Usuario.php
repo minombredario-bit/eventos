@@ -336,13 +336,12 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: UsuarioReconocimiento::class, mappedBy: 'usuario')]
     private Collection $usuarioReconocimientos;
 
-    #[ORM\Column(type: Types::STRING, length: 15, nullable: false)]
+    #[ORM\Column(type: Types::STRING, length: 15, nullable: true)]
     #[Groups([
         'usuario:read',
         'usuario:write',
         'read_user_admin',
     ])]
-    #[Assert\NotBlank]
     private string $documentoIdentidad;
 
     public function __construct()
@@ -1063,10 +1062,6 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setDocumentoIdentidad(?string $documentoIdentidad): static
     {
-        if ($documentoIdentidad === null) {
-            throw new \InvalidArgumentException('El documento de identidad es obligatorio.');
-        }
-
         $documentoIdentidad = trim($documentoIdentidad);
 
         if ($documentoIdentidad === '') {

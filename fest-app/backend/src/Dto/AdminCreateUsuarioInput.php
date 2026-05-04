@@ -25,7 +25,6 @@ final class AdminCreateUsuarioInput
     public ?string $telefono = null;
 
     #[Groups(['admin_usuario_create'])]
-    #[Assert\NotBlank]
     #[Assert\Length(max: 15)]
     public ?string $documentoIdentidad = null;
 
