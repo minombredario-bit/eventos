@@ -37,14 +37,6 @@
 
         <!-- ── Sección: Datos personales ── -->
         <section class="form-section form-section--datos panel">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Cabecera</p>
-              <h3>{{ 'usuario.datos_personales' | translate }}</h3>
-              <p>Nombre, contacto e identificación del usuario.</p>
-            </div>
-          </div>
-
           @if (isEditMode() && usuario(); as currentUser) {
             <div class="rewards-grid">
               <div>
@@ -100,17 +92,17 @@
               <label for="fechaNacimiento">{{ 'usuario.fechaNacimiento' | translate }}</label>
             </div>
 
-            <div class="field">
-              <input
-                id="antiguedadReal"
-                type="number"
-                formControlName="antiguedadReal"
-                placeholder=" "
-                min="0"
-                step="1"
-              />
-              <label for="antiguedadReal">{{ 'usuario.antiguedadReal' | translate }}</label>
-            </div>
+<!--            <div class="field">-->
+<!--              <input-->
+<!--                id="antiguedadReal"-->
+<!--                type="number"-->
+<!--                formControlName="antiguedadReal"-->
+<!--                placeholder=" "-->
+<!--                min="0"-->
+<!--                step="1"-->
+<!--              />-->
+<!--              <label for="antiguedadReal">{{ 'usuario.antiguedadReal' | translate }}</label>-->
+<!--            </div>-->
 
             <div class="field">
               <input
@@ -200,14 +192,11 @@
         <section class="form-section form-section--cargos panel">
           <div class="section-head section-head--actions">
             <div class="section-head__text">
-              <p class="eyebrow">Cuerpo del usuario</p>
               <h3>{{ 'usuario.cargos' | translate }}</h3>
               <p class="cargo-help">
                 {{ 'usuario.cargos_help' | translate }}
-                <strong>Tipo:</strong> {{ tipoPersonaCargo() === 'infantil' ? 'Infantil' : 'Adulto' }}.
               </p>
             </div>
-            <span class="section-head__count">{{ 'usuario.cargos_selected' | translate:{count: cargosSeleccionados().length} }}</span>
           </div>
 
           <div class="cargo-pills" role="group" aria-label="Selección de cargos">
