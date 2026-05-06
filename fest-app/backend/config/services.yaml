@@ -101,14 +101,6 @@ services:
         arguments:
             $inscripcionLineaRepository: '@App\Repository\InscripcionLineaRepository'
 
-    App\ApiPlatform\Doctrine\Extension\InscripcionOwnerExtension:
-        tags:
-            - { name: api_platform.doctrine.orm.query_extension.collection }
-    App\ApiPlatform\Doctrine\Extension\ApiExtensionPlatform:
-        tags:
-            - { name: api_platform.doctrine.orm.query_extension.collection, priority: 0 }
-            - { name: api_platform.doctrine.orm.query_extension.item, priority: 0 }
-
     # Decorate API Platform serializer context builder to add admin/form groups for Evento
     App\ApiPlatform\Serializer\CustomSerializerContextBuilder:
         decorates: 'api_platform.serializer.context_builder'

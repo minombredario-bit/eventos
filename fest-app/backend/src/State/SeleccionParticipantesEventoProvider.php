@@ -13,6 +13,7 @@ use App\Enum\EstadoLineaInscripcionEnum;
 use App\Repository\EventoRepository;
 use App\Repository\InscripcionRepository;
 use App\Repository\InvitadoRepository;
+use App\Repository\RelacionUsuarioRepository;
 use App\Repository\SeleccionParticipanteEventoRepository;
 use App\Repository\UsuarioRepository;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -28,6 +29,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
         private readonly InscripcionRepository $inscripcionRepository,
         private readonly InvitadoRepository $invitadoRepository,
         private readonly SeleccionParticipanteEventoRepository $seleccionParticipanteEventoRepository,
+        private readonly RelacionUsuarioRepository $relacionUsuarioRepository,
     ) {
     }
 
@@ -60,7 +62,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
             return $response;
         }
 
-        $seleccionGranular = $this->seleccionParticipanteEventoRepository->findByEventoAndInscritoPorUsuario($evento, $user);
+        $seleccionGranular = $this->findSeleccionGranularVisibleParaUsuario($evento, $user);
         $participantes = $this->buildParticipantesFromGranular($seleccionGranular);
 
         if (!$evento->permiteGestionInvitadosConActividades()) {
@@ -77,6 +79,7 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
         foreach ($inscripciones as $insc) {
             $createdAt = $insc->getCreatedAt();
 
+            // Indexar por titular de la inscripción
             $u = $insc->getUsuario();
             if ($u !== null && $u->getId() !== null) {
                 $uid = $u->getId();
@@ -91,6 +94,19 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
                 }
             }
 
+            // Indexar también por usuarios de las líneas para que cualquier
+            // familiar pueda encontrar la inscripción aunque no sea el titular
+            foreach ($insc->getLineas() as $linea) {
+                $lu = $linea->getUsuario();
+                if ($lu !== null && $lu->getId() !== null) {
+                    $luid = $lu->getId();
+                    if (!isset($inscripcionesPorUsuario[$luid])) {
+                        $inscripcionesPorUsuario[$luid] = $insc;
+                    }
+                }
+            }
+
+            // Indexar por invitados de las líneas
             foreach ($insc->getLineas() as $linea) {
                 $inv = $linea->getInvitado();
                 if ($inv === null || $inv->getId() === null) {
@@ -121,7 +137,24 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
         );
         $response->updatedAt = $this->resolveUpdatedAtFromGranular($seleccionGranular);
 
-        $inscPropia = $inscripcionesPorUsuario[$user->getId()] ?? null;
+        // Buscar inscripción del grupo: primero el propio usuario,
+        // luego cualquier participante visible del grupo familiar
+        $idsGrupo = [$user->getId()];
+        foreach ($response->participantes as $p) {
+            if (!empty($p['id'])) {
+                $idsGrupo[] = $p['id'];
+            }
+        }
+        $idsGrupo = array_unique($idsGrupo);
+
+        $inscPropia = null;
+        foreach ($idsGrupo as $uid) {
+            if (isset($inscripcionesPorUsuario[$uid])) {
+                $inscPropia = $inscripcionesPorUsuario[$uid];
+                break;
+            }
+        }
+
         if ($inscPropia !== null) {
             $lineas = [];
             foreach ($inscPropia->getLineas() as $linea) {
@@ -337,13 +370,19 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
                 continue;
             }
 
+            // Excluir líneas de usuarios dados de baja
+            $lineaUsuario = $linea->getUsuario();
+            if ($lineaUsuario !== null && $lineaUsuario->getFechaBajaCenso() !== null) {
+                continue;
+            }
+
             $precioUnitario = $linea->getPrecioUnitario();
             $totalLineas += $precioUnitario;
 
             $lineas[] = [
                 'id' => $linea->getId(),
                 'actividadId' => $linea->getActividad()->getId(),
-                'usuarioId' => $linea->getUsuario()?->getId(),
+                'usuarioId' => $lineaUsuario?->getId(),
                 'invitadoId' => $linea->getInvitado()?->getId(),
                 'nombreActividadSnapshot' => $linea->getNombreActividadSnapshot(),
                 'franjaComidaSnapshot' => $linea->getFranjaComidaSnapshot(),
@@ -459,5 +498,42 @@ class SeleccionParticipantesEventoProvider implements ProviderInterface
         $updatedAt = $seleccionGranular[0]?->getUpdatedAt() ?? null;
 
         return $updatedAt?->format('c');
+    }
+
+    /**
+     * @return list<SeleccionParticipanteEvento>
+     */
+    private function findSeleccionGranularVisibleParaUsuario(Evento $evento, Usuario $user): array
+    {
+        // Obtener IDs de usuarios relacionados activos (sin fechaBajaCenso) desde BD
+        $relaciones = $this->relacionUsuarioRepository->findRelacionadosByUsuario($user);
+
+        $usuariosPermitidos = [$user->getId()];
+        foreach ($relaciones as $relacion) {
+            $origen  = $relacion->getUsuarioOrigen();
+            $destino = $relacion->getUsuarioDestino();
+
+            $relacionado = $origen->getId() === $user->getId() ? $destino : $origen;
+
+            if ($relacionado->getFechaBajaCenso() === null) {
+                $usuariosPermitidos[] = $relacionado->getId();
+            }
+        }
+
+        $usuariosPermitidos = array_values(array_unique(array_filter($usuariosPermitidos)));
+
+        return $this->seleccionParticipanteEventoRepository
+            ->createQueryBuilder('s')
+            ->leftJoin('s.usuario', 'u')
+            ->leftJoin('s.inscritoPorUsuario', 'ipu')
+            ->where('s.evento = :evento')
+            ->andWhere('u.fechaBajaCenso IS NULL OR u.id = :userId')
+            ->andWhere('ipu = :user OR u = :user OR u.id IN (:usuariosPermitidos)')
+            ->setParameter('evento', $evento)
+            ->setParameter('user', $user)
+            ->setParameter('userId', $user->getId())
+            ->setParameter('usuariosPermitidos', $usuariosPermitidos)
+            ->getQuery()
+            ->getResult();
     }
 }

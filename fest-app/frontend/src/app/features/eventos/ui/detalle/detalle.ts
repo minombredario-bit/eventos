@@ -406,7 +406,7 @@ export class Detalle {
 
     const count = this.selectedMemberIdsInScope().length;
     return count === 0
-      ? 'Seleccioná al menos una persona'
+      ? 'Selecciona al menos una persona'
       : `Seleccionar actividades (${count})`;
   });
 

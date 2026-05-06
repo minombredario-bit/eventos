@@ -71,10 +71,10 @@
 
                 <div class="inscription-meta">
                   <span>{{ lineasLabel(inscripcion) }}</span>
-                  <span>
-                    {{ estadoPagoLabel(inscripcion.estadoPago) }}
-                    {{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.2-2' }}
-                  </span>
+<!--                  <span>-->
+<!--                    {{ estadoPagoLabel(inscripcion.estadoPago) }}-->
+<!--                    {{ inscripcion.importeTotal | currency: 'EUR' : 'symbol' : '1.2-2' }}-->
+<!--                  </span>-->
 
                 </div>
               </a>
@@ -99,13 +99,13 @@
                   >
                     Actividades
                   </a>
-                  <a
-                    class="action-link"
-                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'pago']"
-                    [attr.aria-label]="'Abrir pago de ' + eventTitle(inscripcion)"
-                  >
-                    Pago
-                  </a>
+<!--                  <a-->
+<!--                    class="action-link"-->
+<!--                    [routerLink]="['/eventos', eventRouteId(inscripcion), 'pago']"-->
+<!--                    [attr.aria-label]="'Abrir pago de ' + eventTitle(inscripcion)"-->
+<!--                  >-->
+<!--                    Pago-->
+<!--                  </a>-->
                   <a
                     class="action-link secondary apuntados-action"
                     [routerLink]="['/eventos', eventRouteId(inscripcion), 'apuntados']"

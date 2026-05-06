@@ -14,10 +14,12 @@ use App\Entity\Evento;
 use App\Entity\Inscripcion;
 use App\Entity\Pago;
 use App\Entity\Cargo;
+use App\Entity\RelacionUsuario;
 use App\Entity\TipoEntidadCargo;
 use App\Entity\TipoEntidad;
 use App\Entity\Usuario;
 use App\Enum\EstadoEventoEnum;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -102,6 +104,10 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
                 $this->addWhereTipoEntidadCargo($queryBuilder, $rootAlias, $entidad, $isItemOperation);
                 break;
 
+            case Inscripcion::class:
+                $this->addWhereInscripcion($queryBuilder, $queryNameGenerator, $rootAlias, $currentUser);
+                break;
+
             case Usuario::class:
                 $this->addWhereUsuario($queryBuilder, $rootAlias, $entidad, $isItemOperation);
                 break;
@@ -120,10 +126,6 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
 
             case Pago::class:
                 $this->addWherePago($queryBuilder, $queryNameGenerator, $rootAlias, $entidad, $currentUser);
-                break;
-
-            case Inscripcion::class:
-                $this->addWhereInscripcion($queryBuilder, $rootAlias, $currentUser);
                 break;
         }
     }
@@ -421,13 +423,50 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
 
     private function addWhereInscripcion(
         QueryBuilder $queryBuilder,
+        QueryNameGeneratorInterface $queryNameGenerator,
         string $rootAlias,
         Usuario $currentUser
     ): void {
-        $parameterName = 'usuario';
-        $queryBuilder
-            ->andWhere(sprintf('%s.usuario = :%s_usuario', $rootAlias, $parameterName))
-            ->setParameter(sprintf('%s_usuario', $parameterName), $currentUser);
+        // Admins ven todas las inscripciones de su entidad (el filtro de entidad ya lo aplica el switch padre...
+        // pero Inscripcion no tiene ese filtro global, así que lo añadimos aquí)
+        if ($this->security->isGranted('ROLE_ADMIN_ENTIDAD')) {
+            $queryBuilder
+                ->andWhere(sprintf('%s.entidad = :inscripcion_entidad', $rootAlias))
+                ->setParameter('inscripcion_entidad', $currentUser->getEntidad());
+            return;
+        }
 
+        $relacionOrigenAlias  = $queryNameGenerator->generateJoinAlias('relacionOrigen');
+        $relacionDestinoAlias = $queryNameGenerator->generateJoinAlias('relacionDestino');
+
+        $queryBuilder
+            ->distinct()
+            ->leftJoin(
+                RelacionUsuario::class,
+                $relacionOrigenAlias,
+                Join::WITH,
+                sprintf(
+                    '%s.usuarioOrigen = :inscripcion_current_user AND %s.usuarioDestino = %s.usuario',
+                    $relacionOrigenAlias, $relacionOrigenAlias, $rootAlias
+                )
+            )
+            ->leftJoin(
+                RelacionUsuario::class,
+                $relacionDestinoAlias,
+                Join::WITH,
+                sprintf(
+                    '%s.usuarioDestino = :inscripcion_current_user AND %s.usuarioOrigen = %s.usuario',
+                    $relacionDestinoAlias, $relacionDestinoAlias, $rootAlias
+                )
+            )
+            ->andWhere(sprintf('%s.entidad = :inscripcion_entidad', $rootAlias))
+            ->andWhere(sprintf(
+                '%1$s.usuario = :inscripcion_current_user OR %2$s.id IS NOT NULL OR %3$s.id IS NOT NULL',
+                $rootAlias,
+                $relacionOrigenAlias,
+                $relacionDestinoAlias
+            ))
+            ->setParameter('inscripcion_entidad', $currentUser->getEntidad())
+            ->setParameter('inscripcion_current_user', $currentUser);
     }
 }

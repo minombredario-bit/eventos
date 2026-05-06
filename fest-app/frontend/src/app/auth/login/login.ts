@@ -61,8 +61,16 @@ export class Login {
   });
 
   constructor() {
-    if (this.authStore.isAuthenticated()) {
-      void this.router.navigateByUrl('/eventos');
+    const user = this.authStore.user();
+
+    if (this.authStore.isAuthenticated() && user) {
+      if (user.debeCambiarPassword) {
+        void this.router.navigateByUrl('/auth/cambiar-password');
+      } else if (user.aceptoLopd === false) {
+        void this.router.navigateByUrl('/lopd');
+      } else {
+        void this.router.navigateByUrl('/eventos');
+      }
     }
   }
 

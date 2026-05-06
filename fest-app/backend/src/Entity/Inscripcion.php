@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\EstadoLineaInscripcionEnum;
 use App\Repository\InscripcionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -16,6 +17,7 @@ use App\Enum\EstadoPagoEnum;
 use App\Enum\MetodoPagoEnum;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
@@ -92,7 +94,6 @@ class Inscripcion
     private EstadoPagoEnum $estadoPago;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
-    #[Groups(['inscripcion:read', 'inscripcion:collection'])]
     private string $importeTotal = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
@@ -224,6 +225,13 @@ class Inscripcion
         return $this;
     }
 
+    #[Groups(['inscripcion:read', 'inscripcion:collection'])]
+    #[SerializedName('importeTotal')]
+    public function getImporteTotalActivo(): float
+    {
+        return $this->calcularImporteTotal();
+    }
+
     public function getImporteTotal(): float
     {
         return (float) $this->importeTotal;
@@ -335,7 +343,11 @@ class Inscripcion
     #[Groups(['inscripcion:collection'])]
     public function getTotalLineas(): int
     {
-        return $this->lineas->count();
+        return $this->lineas->filter(
+            fn(InscripcionLinea $linea) =>
+                $linea->getEstadoLinea() !== EstadoLineaInscripcionEnum::CANCELADA
+                && ($linea->getUsuario() === null || $linea->getUsuario()->getFechaBajaCenso() === null)
+        )->count();
     }
 
     /** @return Collection<int, Pago> */
@@ -348,9 +360,13 @@ class Inscripcion
     {
         $total = 0.0;
         foreach ($this->lineas as $linea) {
-            if ($linea->getEstadoLinea() !== \App\Enum\EstadoLineaInscripcionEnum::CANCELADA) {
-                $total += $linea->getPrecioUnitario();
+            if ($linea->getEstadoLinea() === EstadoLineaInscripcionEnum::CANCELADA) {
+                continue;
             }
+            if ($linea->getUsuario() !== null && $linea->getUsuario()->getFechaBajaCenso() !== null) {
+                continue;
+            }
+            $total += $linea->getPrecioUnitario();
         }
         return $total;
     }

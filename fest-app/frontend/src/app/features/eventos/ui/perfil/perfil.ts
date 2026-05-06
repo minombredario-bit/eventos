@@ -9,6 +9,7 @@ import { AuthService } from '../../../../core/auth/auth';
 import { EventosStore } from '../../store/eventos.store';
 import { EventosApi } from '../../data/eventos.api';
 import { METODOS_PAGO_OPTIONS, MetodoPago } from '../../domain/eventos.models';
+import { TranslatePipe } from '@ngx-translate/core';
 
 interface Feedback {
   text: string;
@@ -18,7 +19,7 @@ interface Feedback {
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [ReactiveFormsModule, MobileHeader, CtaButton],
+  imports: [ReactiveFormsModule, MobileHeader, CtaButton, TranslatePipe],
   templateUrl: './perfil.html',
   styleUrl: './perfil.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,6 +57,9 @@ export class Perfil {
   protected readonly metodosPago = METODOS_PAGO_OPTIONS;
 
   protected readonly profileForm = this.fb.nonNullable.group({
+    nombre: [''],
+    apellidos: [''],
+    direccion: [''],
     telefono: [''],
     fechaNacimiento: [''],
     formaPagoPreferida: ['' as '' | MetodoPago],
@@ -101,10 +105,13 @@ export class Perfil {
     this.profileMessage.set(null);
     this.savingProfile.set(true);
 
-    const { telefono, fechaNacimiento, formaPagoPreferida } = this.profileForm.getRawValue();
+    const { nombre, apellidos, direccion, telefono, fechaNacimiento, formaPagoPreferida } = this.profileForm.getRawValue();
 
     this.authService
       .updateMe({
+        nombre: nombre.trim() || null,
+        apellidos: apellidos.trim() || null,
+        direccion: direccion.trim() || null,
         telefono: telefono.trim() || null,
         fechaNacimiento: fechaNacimiento || null,
         formaPagoPreferida: formaPagoPreferida || null,
@@ -173,7 +180,7 @@ export class Perfil {
     if (this.unsubmitting()) return;
     const memberIds = Array.from(this.unsubscribeSelected());
     if (memberIds.length === 0) {
-      this.unsubscribeMessage.set({ text: 'Seleccioná al menos un miembro para continuar.', type: 'error' });
+      this.unsubscribeMessage.set({ text: 'Selecciona al menos un miembro para continuar.', type: 'error' });
       return;
     }
 
@@ -210,23 +217,25 @@ export class Perfil {
       )
       .subscribe({
         next: (user) => {
-          this.profileForm.setValue({
-            telefono: String(user.telefono ?? ''),
-            fechaNacimiento: this.normalizeDateForInput(user.fechaNacimiento),
-            formaPagoPreferida: this.normalizeMetodoPago(user.formaPagoPreferida),
-          });
-          this.profileForm.markAsPristine();
+          this.patchProfileForm(user);
         },
         error: () => {
           const fallback = this.authService.getUser();
-          this.profileForm.setValue({
-            telefono: String(fallback?.telefono ?? ''),
-            fechaNacimiento: this.normalizeDateForInput(fallback?.fechaNacimiento),
-            formaPagoPreferida: this.normalizeMetodoPago(fallback?.formaPagoPreferida),
-          });
-          this.profileForm.markAsPristine();
+          this.patchProfileForm(fallback);
         },
       });
+  }
+
+  private patchProfileForm(user: any): void {
+    this.profileForm.setValue({
+      nombre: String(user?.nombre ?? ''),
+      apellidos: String(user?.apellidos ?? ''),
+      direccion: String(user?.direccion ?? ''),
+      telefono: String(user?.telefono ?? ''),
+      fechaNacimiento: this.normalizeDateForInput(user?.fechaNacimiento),
+      formaPagoPreferida: this.normalizeMetodoPago(user?.formaPagoPreferida),
+    });
+    this.profileForm.markAsPristine();
   }
 
   private normalizeDateForInput(value: unknown): string {

@@ -18,25 +18,40 @@
       <article class="panel form-card">
         <h2>Datos personales</h2>
         <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-          <label>
-            Teléfono
-            <input type="tel" formControlName="telefono" placeholder="Añade tu teléfono" />
-          </label>
+          <div class="field">
+            <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
+            <label for="nombre">{{ 'usuario.nombre' | translate }}</label>
+          </div>
 
-          <label>
-            Fecha de nacimiento
-            <input type="date" formControlName="fechaNacimiento" />
-          </label>
+          <div class="field">
+            <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
+            <label for="apellidos">{{ 'usuario.apellidos' | translate }}</label>
+          </div>
 
-          <label>
-            Forma de pago habitual
-            <select formControlName="formaPagoPreferida">
-              <option value="">Sin preferencia</option>
-              @for (metodo of metodosPago; track metodo.value) {
-                <option [value]="metodo.value">{{ metodo.label }}</option>
-              }
+          <div class="field field--full">
+            <input id="direccion" type="email" formControlName="direccion" placeholder=" " />
+            <label for="direccion">{{ 'usuario.direccion' | translate }}</label>
+          </div>
+
+          <div class="field">
+            <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
+            <label for="telefono">{{ 'usuario.telefono' | translate }}</label>
+          </div>
+
+          <div class="field">
+            <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
+            <label for="fechaNacimiento">{{ 'usuario.fechaNacimiento' | translate }}</label>
+          </div>
+
+          <div class="field">
+            <select id="formaPagoPreferida" formControlName="formaPagoPreferida">
+              <option value="efectivo">Efectivo</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="transferencia">Transferencia</option>
+              <option value="bizum">Bizum</option>
             </select>
-          </label>
+            <label for="formaPagoPreferida">{{ 'usuario.formaPagoPreferida' | translate }}</label>
+          </div>
 
           @if (profileMessage()) {
             <p class="feedback feedback--{{ profileMessage()!.type }}">{{ profileMessage()!.text }}</p>
@@ -65,21 +80,18 @@
         <article class="panel form-card">
           <h2>Cambiar contraseña</h2>
           <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
-            <label>
-              Contraseña actual
-              <input type="password" formControlName="currentPassword" />
-            </label>
-
-            <label>
-              Nueva contraseña
-              <input type="password" formControlName="newPassword" />
-            </label>
-
-            <label>
-              Confirmar contraseña
-              <input type="password" formControlName="confirmPassword" />
-            </label>
-
+            <div class="field">
+              <input id="password" type="password" formControlName="currentPassword" />
+              <label for="password">Contraseña actual</label>
+            </div>
+            <div class="field">
+              <input id="newPassword" type="password" formControlName="newPassword" />
+              <label for="newPassword">Nueva contraseña</label>
+            </div>
+            <div class="field">
+              <input id="confirmPassword" type="password" formControlName="confirmPassword" />
+              <label for="confirmPassword">Confirmar contraseña</label>
+            </div>
             @if (passwordMessage()) {
               <p class="feedback feedback--{{ passwordMessage()!.type }}">{{ passwordMessage()!.text }}</p>
             }
@@ -116,7 +128,7 @@
       @if (showUnsubscribeForm()) {
         <article class="panel form-card panel--danger">
           <h2>Solicitar baja</h2>
-          <p class="eyebrow">Seleccioná los miembros a dar de baja</p>
+          <p class="eyebrow">Selecciona los miembros a dar de baja</p>
 
           <div class="member-pills">
             @if (userSignal()) {

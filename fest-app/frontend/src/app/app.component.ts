@@ -37,15 +37,28 @@ export class AppComponent implements OnInit {
 
     effect(() => {
       const user = this.authStore.user();
-      if (user && user.aceptoLopd === false) {
+      const currentUrl = this.router.url;
+
+      if (!user) {
+        return;
+      }
+
+      if (user.debeCambiarPassword && currentUrl !== '/auth/cambiar-password') {
+        void this.router.navigateByUrl('/auth/cambiar-password', { replaceUrl: true });
+        return;
+      }
+
+      if (
+        !user.debeCambiarPassword &&
+        user.aceptoLopd === false &&
+        currentUrl !== '/lopd'
+      ) {
         void this.router.navigate(['/lopd'], { replaceUrl: true });
       }
     });
   }
 
   ngOnInit(): void {
-    setTimeout(() => {
-      this.loading = false;
-    }, 1200);
+    this.loading = false;
   }
 }

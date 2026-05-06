@@ -67,7 +67,7 @@ export class AuthService {
 
   updateMe(
     payload: Partial<
-      Pick<AuthUser, 'telefono' | 'fechaNacimiento' | 'formaPagoPreferida'>
+      Pick<AuthUser, 'nombre' | 'apellidos' | 'telefono' | 'direccion' | 'fechaNacimiento' | 'formaPagoPreferida'>
     >,
   ): Observable<AuthUser> {
     return this.http

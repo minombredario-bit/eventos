@@ -2,8 +2,11 @@
 
 namespace App\Entity;
 
+use App\Dto\ApuntadoOutput;
+use App\Dto\ApuntadosPageOutput;
 use App\Enum\TipoEntidadEnum;
 use App\Repository\EventoRepository;
+use App\State\ApuntadosProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -71,6 +74,16 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             security: "is_granted('ROLE_USER')",
             output: InvitadoView::class,
             provider: EventoInvitadosProvider::class
+        ),
+        new Get(
+            uriTemplate: '/eventos/{id}/apuntados',
+            uriVariables: [
+                'id' => new Link(fromClass: self::class, identifiers: ['id']),
+            ],
+            normalizationContext: ['groups' => ['apuntado:read']],
+            security: "is_granted('ROLE_USER')",
+            output: ApuntadosPageOutput::class,
+            provider: ApuntadosProvider::class,
         ),
         new Post(
             security: "is_granted('ROLE_ADMIN_ENTIDAD')",

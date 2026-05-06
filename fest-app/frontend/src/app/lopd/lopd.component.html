@@ -9,7 +9,7 @@
   />
 
   <div class="content">
-    @if (loading) {
+    @if (loading()) {
       <article class="panel">
         <p class="eyebrow">Cargando</p>
         <h2>Preparando condiciones</h2>
@@ -23,31 +23,33 @@
       </article>
 
       <article class="panel lopd-text">
-        @if (textoLopd) {
-          <div class="lopd-body" [innerHTML]="textoLopd"></div>
+        @if (textoLopd(); as texto) {
+          <div class="lopd-body" [innerHTML]="texto"></div>
         } @else {
           <p class="lopd-empty">No se ha definido texto legal para la entidad. Contacta con tu administrador si crees que es un error.</p>
         }
       </article>
 
-      <div class="lopd-actions" *ngIf="textoLopd">
-        <button
-          type="button"
-          class="btn btn--ghost"
-          [disabled]="accepting"
-          (click)="declinar()"
-        >
-          Declinar
-        </button>
-        <button
-          type="button"
-          class="btn btn--primary"
-          [disabled]="accepting"
-          (click)="aceptar()"
-        >
-          {{ accepting ? 'Guardando...' : 'Aceptar' }}
-        </button>
-      </div>
+      @if (textoLopd()) {
+        <div class="lopd-actions">
+          <button
+            type="button"
+            class="btn btn--ghost"
+            [disabled]="accepting()"
+            (click)="declinar()"
+          >
+            Declinar
+          </button>
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="accepting()"
+            (click)="aceptar()"
+          >
+            {{ accepting() ? 'Guardando...' : 'Aceptar' }}
+          </button>
+        </div>
+      }
     }
   </div>
 </section>

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -12,7 +12,6 @@ import { MobileHeader } from '../features/shared/components/mobile-header/mobile
   imports: [CommonModule, MobileHeader],
   templateUrl: './lopd.component.html',
   styleUrls: ['./lopd.component.scss'],
-  // FIX: añadido OnPush para consistencia con el resto de componentes
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LopdComponent implements OnInit {
@@ -20,19 +19,21 @@ export class LopdComponent implements OnInit {
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
 
-  loading = true;
-  accepting = false;
-  textoLopd: string | null = null;
+  loading = signal(true);
+  accepting = signal(false);
+  textoLopd = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.loading.set(true);
+
     this.lopdService.getLopd().subscribe({
       next: (textoLopd) => {
-        this.textoLopd = textoLopd;
-        this.loading = false;
+        this.textoLopd.set(textoLopd);
+        this.loading.set(false);
       },
       error: () => {
-        this.textoLopd = null;
-        this.loading = false;
+        this.textoLopd.set(null);
+        this.loading.set(false);
       },
     });
   }
@@ -40,11 +41,11 @@ export class LopdComponent implements OnInit {
   aceptar(): void {
     const user = this.authStore.user();
 
-    if (!user?.id || this.accepting) {
+    if (!user?.id || this.accepting()) {
       return;
     }
 
-    this.accepting = true;
+    this.accepting.set(true);
 
     this.lopdService.patchAcepto(user.id, true).subscribe({
       next: () => {
@@ -55,11 +56,10 @@ export class LopdComponent implements OnInit {
           return;
         }
 
-        // FIX: ruta corregida de '/inicio' (inexistente) a '/eventos/inicio'
         void this.router.navigateByUrl('/eventos/inicio');
       },
       error: () => {
-        this.accepting = false;
+        this.accepting.set(false);
       },
     });
   }

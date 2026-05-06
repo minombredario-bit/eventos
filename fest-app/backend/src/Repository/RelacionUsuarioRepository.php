@@ -20,7 +20,11 @@ class RelacionUsuarioRepository extends ServiceEntityRepository
 
         $qb->select('r')
             ->from(RelacionUsuario::class, 'r')
+            ->leftJoin('r.usuarioOrigen', 'uOrigen')
+            ->leftJoin('r.usuarioDestino', 'uDestino')
             ->where('r.usuarioOrigen = :usuario OR r.usuarioDestino = :usuario')
+            ->andWhere('uOrigen.fechaBajaCenso IS NULL')
+            ->andWhere('uDestino.fechaBajaCenso IS NULL')
             ->setParameter('usuario', $usuario);
 
         return $qb->getQuery()->getResult();

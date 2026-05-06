@@ -3,9 +3,9 @@ export type TipoEntidad = 'falla' | 'comparsa';
 export interface AuthUser {
   id?: string;
   email: string;
-  nombre?: string;
-  apellidos?: string;
-  // FIX: añadido nombreCompleto para evitar el cast `as any` en perfil.ts
+  direccion?: string | null;
+  nombre?: string | null;
+  apellidos?: string | null;
   nombreCompleto?: string;
   telefono?: string | null;
   formaPagoPreferida?: string | null;
@@ -18,7 +18,6 @@ export interface AuthUser {
   tipoEntidad?: TipoEntidad | null;
   aceptoLopd?: boolean;
   aceptoLopdAt?: string | null;
-  // FIX: eliminado [key: string]: unknown — anulaba el tipado estricto de todo el modelo
 }
 
 export interface LoginPayload {
@@ -43,6 +42,8 @@ export interface PersistedAuthState {
 }
 
 export interface JwtPayload {
+  address: any;
+  direccion: any;
   iat?: number;
   exp?: number;
   sub?: string;

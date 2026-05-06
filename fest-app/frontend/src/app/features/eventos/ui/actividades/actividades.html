@@ -233,15 +233,15 @@
             </article>
           }
 
-          @if (showPayCta() && !allActivitiesAreFree()) {
-            <div class="cta-wrap">
-              <app-cta-button
-                [label]="confirmButtonLabel()"
-                [disabled]="!readyToConfirm() || submitting()"
-                (pressed)="confirmSelection()"
-              />
-            </div>
-          }
+<!--          @if (showPayCta() && !allActivitiesAreFree()) {-->
+<!--            <div class="cta-wrap">-->
+<!--              <app-cta-button-->
+<!--                [label]="confirmButtonLabel()"-->
+<!--                [disabled]="!readyToConfirm() || submitting()"-->
+<!--                (pressed)="confirmSelection()"-->
+<!--              />-->
+<!--            </div>-->
+<!--          }-->
         }
       }
     }

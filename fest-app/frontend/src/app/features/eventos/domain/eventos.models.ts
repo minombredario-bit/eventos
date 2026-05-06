@@ -1,3 +1,8 @@
+import {inject, Injectable} from '@angular/core';
+import {HttpClient} from '@angular/common/http';
+import {EventosMapper} from '../data/eventos.mapper';
+import {Usuario} from '../../admin/domain/admin.models';
+
 export type EventStatus = 'abierto' | 'ultimas_plazas' | 'cerrado';
 export type PersonType = 'adulto' | 'infantil';
 export type ParticipantOrigin = 'familiar' | 'invitado';
@@ -260,6 +265,17 @@ export interface InscripcionResumen {
   id: string;
   codigo: string;
   evento: { id: string };
+}
+
+export interface  ApuntadosPage {
+  evento: EnrollmentEvent;
+  items: Usuario[];
+  totalPages: number;
+  totalItems: number;
+  page: number;
+  itemsPerPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 export interface EventoApuntado {

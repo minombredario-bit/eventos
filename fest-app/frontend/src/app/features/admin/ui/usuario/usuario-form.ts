@@ -134,6 +134,7 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
       Validators.required,
       Validators.minLength(2),
     ]),
+    direccion: this.fb.nonNullable.control('', Validators.required),
     email: this.fb.nonNullable.control('', [Validators.email]),
     telefono: this.fb.nonNullable.control(''),
     documentoIdentidad: this.fb.control<string | null>(null),
@@ -313,18 +314,15 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
   }
 
   protected removeUsuarioRelacionado(id: string): void {
-    const eliminados = this.usuariosRelacionadosSeleccionados().filter((item) => item.id === id);
-
     this.usuariosRelacionadosSeleccionados.set(
       this.usuariosRelacionadosSeleccionados().filter((item) => item.id !== id)
     );
 
-    if (eliminados.length > 0) {
-      this.usuariosRelacionadosDisponibles.set([
-        ...this.usuariosRelacionadosDisponibles(),
-        ...eliminados.map((item) => ({ id: item.id, nombreCompleto: item.nombreCompleto }) as Usuario),
-      ]);
-    }
+    this.usuariosRelacionadosDisponibles.set([]);
+
+    try {
+      this.form.controls.relacionUsuarioSearch.setValue('', { emitEvent: false });
+    } catch {}
   }
 
   protected setTipoRelacionUsuario(id: string, tipoRelacion: string): void {
@@ -360,6 +358,7 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
     const payload: UsuarioCreatePayload = {
       nombre: value.nombre.trim(),
       apellidos: value.apellidos.trim(),
+      direccion: value.direccion.trim(),
       email: (() => { const e = value.email.trim(); return e ? e.toLowerCase() : null; })(),
       telefono: value.telefono.trim() || null,
       documentoIdentidad: value.documentoIdentidad ? null : (value.documentoIdentidad?.trim() || null),
@@ -430,6 +429,7 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
     const payload: UsuarioPatch = {
       nombre: value.nombre.trim(),
       apellidos: value.apellidos.trim(),
+      direccion: value.direccion.trim(),
       email: (() => { const e = value.email.trim(); return e ? e.toLowerCase() : null; })(),
       telefono: value.telefono.trim() || null,
       documentoIdentidad: value.documentoIdentidad ? null : (value.documentoIdentidad?.trim() || null),
@@ -472,7 +472,7 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
 
   private resetForCreate(): void {
     this.form.reset({
-      nombre: '', apellidos: '', email: '', telefono: '',
+      nombre: '', apellidos: '', email: '', telefono: '', direccion: '',
       documentoIdentidad: null, activo: true, motivoBajaCenso: null,
       fechaNacimiento: null, antiguedad: null, antiguedadReal: null,
       formaPagoPreferida: 'efectivo', debeCambiarPassword: true,
@@ -487,6 +487,7 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
     this.form.reset({
       nombre: usuario.nombre ?? '',
       apellidos: usuario.apellidos ?? '',
+      direccion: usuario.direccion ?? '',
       email: usuario.email ?? '',
       telefono: usuario.telefono ?? '',
       documentoIdentidad: usuario.documentoIdentidad ?? null,
@@ -576,7 +577,7 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (items) => this.cargos.set(items),
-        error: () => this.toast.showError(this.translate.instant('admin.usuario.error_load_cargos')),
+        error: () => this.toast.showError(this.translate.instant('usuario.error_load_cargos')),
       });
   }
 

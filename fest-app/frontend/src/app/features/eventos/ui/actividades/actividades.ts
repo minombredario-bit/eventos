@@ -341,7 +341,7 @@ export class Actividades {
 
   protected readonly confirmButtonLabel = computed(() => {
     if (this.submitting()) return 'Guardando actividades...';
-    if (!this.resolveExistingInscriptionId()) return 'Seleccioná una actividad para continuar';
+    if (!this.resolveExistingInscriptionId()) return 'Selecciona una actividad para continuar';
     return 'Ir al pago';
   });
 
@@ -623,7 +623,7 @@ export class Actividades {
 
     const existingInscriptionId = this.resolveExistingInscriptionId();
     if (!existingInscriptionId) {
-      this.submitError.set('Seleccioná y guardá al menos una actividad antes de ir al pago.');
+      this.submitError.set('Selecciona y guarda al menos una actividad antes de ir al pago.');
       return;
     }
 

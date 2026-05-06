@@ -20,7 +20,7 @@ import {
   Invitado,
   MetodoPago,
   ParticipanteSeleccion,
-  RelacionUsuario, EventosAdminParams, EventosPage, InscripcionesPage, InscripcionLinea,
+  RelacionUsuario, EventosAdminParams, EventosPage, InscripcionesPage, InscripcionLinea, ApuntadosPage,
 } from '../domain/eventos.models';
 
 import {
@@ -34,7 +34,7 @@ import {
   SeleccionParticipantesResponseApi,
 } from '../domain/eventos.api.models';
 import {environment} from '../../../../environments/environment';
-
+import {Usuario, UsuariosFiltro, UsuariosPage} from '../../admin/domain/admin.models';
 
 @Injectable({ providedIn: 'root' })
 export class EventosApi {
@@ -327,48 +327,55 @@ export class EventosApi {
 
   getApuntadosByEvento(
     eventoId: string,
-    options?: { search?: string; paginate?: boolean; page?: number },
-  ): Observable<EventoApuntadosResponse> {
+    options: {
+      search?: string;
+      page?: number;
+      itemsPerPage?: number;
+    } = {}): Observable<ApuntadosPage> {
     let params = new HttpParams();
-    const query = options?.search?.trim();
-    const paginate = options?.paginate ?? true;
-    const page = options?.page ?? 1;
 
-    if (query) {
-      params = params.set('q', query);
-    }
+    const search = (options.search ?? '').trim();
+    const page = options.page ?? 1;
+    const itemsPerPage = options.itemsPerPage ?? 10;
 
     params = params
-      .set('paginate', String(paginate))
-      .set('page', String(Math.max(1, page)));
+      .set('page', page)
+      .set('itemsPerPage', itemsPerPage)
+      .set('order[nombreCompleto]', 'asc');
+
+    if (search) {
+      params = params.set(
+        search.includes('@') ? 'email' : 'nombreCompleto',
+        search,
+      );
+    }
 
     return this.http
-      .get<EventoApuntadosCollectionResponse | any>(`${this.eventoBasePath(eventoId)}/apuntados`, { params })
-      .pipe(map((r) => {
-        const items = parseCollection<any>(r as unknown);
-        const apuntados = (items ?? []).map((item) => ({
-          inscripcionId: String(item.inscripcionId ?? ''),
-          nombreCompleto: String(item.nombreCompleto ?? '').trim(),
-            opciones: Array.isArray(item.opciones)
-              ? item.opciones.map((opcion: unknown) => String(opcion).trim()).filter(Boolean)
-              : [],
-        }));
+      .get<ApiCollection<Usuario>>(`${environment.apiUrl}/eventos/${eventoId}/apuntados`, { params })
+      .pipe(
+        map((response) => {
+          const raw = response as unknown as Record<string, any>;
 
-        return {
-          evento: {
-            id: String(r.evento?.id ?? this.normalizeEventoId(eventoId)),
-            titulo: String(r.evento?.titulo ?? 'Evento').trim() || 'Evento',
-            descripcion: typeof r.evento?.descripcion === 'string'
-              ? r.evento.descripcion.trim()
-              : null,
-            fechaEvento: String(r.evento?.fechaEvento ?? '').trim(),
-          },
-          apuntados,
-          totalItems: Number(r['hydra:totalItems'] ?? apuntados.length),
-          currentPage: Number(r['hydra:currentPage'] ?? 1),
-          itemsPerPage: Number(r['hydra:itemsPerPage'] ?? apuntados.length),
-        };
-      }));
+          const items = (raw['member'] ?? raw['hydra:member'] ?? []) as Usuario[];
+          const evento = raw['evento'];
+          const totalItems = Number(raw['totalItems'] ?? raw['hydra:totalItems'] ?? items.length);
+
+          const currentPage = Number(raw['currentPage'] ?? page);
+          const responseItemsPerPage = Number(raw['itemsPerPage'] ?? itemsPerPage);
+          const lastPage = Number(raw['lastPage'] ?? Math.ceil(totalItems / responseItemsPerPage));
+
+          return {
+            evento,
+            items,
+            totalItems,
+            totalPages: lastPage,
+            page: currentPage,
+            itemsPerPage: responseItemsPerPage,
+            hasNext: currentPage < lastPage,
+            hasPrevious: currentPage > 1,
+          } satisfies ApuntadosPage;
+        }),
+      );
   }
 
   cancelarLineaInscripcion(inscripcionId: string, lineaId: string): Observable<unknown> {

@@ -122,6 +122,7 @@ export class AuthStore {
 
     return {
       id: normalizeString(decoded.id ?? decoded.sub, ''),
+      direccion: normalizeString(decoded.direccion ?? decoded.address ?? decoded.sub, ''),
       email: normalizeString(decoded.email ?? decoded.username ?? decoded.sub, ''),
       nombre: normalizeString(decoded.nombre ?? decoded.name, ''),
       apellidos: normalizeString(decoded.apellidos, ''),

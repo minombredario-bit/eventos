@@ -2,6 +2,7 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\RelacionUsuario;
 use App\Entity\Usuario;
 use App\Repository\RelacionUsuarioRepository;
 use App\Service\EmailQueueService;
@@ -65,59 +66,57 @@ class UnsubscribeController extends AbstractController
                 $results['failed'][] = ['id' => $targetId, 'reason' => 'No pertenece al grupo familiar del usuario autenticado.'];
                 continue;
             }
-
-            try {
-                if ($action === 'baja') {
-                    // marcar como no activo y guardar motivo si existe
-                    $relacionado->setActivo(false);
-                    if ($reason !== null && $reason !== '') {
-                        $relacionado->setMotivoBajaCenso($reason);
-                    }
-                    $this->entityManager->persist($relacionado);
-                    $results['processed'][] = ['id' => $targetId, 'action' => 'baja'];
-                } else {
-                    // quitar del grupo familiar: buscar relaciones y eliminarlas
-                    $found = false;
-                    foreach ($user->getRelacionados() as $rel) {
-                        $otro = $rel->getUsuarioOrigen()->getId() === $user->getId()
-                            ? $rel->getUsuarioDestino()
-                            : $rel->getUsuarioOrigen();
-
-                        if ($otro->getId() === $targetId) {
-                            $this->entityManager->remove($rel);
-                            $found = true;
-                        }
-                    }
-
-                    if (!$found) {
-                        // por si acaso, intentar encontrar relación inversa buscando en la base
-                        $rel = $this->entityManager->getRepository(\App\Entity\RelacionUsuario::class)
-                            ->createQueryBuilder('r')
-                            ->where('(IDENTITY(r.usuarioOrigen) = :u1 AND IDENTITY(r.usuarioDestino) = :u2) OR (IDENTITY(r.usuarioOrigen) = :u2 AND IDENTITY(r.usuarioDestino) = :u1)')
-                            ->setParameter('u1', $user->getId())
-                            ->setParameter('u2', $targetId)
-                            ->setMaxResults(1)
-                            ->getQuery()
-                            ->getOneOrNullResult();
-
-                        if ($rel instanceof \App\Entity\RelacionUsuario) {
-                            $this->entityManager->remove($rel);
-                            $found = true;
-                        }
-                    }
-
-                    if ($found) {
-                        $results['processed'][] = ['id' => $targetId, 'action' => 'quitar'];
-                    } else {
-                        $results['failed'][] = ['id' => $targetId, 'reason' => 'Relación no encontrada para eliminar.'];
-                    }
-                }
-            } catch (\Throwable $e) {
-                $results['failed'][] = ['id' => $targetId, 'reason' => $e->getMessage()];
-            }
+// lo gestiona el admin
+//            try {
+//                if ($action === 'baja') {
+//                    // marcar como no activo y guardar motivo si existe
+//                    $relacionado->setActivo(false);
+//                    if ($reason !== null && $reason !== '') {
+//                        $relacionado->setMotivoBajaCenso($reason);
+//                    }
+//                    $this->entityManager->persist($relacionado);
+//                    $results['processed'][] = ['id' => $targetId, 'action' => 'baja'];
+//                } else {
+//                    // quitar del grupo familiar: buscar relaciones y eliminarlas
+//                    $found = false;
+//                    foreach ($user->getRelacionados() as $rel) {
+//                        $otro = $rel->getUsuarioOrigen()->getId() === $user->getId()
+//                            ? $rel->getUsuarioDestino()
+//                            : $rel->getUsuarioOrigen();
+//
+//                        if ($otro->getId() === $targetId) {
+//                            $this->entityManager->remove($rel);
+//                            $found = true;
+//                        }
+//                    }
+//
+//                    if (!$found) {
+//                        // por si acaso, intentar encontrar relación inversa buscando en la base
+//                        $rel = $this->entityManager->getRepository(RelacionUsuario::class)
+//                            ->createQueryBuilder('r')
+//                            ->where('(IDENTITY(r.usuarioOrigen) = :u1 AND IDENTITY(r.usuarioDestino) = :u2) OR (IDENTITY(r.usuarioOrigen) = :u2 AND IDENTITY(r.usuarioDestino) = :u1)')
+//                            ->setParameter('u1', $user->getId())
+//                            ->setParameter('u2', $targetId)
+//                            ->setMaxResults(1)
+//                            ->getQuery()
+//                            ->getOneOrNullResult();
+//
+//                        if ($rel instanceof RelacionUsuario) {
+//                            $this->entityManager->remove($rel);
+//                            $found = true;
+//                        }
+//                    }
+//
+//                    if ($found) {
+//                        $results['processed'][] = ['id' => $targetId, 'action' => 'quitar'];
+//                    } else {
+//                        $results['failed'][] = ['id' => $targetId, 'reason' => 'Relación no encontrada para eliminar.'];
+//                    }
+//                }
+//            } catch (\Throwable $e) {
+//                $results['failed'][] = ['id' => $targetId, 'reason' => $e->getMessage()];
+//            }
         }
-
-        $this->entityManager->flush();
 
         // Encolar correo informando al equipo/administradores de la entidad
         $recipients = [];
@@ -154,7 +153,7 @@ class UnsubscribeController extends AbstractController
                 );
             }
         }
-
+        $this->entityManager->flush();
         return new JsonResponse([
             'ok' => true,
             'results' => $results,

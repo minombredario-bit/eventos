@@ -60,6 +60,7 @@ class InscripcionRepository extends ServiceEntityRepository
             ->addSelect('l')
             ->where('i.evento = :evento')
             ->andWhere('i.estadoInscripcion != :cancelada')
+            ->andWhere('u.fechaBajaCenso IS NULL')
             ->setParameter('evento', $evento)
             ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
             ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)

@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-class ForcePasswordChangeSubscriber implements EventSubscriberInterface
+final class ForcePasswordChangeSubscriber implements EventSubscriberInterface
 {
     public function __construct(private readonly Security $security)
     {
@@ -17,11 +17,9 @@ class ForcePasswordChangeSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
+        // PRIORIDAD ALTA → siempre antes que LOPD
         return [
-            // FIX: prioridad 0 (mayor que -5 de LopdAcceptanceSubscriber) para garantizar
-            // que el check de contraseña se ejecuta siempre antes que el check de LOPD.
-            // Si un usuario debe cambiar contraseña Y no ha aceptado LOPD, la contraseña tiene precedencia.
-            KernelEvents::REQUEST => ['onKernelRequest', 0],
+            KernelEvents::REQUEST => ['onKernelRequest', 200],
         ];
     }
 
@@ -38,11 +36,18 @@ class ForcePasswordChangeSubscriber implements EventSubscriberInterface
             return;
         }
 
-        if ($path === '/api/login' || $path === '/api/me/cambiar-password') {
+        // Endpoints permitidos
+        if (in_array($path, [
+            '/api/login',
+            '/api/logout',
+            '/api/me',
+            '/api/me/cambiar-password',
+        ], true)) {
             return;
         }
 
         $user = $this->security->getUser();
+
         if (!$user instanceof Usuario) {
             return;
         }

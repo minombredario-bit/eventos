@@ -13,7 +13,7 @@
       <div *ngIf="loading()" class="loading-overlay" aria-hidden="true">
         <div class="loading-inner">
           <div class="spinner" aria-hidden="true"></div>
-          <div class="loading-text">{{ 'admin.usuario.loading' | translate }}</div>
+          <div class="loading-text">{{ 'usuario.loading' | translate }}</div>
         </div>
       </div>
 
@@ -23,7 +23,7 @@
             <div>
               <!-- Cabecera compacta: un solo concepto con título y nombre de la entidad -->
               <h3 class="section-title">
-                <span class="section-title__label">{{ 'admin.entidad.info_title' | translate }}</span>
+                <span class="section-title__label">{{ 'usuario.info_title' | translate }}</span>
                 <span class="section-title__sep"> — </span>
                 <span class="section-title__entity">{{ form.get('nombre')?.value || '—' }}</span>
               </h3>
@@ -32,36 +32,36 @@
           <div class="field">
             <input id="emailContacto" type="email" formControlName="emailContacto" placeholder=" " />
             <label for="emailContacto">
-              {{ 'admin.entidad.emailContacto' | translate }}
+              {{ 'usuario.emailContacto' | translate }}
               <span class="field-required">*</span>
             </label>
           </div>
 
           <div class="field">
             <input id="telefono" type="tel" formControlName="telefono" placeholder=" " />
-            <label for="telefono">{{ 'admin.entidad.telefono' | translate }}</label>
+            <label for="telefono">{{ 'usuario.telefono' | translate }}</label>
           </div>
 
           <div class="field field--full">
             <input id="direccion" type="text" formControlName="direccion" placeholder=" " />
-            <label for="direccion">{{ 'admin.entidad.direccion' | translate }}</label>
+            <label for="direccion">{{ 'usuario.direccion' | translate }}</label>
           </div>
       </section>
         <section class="form-section">
           <div class="section-head">
             <div>
-              <p class="eyebrow">{{ 'admin.entidad.section_legal' | translate }}</p>
-              <h3>{{ 'admin.entidad.legal_title' | translate }}</h3>
-              <p>{{ 'admin.entidad.legal_help' | translate }}</p>
+              <p class="eyebrow">{{ 'lopd.section_legal' | translate }}</p>
+              <h3>{{ 'lopd.legal_title' | translate }}</h3>
+              <p>{{ 'lopd.legal_help' | translate }}</p>
             </div>
           </div>
 
           <div class="field-grid">
             <div class="field field--full field--editor">
               <label class="editor-label">
-                {{ 'admin.entidad.textoLopd' | translate }}
+                {{ 'lopd.textoLopd' | translate }}
                 <span class="field-optional">
-                  ({{ 'admin.entidad.optional' | translate }})
+                  ({{ 'lopd.optional' | translate }})
                 </span>
               </label>
 
