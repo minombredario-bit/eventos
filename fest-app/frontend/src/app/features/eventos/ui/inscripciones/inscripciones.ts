@@ -13,7 +13,7 @@ import {Inscripcion, InscripcionesPage} from '../../domain/eventos.models';
 @Component({
   selector: 'app-inscripciones',
   standalone: true,
-  imports: [MobileHeader, RouterLink, CurrencyPipe],
+  imports: [MobileHeader, RouterLink],
   templateUrl: './inscripciones.html',
   styleUrl: './inscripciones.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

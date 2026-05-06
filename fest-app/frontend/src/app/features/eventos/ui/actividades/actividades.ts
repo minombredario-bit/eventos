@@ -51,7 +51,7 @@ import {getActivityPrice} from '../../../../core/utils/activity-price.utils';
 @Component({
   selector: 'app-actividades',
   standalone: true,
-  imports: [MobileHeader, MemberRow, CtaButton, CurrencyPipe],
+  imports: [MobileHeader, MemberRow, CurrencyPipe],
   templateUrl: './actividades.html',
   styleUrl: './actividades.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
