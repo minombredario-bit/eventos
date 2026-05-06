@@ -1,0 +1,62 @@
+﻿grupo,label,es,en
+usuario,,,
+,direccion,Dirección,Address
+,emailContacto,Email contacto,Contact email
+,nombre,Nombre,Name
+,subtitle,Configuración de la asociación,Organization settings
+,successSaved,Asociación actualizada correctamente.,Organization updated successfully.
+,telefono,Teléfono,Phone
+,antiguedad,Antigüedad,Seniority
+,antiguedadReal,Antigüedad real,Actual seniority
+,apellidos,Apellidos,Surname
+,cargos,Cargos,Positions
+,cargos_help,Selecciona uno o varios cargos para este usuario.,Select one or more positions for this user.
+,cargos_selected,{count} seleccionados,{count} selected
+,create_error,No se pudo crear el usuario.,Could not create user.
+,create_success,Usuario creado correctamente.,User created successfully.
+,debeCambiarPassword,Debe cambiar contraseña al acceder,Must change password on first login
+,email,Email,Email
+,fechaNacimiento,Fecha nacimiento,Birth date
+,formaPagoPreferida,Forma pago preferida,Preferred payment method
+,last_reward,Última recompensa,Last reward
+,motivoBajaCenso,Motivo baja censo,Reason for census removal
+,next_reward,Siguiente recompensa,Next reward
+,not_set,No indicado,Not set
+,relacion_help,Busca por nombre completo y añade usuarios relacionados.,Search by full name and add related users.
+,relacion_none,Ningún usuario relacionado aún.,No related users yet.
+,relacion_quitar,Quitar,Remove
+,relacion_relation_placeholder,Relación…,Relation…
+,relacion_search_placeholder,Buscar usuario…,Search user…
+,relacion_titulo,Relación usuario,User relation
+,retrieving_user,Recuperando usuario,Retrieving user
+,role,Rol,Role
+,role_admin,Administrador,Administrator
+,role_user,Usuario,User
+,subtitle_create,Alta manual,Manual create
+,subtitle_edit,Edición manual,Manual edit
+,update_error,No se pudo actualizar el usuario.,Could not update user.
+,update_success,Usuario actualizado correctamente.,User updated successfully.
+,usuario_activo,Usuario activo,User active
+asociacion,,,
+,title,Editar asociación,Edit organization
+,selectEntidad,Seleccionar asociación,Select organization
+,selectRequired,Selecciona una asociación.,Select an organization.
+,info_title,Información de la asociación,Organization information
+generico,,,
+,selectPlaceholder,-- Selecciona --,-- Select --
+,save,Guardar cambios,Save changes
+,saving,Guardando...,Saving...
+,loading,Cargando,Loading
+,invalidForm,Revisa los campos obligatorios.,Please check required fields.
+,retrieving,Recuperando datos,Retrieving data
+,errorLoad,No se pudieron cargar las asociaciones.,Could not load organizations.
+,errorSave,Error actualizando la asociación.,Error updating organization.
+,section_general,Datos generales,General
+,optional,opcional,optional
+lopd,,,
+,textoLopd,Texto legal / LOPD (HTML),Legal text / Privacy (HTML)
+,textoLopdHelp,Editor WYSIWYG. El contenido se guardará como HTML en el backend,WYSIWYG editor. Content will be stored as HTML in the backend.
+,legal_help,Texto legal que los usuarios deberán aceptar al acceder por primera vez.,Legal text that users must accept on first access.
+,legal_title,Condiciones de uso / LOPD,Terms of use / Privacy
+,section_legal,Legal,Legal
+#end#,,,
