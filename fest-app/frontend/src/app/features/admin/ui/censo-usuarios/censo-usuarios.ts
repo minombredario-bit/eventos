@@ -23,6 +23,9 @@ export class AdminCensoUsuarios {
   private readonly adminApi = inject(AdminApi);
   private readonly destroyRef = inject(DestroyRef);
 
+  downloadAvailable = signal(false);
+  passwordsBlob = signal<Blob | null>(null);
+
   protected readonly loading = signal(true);
   protected readonly transitioning = signal(false);
   protected readonly importing = signal(false);
@@ -113,15 +116,113 @@ export class AdminCensoUsuarios {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (result) => {
-          this.importSummary.set(result);
-          this.successMessage.set('Importación finalizada.');
-          this.loadUsuarios(1, false);
+        next: (response) => {
+          const contentType = response.headers.get('content-type') ?? '';
+
+          if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+            const blob = response.body;
+
+            const summary: ImportResult = {
+              total: Number(response.headers.get('X-Import-Total') ?? 0),
+              insertadas: Number(response.headers.get('X-Import-Insertadas') ?? 0),
+              actualizados: Number(response.headers.get('X-Import-Actualizadas') ?? 0),
+              relaciones: Number(response.headers.get('X-Import-Relaciones') ?? 0),
+              errores: this.parseErroresHeader(response.headers.get('X-Import-Errores')),
+              passwords_excel: null,
+            };
+
+            this.importSummary.set(summary);
+
+            if (blob) {
+              this.passwordsBlob.set(blob);
+              this.downloadAvailable.set(true);
+              this.downloadPasswords();
+            }
+
+            this.successMessage.set('Importación finalizada. Excel de passwords disponible.');
+            this.loadUsuarios(1, false);
+            return;
+          }
+
+          const reader = new FileReader();
+
+          reader.onload = () => {
+            const result = JSON.parse(reader.result as string) as ImportResult;
+
+            this.importSummary.set(result);
+            this.successMessage.set('Importación finalizada.');
+            this.loadUsuarios(1, false);
+          };
+
+          if (response.body) {
+            reader.readAsText(response.body);
+          }
         },
-        error: (error: { error?: { error?: string } }) => {
-          this.errorMessage.set(error?.error?.error ?? 'No se pudo importar el Excel.');
+        error: () => {
+          this.errorMessage.set('No se pudo importar el Excel.');
         },
       });
+  }
+
+  downloadUsuariosExcel(): void {
+    this.adminApi.exportarUsuariosExcel().subscribe({
+      next: (response) => {
+        const blob = response.body;
+
+        if (!blob) {
+          this.errorMessage.set('No se pudo generar el Excel.');
+          return;
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = 'usuarios_entidad.xlsx';
+        link.click();
+
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.errorMessage.set('No se pudo descargar el Excel.');
+      },
+    });
+  }
+
+  downloadPasswords(): void {
+    const blob = this.passwordsBlob();
+
+    if (!blob) {
+      return;
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = 'usuarios_passwords.xlsx';
+    link.click();
+
+    window.URL.revokeObjectURL(url);
+  }
+
+  private parseErroresHeader(value: string | null): string[] {
+    if (!value) {
+      return [];
+    }
+
+    try {
+      const decoded = atob(value);
+      const parsed = JSON.parse(decoded);
+
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+
+      return Object.values(parsed);
+    } catch {
+      return [];
+    }
   }
 
   protected fullName(usuario: Usuario): string {

@@ -18,6 +18,9 @@ final class AdminCreateUsuarioInput
     public ?string $apellidos = null;
 
     #[Groups(['admin_usuario_create'])]
+    public ?string $direccion = null;
+
+    #[Groups(['admin_usuario_create'])]
     #[Assert\Email]
     public ?string $email = null;
 

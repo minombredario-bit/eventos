@@ -11,8 +11,28 @@
 
       <!-- Botones de acción: primera fila en mobile, derecha en desktop -->
       <div class="actions-row">
+        @if (downloadAvailable()) {
+          <button
+            type="button"
+            class="action-button secondary action-button--icon action-button--sm"
+            (click)="downloadPasswords()"
+          >
+            <span class="button-icon" aria-hidden="true">⬇️</span>
+            <span class="button-text">Descargar passwords</span>
+          </button>
+        }
+
+        <button
+          type="button"
+          class="action-button secondary action-button--icon action-button--sm"
+          (click)="downloadUsuariosExcel()"
+        >
+          <span class="button-icon" aria-hidden="true">📥</span>
+          <span class="button-text">Exportar Excel</span>
+        </button>
+
         <label class="action-button secondary action-button--icon action-button--sm" [class.disabled]="importing()">
-          <span class="button-icon" aria-hidden="true">{{ importing() ? '⏳' : '📥' }}</span>
+          <span class="button-icon" aria-hidden="true">{{ importing() ? '⏳' : '📤' }}</span>
           <span class="button-text">{{ importing() ? 'Importando...' : 'Importar Excel' }}</span>
           <input type="file" accept=".xlsx,.xls" [disabled]="importing()" (change)="onExcelSelected($event)" />
         </label>
@@ -92,10 +112,6 @@
                   <tr [routerLink]="['/admin/usuarios', usuario.id]" class="table-row-link">
                     <td>
                       <strong>{{ fullName(usuario) }}</strong>
-                      <div class="row-meta">
-                        <small></small>
-                        <small></small>
-                      </div>
                     </td>
                     <td>{{ usuario.telefono || '-' }}</td>
                     <td>{{ antiguedadLabel(usuario) }}</td>

@@ -13,6 +13,9 @@ final class AdminUpdateUsuarioInput
     public ?string $apellidos = null;
 
     #[Groups(['admin_usuario_update'])]
+    public ?string $direccion = null;
+
+    #[Groups(['admin_usuario_update'])]
     public ?string $email = null;
 
     #[Groups(['admin_usuario_update'])]

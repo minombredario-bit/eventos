@@ -134,7 +134,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         'read_user_admin',
     ])]
     #[Assert\NotBlank]
-    private string $nombre;
+    private ?string $nombre = null;
 
     #[ORM\Column(type: Types::STRING, length: 150)]
     #[Groups([
@@ -144,7 +144,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         'read_user_admin',
     ])]
     #[Assert\NotBlank]
-    private string $apellidos;
+    private ?string $apellidos = null;
 
     #[ORM\Column(type: Types::STRING, length: 255)]
     #[Groups([
@@ -154,7 +154,15 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         'usuario:collection',
         'read_user_admin',
     ])]
-    private string $nombreCompleto;
+    private ?string $nombreCompleto = null;
+
+    #[ORM\Column(type: Types::STRING, length: 180, nullable: true)]
+    #[Groups([
+        'usuario:read',
+        'usuario:write',
+        'read_user_admin',
+    ])]
+    private ?string $direccion = null;
 
     #[ORM\Column(type: Types::STRING, length: 180, nullable: true)]
     #[Groups([
@@ -342,7 +350,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         'usuario:write',
         'read_user_admin',
     ])]
-    private string $documentoIdentidad;
+    private ?string $documentoIdentidad = null;
 
     public function __construct()
     {
@@ -356,6 +364,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         $this->cargosTemporada = new ArrayCollection();
         $this->usuarioReconocimientos = new ArrayCollection();
         $this->entidadCargos = new ArrayCollection();
+        $this->tipoPersona = TipoPersonaEnum::ADULTO;
     }
 
     public function getId(): ?string
@@ -571,6 +580,25 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         $email = trim($email);
 
         $this->email = $email === '' ? null : mb_strtolower($email);
+
+        return $this;
+    }
+
+    public function getDireccion(): ?string
+    {
+        return $this->direccion;
+    }
+
+    public function setDireccion(?string $direccion): static
+    {
+        if ($direccion === null) {
+            $this->direccion = null;
+            return $this;
+        }
+
+        $direccion = trim($direccion);
+
+        $this->direccion = $direccion === '' ? null : $direccion;
 
         return $this;
     }
@@ -990,29 +1018,45 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         return $result;
     }
 
-    #[Groups(['usuario:read', 'read_user_admin'])]
     /** @return array<array{usuario: string, tipoRelacion: string}> */
+    #[Groups(['usuario:read', 'read_user_admin'])]
     public function getRelacionUsuarios(): array
     {
         $result = [];
+        $seen = [];
 
         foreach ($this->getRelacionados() as $rel) {
             $usuarioOrigen = $rel->getUsuarioOrigen();
             $usuarioDestino = $rel->getUsuarioDestino();
 
-            // Determinar el otro usuario en la relación
-            $otro = $usuarioOrigen->getId() === $this->getId() ? $usuarioDestino : $usuarioOrigen;
+            if (!$usuarioOrigen || !$usuarioDestino) {
+                continue;
+            }
+
+            $otro = $usuarioOrigen->getId() === $this->getId()
+                ? $usuarioDestino
+                : $usuarioOrigen;
 
             if (!$otro || !$otro->getId()) {
                 continue;
             }
 
+            $tipoRelacion = $rel->getTipoRelacion();
+
+            $key = $otro->getId() . '|' . $tipoRelacion->value;
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+
             $result[] = [
                 'id' => $otro->getId(),
                 'usuario_id' => $otro->getId(),
                 'usuario_nombre' => $otro->getNombreCompleto(),
-                'tipoRelacion' => $rel->getTipoRelacion()->value,
-                'tipoPersona' => $rel->getUsuarioDestino()->getTipoPersona()->value,
+                'tipoRelacion' => $tipoRelacion->value,
+                'tipoPersona' => $otro->getTipoPersona()->value,
             ];
         }
 
@@ -1042,17 +1086,18 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     public function syncTipoPersona(): void
     {
         if ($this->fechaNacimiento instanceof \DateTimeImmutable) {
-            $hoy = new \DateTimeImmutable('today');
-            $edad = $this->fechaNacimiento->diff($hoy)->y;
+            $edad = $this->fechaNacimiento->diff(new \DateTimeImmutable('today'))->y;
 
             $this->tipoPersona = match (true) {
                 $edad <= 13 => TipoPersonaEnum::INFANTIL,
-                $edad <= 18 => TipoPersonaEnum::CADETE,
+                $edad < 18 => TipoPersonaEnum::CADETE,
                 default => TipoPersonaEnum::ADULTO,
             };
-        } else {
-            $this->tipoPersona = TipoPersonaEnum::ADULTO;
+
+            return;
         }
+
+        $this->tipoPersona = TipoPersonaEnum::ADULTO;
     }
 
     public function getDocumentoIdentidad(): ?string
@@ -1062,13 +1107,12 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setDocumentoIdentidad(?string $documentoIdentidad): static
     {
-        $documentoIdentidad = trim($documentoIdentidad);
-
-        if ($documentoIdentidad === '') {
-            throw new \InvalidArgumentException('El documento de identidad es obligatorio.');
+        if ($documentoIdentidad === null || trim($documentoIdentidad) === '') {
+            $this->documentoIdentidad = null;
+            return $this;
         }
 
-        $this->documentoIdentidad = mb_strtoupper($documentoIdentidad);
+        $this->documentoIdentidad = mb_strtoupper(trim($documentoIdentidad));
 
         return $this;
     }

@@ -123,6 +123,7 @@ export interface RelacionUsuarioWritePayload {
 interface UsuarioBase {
   nombre?: string;
   apellidos?: string;
+  direccion?: string | null;
   email?: string | null;
   telefono?: string | null;
   documentoIdentidad?: string | null;
@@ -155,6 +156,7 @@ export interface Usuario extends UsuarioBase {
   nombreCompleto?: string;
   cargos?: Cargo[];
   relacionUsuarios?: RelacionUsuario[];
+  opciones?: String[];
 }
 
 export interface UsuarioWrite extends UsuarioBase {
@@ -165,6 +167,7 @@ export interface UsuarioWrite extends UsuarioBase {
 export interface UsuarioCreatePayload {
   nombre: string;
   apellidos: string;
+  direccion?: string | null;
   email?: string | null;
   documentoIdentidad?: string | null;
   activo: boolean;
@@ -203,7 +206,9 @@ export interface ImportResult {
   total: number;
   creados?: number;
   actualizados?: number;
+  relaciones?: number;
   insertadas?: number;
+  passwords_excel?: null;
   errores: string[];
 }
 

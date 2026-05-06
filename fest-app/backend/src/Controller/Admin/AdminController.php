@@ -9,18 +9,24 @@ use App\Enum\CensadoViaEnum;
 use App\Enum\EstadoValidacionEnum;
 use App\Enum\MetodoPagoEnum;
 use App\Enum\TipoRelacionEconomicaEnum;
+use App\Enum\TipoRelacionEnum;
 use App\Repository\EventoRepository;
 use App\Repository\InscripcionRepository;
 use App\Repository\UsuarioRepository;
 use App\Service\CensoImporterService;
 use App\Service\EmailQueueService;
 use Doctrine\ORM\EntityManagerInterface;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 #[Route('/api/admin')]
 class AdminController extends AbstractController
@@ -91,23 +97,25 @@ class AdminController extends AbstractController
     }
 
     #[Route('/usuarios/importar-excel', name: 'api_admin_usuarios_importar_excel', methods: ['POST'])]
-    public function importarUsuariosExcel(Request $request): JsonResponse
+    public function importarUsuariosExcel(Request $request): Response
     {
         /** @var Usuario $admin */
         $admin = $this->getUser();
 
         /** @var UploadedFile|null $file */
         $file = $request->files->get('file');
+
         if (!$file) {
             return $this->json(['error' => 'Archivo no proporcionado'], 400);
         }
 
         $extension = strtolower((string) $file->getClientOriginalExtension());
+
         if (!in_array($extension, ['xlsx', 'xls'], true)) {
             return $this->json(['error' => 'Formato de archivo no válido. Use .xlsx o .xls'], 400);
         }
 
-        $tempPath = sys_get_temp_dir() . '/' . uniqid('usuarios_') . '.' . $extension;
+        $tempPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('usuarios_', true) . '.' . $extension;
         $file->move(dirname($tempPath), basename($tempPath));
 
         try {
@@ -117,7 +125,36 @@ class AdminController extends AbstractController
                 $admin->getEntidad()->getTemporadaActual(),
                 'http://localhost:4200',
             );
+
             @unlink($tempPath);
+
+            if (!empty($resultado['passwords_excel']) && file_exists($resultado['passwords_excel'])) {
+                $response = new BinaryFileResponse($resultado['passwords_excel']);
+
+                $response->headers->set(
+                    'Content-Type',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                );
+
+                $response->setContentDisposition(
+                    ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+                    'usuarios_passwords_' . date('Ymd_His') . '.xlsx'
+                );
+
+                $response->headers->set('X-Import-Total', (string) $resultado['total']);
+                $response->headers->set('X-Import-Insertadas', (string) $resultado['insertadas']);
+                $response->headers->set('X-Import-Actualizadas', (string) $resultado['actualizadas']);
+                $response->headers->set('X-Import-Relaciones', (string) ($resultado['relaciones'] ?? 0));
+                $response->headers->set('X-Import-Errores-Count', (string) count($resultado['errores']));
+                $response->headers->set(
+                    'X-Import-Errores',
+                    base64_encode(json_encode($resultado['errores'], JSON_UNESCAPED_UNICODE))
+                );
+
+                $response->deleteFileAfterSend(true);
+
+                return $response;
+            }
 
             return $this->json($resultado);
         } catch (\Throwable $e) {
@@ -127,6 +164,93 @@ class AdminController extends AbstractController
 
             return $this->json(['error' => 'Error procesando el archivo: ' . $e->getMessage()], 500);
         }
+    }
+
+    #[Route('/usuarios-exportar-excel', name: 'api_admin_usuarios_exportar_excel', methods: ['GET'])]
+    public function exportarUsuariosExcel(): Response
+    {
+        /** @var Usuario $admin */
+        $admin = $this->getUser();
+
+        $usuarios = $this->usuarioRepository->findBy(
+            ['entidad' => $admin->getEntidad()],
+            ['nombre' => 'ASC', 'apellidos' => 'ASC']
+        );
+
+        $gruposFamiliares = $this->censoImporter->generarCodigosGrupo($usuarios, TipoRelacionEnum::FAMILIAR, 'fam');
+        $gruposAmistad = $this->censoImporter->generarCodigosGrupo($usuarios, TipoRelacionEnum::AMISTAD, 'ami');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Usuarios');
+
+        $sheet->fromArray([
+            'codigo_usuario',
+            'Nombre',
+            'Apellidos',
+            'direccion',
+            'dni',
+            'movil',
+            'fecha_nacimiento',
+            'email',
+            'debe_cambiar_password',
+            'fecha_baja_censo',
+            'motivo_baja_censo',
+            'antiguedad',
+            'grupo_familiar',
+            'grupo_amistad',
+        ], null, 'A1');
+
+        $row = 2;
+
+        foreach ($usuarios as $usuario) {
+            $userId = (string) $usuario->getId();
+
+            $sheet->fromArray([
+                $userId,
+                $usuario->getNombre(),
+                $usuario->getApellidos(),
+                $usuario->getDireccion(),
+                $usuario->getDocumentoIdentidad(),
+                $usuario->getTelefono(),
+                $usuario->getFechaNacimiento()?->format('d/m/Y'),
+                $usuario->getEmail(),
+                $usuario->isDebeCambiarPassword() ? 1 : 0,
+                $usuario->getFechaBajaCenso()?->format('d/m/Y'),
+                $usuario->getMotivoBajaCenso(),
+                $usuario->getAntiguedad(),
+                $gruposFamiliares[$userId] ?? '',
+                $gruposAmistad[$userId] ?? '',
+            ], null, 'A' . $row);
+
+            $row++;
+        }
+
+        foreach (range('A', 'N') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $fileName = 'usuarios_entidad_' . date('Ymd_His') . '.xlsx';
+        $filePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $fileName;
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($filePath);
+
+        $response = new BinaryFileResponse($filePath);
+
+        $response->headers->set(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $fileName
+        );
+
+        $response->deleteFileAfterSend(true);
+
+        return $response;
     }
 
 

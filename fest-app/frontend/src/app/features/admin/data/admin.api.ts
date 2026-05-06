@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { parseCollection } from '../../../core/utils/collection-utils';
-import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import {HttpClient, HttpParams, HttpHeaders, HttpResponse} from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import {
   ApiCollection,
@@ -23,8 +23,6 @@ export class AdminApi {
   private readonly http = inject(HttpClient);
   // Simple in-memory caches to avoid repeated network calls during a session
   private tipoEntidadesCache: any[] | null = null;
-  private tipoEntidadCargosCache = new Map<string, any[]>();
-  private entidadCargosCache: any[] | null = null; // cached for current user / session
 
   getUsuarios(options: {
     search?: string;
@@ -282,14 +280,21 @@ export class AdminApi {
     );
   }
 
-  importarExcel(file: File): Observable<ImportResult> {
+  importarExcel(file: File): Observable<HttpResponse<Blob>> {
     const formData = new FormData();
     formData.append('file', file);
 
-    return this.http.post<ImportResult>(
-      `${environment.apiUrl}/admin/usuarios/importar-excel`,
-      formData
-    );
+    return this.http.post(`${environment.apiUrl}/admin/usuarios/importar-excel`, formData, {
+      responseType: 'blob',
+      observe: 'response',
+    });
+  }
+
+  exportarUsuariosExcel(): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${environment.apiUrl}/admin/usuarios-exportar-excel`, {
+      responseType: 'blob',
+      observe: 'response',
+    });
   }
 
   private resolveCargoTipoPersona(codigo: string | null | undefined, nombre: string): CargoTipoPersona {
