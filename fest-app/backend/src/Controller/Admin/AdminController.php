@@ -39,6 +39,7 @@ class AdminController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly CensoImporterService $censoImporter,
         private readonly EmailQueueService $emailQueueService,
+        private readonly string $defaultUri,
     ) {}
 
     #[Route('/usuarios', name: 'api_admin_usuario_create', methods: ['POST'])]
@@ -86,7 +87,7 @@ class AdminController extends AbstractController
         $usuario->setPassword($hashedPassword);
 
         $this->entityManager->persist($usuario);
-        $this->emailQueueService->enqueueUserWelcome($usuario, (string) $data['password'], 'http://localhost:4200');
+        $this->emailQueueService->enqueueUserWelcome($usuario, (string) $data['password'], $this->defaultUri);
         $this->entityManager->flush();
 
         return $this->json([
