@@ -1,1 +1,11 @@
 FROM mcuadros/ofelia:latest
+
+USER root
+
+COPY ./docker/ofelia/entrypoint.sh /entrypoint.sh
+
+RUN sed -i 's/\r$//' /entrypoint.sh && \
+    chmod +x /entrypoint.sh && \
+    cat -A /entrypoint.sh | head -5
+
+ENTRYPOINT ["/entrypoint.sh"]

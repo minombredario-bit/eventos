@@ -10,31 +10,49 @@
 
 set -e
 
+if [ "$#" -gt 0 ]; then
+    exec ofelia "$@"
+fi
+
+if [ -f /etc/ofelia/config.ini ]; then
+    exec ofelia daemon --config /etc/ofelia/config.ini
+fi
+
 CONFIG_FILE="/tmp/ofelia.ini"
+JOB_FILE="/etc/ofelia/jobs.ini"
 
 SMTP_HOST="${OFELIA_SMTP_HOST:-mailpit}"
 SMTP_PORT="${OFELIA_SMTP_PORT:-1025}"
-MAIL_FROM="${OFELIA_MAIL_FROM:-ofelia@festapp.local}"
-MAIL_TO="${SUPERADMIN_EMAIL:-superadmin@festapp.local}"
+MAIL_FROM="${OFELIA_MAIL_FROM:-ofelia@festivapp.es}"
+MAIL_TO="${SUPERADMIN_EMAIL:-superadmin@festivapp.es}"
 
-cat > "${CONFIG_FILE}" << INIEOF
+if [ ! -f "${JOB_FILE}" ]; then
+    echo "[ofelia] No se encontró ${JOB_FILE} ni /etc/ofelia/config.ini" >&2
+    exit 1
+fi
+
+cat > "${CONFIG_FILE}" <<EOF
 [global]
 smtp-host = ${SMTP_HOST}
 smtp-port = ${SMTP_PORT}
-mail-from = ${MAIL_FROM}
-mail-to   = ${MAIL_TO}
-INIEOF
+email-from = ${MAIL_FROM}
+email-to = ${MAIL_TO}
+mail-only-on-error = true
+EOF
 
 if [ -n "${OFELIA_SMTP_USER}" ]; then
-    printf 'smtp-user = %s\n' "${OFELIA_SMTP_USER}" >> "${CONFIG_FILE}"
+    echo "smtp-user = ${OFELIA_SMTP_USER}" >> "${CONFIG_FILE}"
 fi
 
 if [ -n "${OFELIA_SMTP_PASSWORD}" ]; then
-    printf 'smtp-password = %s\n' "${OFELIA_SMTP_PASSWORD}" >> "${CONFIG_FILE}"
+    echo "smtp-password = ${OFELIA_SMTP_PASSWORD}" >> "${CONFIG_FILE}"
 fi
 
-echo "[ofelia] Config generada — alertas de error → ${MAIL_TO}"
-echo "[ofelia] SMTP: ${SMTP_HOST}:${SMTP_PORT}"
+echo "" >> "${CONFIG_FILE}"
 
-exec ofelia daemon --docker --config "${CONFIG_FILE}"
+cat "${JOB_FILE}" >> "${CONFIG_FILE}"
 
+echo "[ofelia] Config generada:"
+cat "${CONFIG_FILE}"
+
+exec ofelia daemon --config "${CONFIG_FILE}"
