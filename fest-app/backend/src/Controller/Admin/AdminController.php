@@ -122,8 +122,7 @@ class AdminController extends AbstractController
             $resultado = $this->censoImporter->importar(
                 $tempPath,
                 $admin->getEntidad(),
-                $admin->getEntidad()->getTemporadaActual(),
-                'http://localhost:4200',
+                $admin->getEntidad()->getTemporadaActual()
             );
 
             @unlink($tempPath);
@@ -535,7 +534,7 @@ class AdminController extends AbstractController
      * Get event registration persons report.
      */
     #[Route('/eventos/{id}/reporte-personas', name: 'api_admin_evento_reporte_personas', methods: ['GET'])]
-    public function reportePersonas(int $id): JsonResponse
+    public function reportePersonas(string $id): JsonResponse
     {
         /** @var Usuario $admin */
         $admin = $this->getUser();

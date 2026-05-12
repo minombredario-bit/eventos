@@ -23,13 +23,13 @@ class CensoImporterService
         private readonly UsuarioRepository $usuarioRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly EmailQueueService $emailQueueService,
+        private readonly string $defaultUri,
     ) {}
 
     public function importar(
         string $filePath,
         Entidad $entidad,
-        string $temporada,
-        string $appUri = 'http://localhost:4200'
+        string $temporada
     ): array {
         $spreadsheet = IOFactory::load($filePath);
         $rows = $spreadsheet->getActiveSheet()->toArray();
@@ -76,7 +76,7 @@ class CensoImporterService
             $resultado['total']++;
 
             try {
-                $procesado = $this->procesarFila($row, $headerMap, $entidad, $appUri);
+                $procesado = $this->procesarFila($row, $headerMap, $entidad, $this->defaultUri);
                 $usuariosPorFila[$i] = $procesado['usuario'];
 
                 if ($procesado['created']) {
