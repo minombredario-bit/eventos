@@ -11,6 +11,7 @@
   gap: 1rem;
   padding: 1rem;
   max-width: 680px;
+  min-height: 0;
   width: 100%;
   margin: 0 auto;
 }
@@ -29,21 +30,52 @@
 
 .lopd-text {
   flex: 1;
+  overflow: hidden;
+  display: flex;
+  min-height: 0;
 
   .lopd-body {
+    flex: 1;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    max-width: 100%;
+    min-height: 0;
+
+    padding-right: 0.5rem;
+
     font-size: 0.9rem;
     line-height: 1.7;
     opacity: 0.85;
 
-    p { margin-bottom: 0.75rem; }
-    h3 { margin: 1rem 0 0.5rem; }
-    ul, ol { padding-left: 1.25rem; margin-bottom: 0.75rem; }
-  }
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
 
-  .lopd-empty {
-    opacity: 0.6;
-    font-size: 0.9rem;
-    font-style: italic;
+    p,
+    div,
+    span,
+    li {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+
+    p {
+      margin-bottom: 0.75rem;
+    }
+
+    h3 {
+      margin: 1rem 0 0.5rem;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
   }
 }
 
