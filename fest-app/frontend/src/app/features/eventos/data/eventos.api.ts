@@ -74,8 +74,8 @@ export class EventosApi {
     let httpParams = new HttpParams()
       .set('page', page)
       .set('itemsPerPage', itemsPerPage)
-      .set('order[fechaEvento]', 'asc')
-      .set('order[horaInicio]', 'asc');
+      .set('order[fechaEvento]', 'desc')
+      .set('order[horaInicio]', 'desc');
 
     if (search?.trim()) {
       httpParams = httpParams.set('titulo', search.trim());
