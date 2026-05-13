@@ -31,6 +31,7 @@ usuario,,,
 ,retrieving_user,Recuperando usuario,Retrieving user
 ,role,Rol,Role
 ,role_admin,Administrador,Administrator
+,role_evento,Festejos,Events manager
 ,role_user,Usuario,User
 ,subtitle_create,Alta manual,Manual create
 ,subtitle_edit,Edición manual,Manual edit

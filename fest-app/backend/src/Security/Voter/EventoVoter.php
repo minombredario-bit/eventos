@@ -55,6 +55,7 @@ class EventoVoter extends Voter
      * Puede ver el evento si:
      * - Está publicado y el usuario tiene ROLE_USER
      * - Es admin de la entidad (ve todos, publicados y no)
+     * - Es gestor de eventos de la entidad (ROLE_EVENTO)
      * - Es superadmin
      */
     private function canView(Evento $evento, Usuario $user): bool
@@ -69,6 +70,11 @@ class EventoVoter extends Voter
             return true;
         }
 
+        // Gestores de eventos ven todos los eventos (publicados y no) de su entidad
+        if ($this->isEventoManagerOfEntidad($user, $evento->getEntidad()->getId())) {
+            return true;
+        }
+
         if ($this->isSuperadmin($user)) {
             return true;
         }
@@ -79,6 +85,7 @@ class EventoVoter extends Voter
     /**
      * Puede editar si:
      * - Es admin de la entidad
+     * - Es gestor de eventos de la entidad (ROLE_EVENTO)
      * - Es superadmin
      */
     private function canEdit(Evento $evento, Usuario $user): bool
@@ -87,13 +94,18 @@ class EventoVoter extends Voter
             return true;
         }
 
+        if ($this->isEventoManagerOfEntidad($user, $evento->getEntidad()->getId())) {
+            return true;
+        }
+
         return $this->isSuperadmin($user);
     }
 
     /**
      * Puede eliminar si:
-     * - Es admin de la entidad
-     * - Es superadmin
+     * - Es admin de la entidad (siempre)
+     * - Es superadmin (siempre)
+     * - Es gestor de eventos (ROLE_EVENTO) de la entidad Y el evento no tiene líneas pagadas.
      */
     private function canDelete(Evento $evento, Usuario $user): bool
     {
@@ -101,7 +113,15 @@ class EventoVoter extends Voter
             return true;
         }
 
-        return $this->isSuperadmin($user);
+        if ($this->isSuperadmin($user)) {
+            return true;
+        }
+
+        if ($this->isEventoManagerOfEntidad($user, $evento->getEntidad()->getId())) {
+            return !$this->eventoTienePagos($evento);
+        }
+
+        return false;
     }
 
     private function isAdminOfEntidad(Usuario $user, string $entidadId): bool
@@ -113,8 +133,37 @@ class EventoVoter extends Voter
         return $user->getEntidad()?->getId() === $entidadId;
     }
 
+    /**
+     * Comprueba que el usuario tiene ROLE_EVENTO y pertenece a la entidad indicada.
+     */
+    private function isEventoManagerOfEntidad(Usuario $user, string $entidadId): bool
+    {
+        if (!in_array('ROLE_EVENTO', $user->getRoles(), true)) {
+            return false;
+        }
+
+        return $user->getEntidad()?->getId() === $entidadId;
+    }
+
     private function isSuperadmin(Usuario $user): bool
     {
         return in_array('ROLE_SUPERADMIN', $user->getRoles(), true);
+    }
+
+    /**
+     * Devuelve true si el evento tiene al menos una línea de inscripción pagada.
+     * Se recorre la colección de inscripciones ya cargada en la entidad.
+     */
+    private function eventoTienePagos(Evento $evento): bool
+    {
+        foreach ($evento->getInscripciones() as $inscripcion) {
+            foreach ($inscripcion->getLineas() as $linea) {
+                if ($linea->isPagada()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

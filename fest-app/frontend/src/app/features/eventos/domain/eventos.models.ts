@@ -387,6 +387,7 @@ export interface NavItem {
   label: string;
   icon: string;
   route: string;
+  visibleFor?: string[];
 }
 
 export interface CredentialLine {

@@ -267,6 +267,32 @@ final class AdminUsuarioProcessor implements ProcessorInterface
         if ($isCreate || $data->email !== null) {
             $usuario->setEmail($data->email);
         }
+
+        if (is_array($data->roles)) {
+            $this->applyRoles($usuario, $data->roles);
+        }
+    }
+
+    /**
+     * Aplica los roles al usuario validando que solo se permitan roles asignables
+     * por un administrador de entidad (no permite escalar a ROLE_SUPERADMIN).
+     */
+    private function applyRoles(Usuario $usuario, array $roles): void
+    {
+        $allowed = ['ROLE_USER', 'ROLE_EVENTO', 'ROLE_ADMIN_ENTIDAD'];
+
+        $sanitized = array_values(
+            array_unique(
+                array_filter($roles, static fn(mixed $r) => is_string($r) && in_array($r, $allowed, true))
+            )
+        );
+
+        // Siempre debe existir al menos ROLE_USER
+        if (!in_array('ROLE_USER', $sanitized, true)) {
+            $sanitized[] = 'ROLE_USER';
+        }
+
+        $usuario->setRoles($sanitized);
     }
 
     private function getAdmin(): Usuario

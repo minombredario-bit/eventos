@@ -15,7 +15,7 @@ export type MetodoPagoPreferida =
   | 'online'
   | 'manual';
 
-export type UserRole = 'ROLE_ADMIN_ENTIDAD' | 'ROLE_USER';
+export type UserRole = 'ROLE_ADMIN_ENTIDAD' | 'ROLE_USER' | 'ROLE_EVENTO';
 
 export interface EnumOption<T extends string = string> {
   name: string;

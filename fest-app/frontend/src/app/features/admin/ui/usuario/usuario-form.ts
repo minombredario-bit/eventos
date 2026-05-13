@@ -529,7 +529,9 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
 
   private parseRole(roles: string[] | null | undefined): UserRole {
     const normalized = new Set((roles ?? []).map((r) => r?.trim()));
-    return normalized.has('ROLE_ADMIN_ENTIDAD') ? 'ROLE_ADMIN_ENTIDAD' : 'ROLE_USER';
+    if (normalized.has('ROLE_ADMIN_ENTIDAD')) return 'ROLE_ADMIN_ENTIDAD';
+    if (normalized.has('ROLE_EVENTO'))        return 'ROLE_EVENTO';
+    return 'ROLE_USER';
   }
 
   private normalizeTipoRelacion(value: string | null | undefined): TipoRelacion | null {

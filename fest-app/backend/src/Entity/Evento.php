@@ -86,15 +86,23 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             provider: ApuntadosProvider::class,
         ),
         new Post(
-            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
+            normalizationContext: [
+                'groups' => ['evento:item:min', 'actividad-evento:evento:item:min'],
+                'enable_max_depth' => 1,
+            ],
+            security: "is_granted('ROLE_EVENTO')",
             processor: EventoWriteProcessor::class
         ),
         new Patch(
+            normalizationContext: [
+                'groups' => ['evento:item:min', 'actividad-evento:evento:item:min'],
+                'enable_max_depth' => 1,
+            ],
             security: "is_granted('EVENTO_EDIT', object)",
             processor: EventoWriteProcessor::class
         ),
         new Delete(
-            security: "is_granted('ROLE_ADMIN_ENTIDAD')"
+            security: "is_granted('EVENTO_DELETE', object)"
         ),
         new Post(
             uriTemplate: '/eventos/{id}/cancelar',
@@ -112,7 +120,7 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
             uriVariables: [
                 'id' => new Link(fromClass: self::class, identifiers: ['id']),
             ],
-            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_EVENTO', object)",
             output: false,
             provider: EventoReporteParticipantesProvider::class,
         ),
@@ -217,7 +225,7 @@ class Evento
     private ?string $lugar = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     private ?int $aforo = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -229,7 +237,7 @@ class Evento
     private ?\DateTimeImmutable $fechaFinInscripcion = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     private bool $visible = true;
 
     #[ORM\Column(type: Types::BOOLEAN)]
@@ -241,19 +249,19 @@ class Evento
     private bool $permiteInvitados = true;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: EstadoEventoEnum::class)]
-    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:collection'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:collection', 'inscripcion:collection', 'evento:item:min'])]
     private EstadoEventoEnum $estado;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     private bool $requiereVerificacionAcceso = false;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     private ?\DateTimeImmutable $ventanaInicioVerificacion = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-    #[Groups(['evento:read', 'evento:write'])]
+    #[Groups(['evento:read', 'evento:write', 'evento:item:min'])]
     private ?\DateTimeImmutable $ventanaFinVerificacion = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]

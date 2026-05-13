@@ -175,19 +175,27 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
             ->andWhere(sprintf('%s.entidad = :%s', $rootAlias, $parameterName))
             ->setParameter($parameterName, $entidad);
 
-        // If the current user is not admin entidad we always restrict.
-        // If user is ROLE_ADMIN_ENTIDAD we still restrict when the call comes from the "user panel".
-        $isAdminEntidad = $this->security->isGranted('ROLE_ADMIN_ENTIDAD');
+        $isAdminEntidad   = $this->security->isGranted('ROLE_ADMIN_ENTIDAD');
         $calledFromAdminPanel = $this->isCalledFromAdminPanel($operation, $context);
 
-        if (!$isAdminEntidad || ($isAdminEntidad && !$calledFromAdminPanel)) {
-            // Mostrar solo eventos que NO sean borrador y sean visibles
-            $queryBuilder
-                ->andWhere(sprintf('%s.estado != :%s_borrador', $rootAlias, $parameterName))
-                ->andWhere(sprintf('%s.visible = :%s_visible', $rootAlias, $parameterName))
-                ->setParameter(sprintf('%s_borrador', $parameterName), EstadoEventoEnum::BORRADOR)
-                ->setParameter(sprintf('%s_visible', $parameterName), true);
+        // ROLE_ADMIN_ENTIDAD desde el panel admin: ve todos los estados/visibilidades
+        if ($isAdminEntidad && $calledFromAdminPanel) {
+            return;
         }
+
+        // ROLE_EVENTO explícito (roles brutos en DB, sin expansión de jerarquía):
+        // pueden ver y editar todos los eventos de su entidad independientemente del estado
+        $user = $this->security->getUser();
+        if ($user instanceof Usuario && in_array('ROLE_EVENTO', $user->getRoles(), true)) {
+            return;
+        }
+
+        // El resto (ROLE_USER y ROLE_ADMIN_ENTIDAD desde panel usuario): solo no-borrador y visibles
+        $queryBuilder
+            ->andWhere(sprintf('%s.estado != :%s_borrador', $rootAlias, $parameterName))
+            ->andWhere(sprintf('%s.visible = :%s_visible', $rootAlias, $parameterName))
+            ->setParameter(sprintf('%s_borrador', $parameterName), EstadoEventoEnum::BORRADOR)
+            ->setParameter(sprintf('%s_visible', $parameterName), true);
     }
 
     /**
@@ -238,7 +246,8 @@ final class ApiExtensionPlatform implements QueryCollectionExtensionInterface, Q
             ->andWhere(sprintf('%s.entidad = :%s', $eventoAlias, $parameterName))
             ->setParameter($parameterName, $entidad);
 
-        if (!$this->security->isGranted('ROLE_ADMIN_ENTIDAD')) {
+        // ROLE_ADMIN_ENTIDAD y ROLE_EVENTO pueden ver actividades de eventos en cualquier estado
+        if (!$this->security->isGranted('ROLE_ADMIN_ENTIDAD') && !$this->security->isGranted('ROLE_EVENTO')) {
             // Mismo criterio que addWhereEvento: estado != borrador y visible = true
             $queryBuilder
                 ->andWhere(sprintf('%s.estado != :%s_borrador', $eventoAlias, $parameterName))

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, DestroyRef } from
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { BottomNav } from '../shared/components/bottom-nav/bottom-nav';
 import { NavItem } from '../eventos/domain/eventos.models';
+import { AuthStore } from '../../core/auth/auth-store';
 
 @Component({
   selector: 'app-admin-shell',
@@ -12,12 +13,46 @@ import { NavItem } from '../eventos/domain/eventos.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminShell {
-  protected readonly navItems = computed<NavItem[]>(() => [
-    { key: 'dashboard', label: 'Dashboard', icon: '📊', route: '/admin/dashboard' },
-    { key: 'eventos', label: 'Eventos', icon: '🎉', route: '/admin/eventos' },
-    { key: 'censo', label: 'Censo', icon: '👥', route: '/admin/censo-usuarios' },
-    { key: 'entidad', label: 'Entidad', icon: '🏛️', route: '/admin/entidad' },
-  ]);
+  private readonly authStore = inject(AuthStore);
+
+  private readonly navDefs: NavItem[] = [
+    {
+      key: 'dashboard',
+      label: 'Dashboard',
+      icon: '📊',
+      route: '/admin/dashboard',
+      visibleFor: ['ROLE_ADMIN_ENTIDAD', 'ROLE_SUPERADMIN'],
+    },
+    {
+      key: 'eventos',
+      label: 'Eventos',
+      icon: '🎉',
+      route: '/admin/eventos',
+      // sin visibleFor → visible para cualquier rol admin
+    },
+    {
+      key: 'censo',
+      label: 'Censo',
+      icon: '👥',
+      route: '/admin/censo-usuarios',
+      visibleFor: ['ROLE_ADMIN_ENTIDAD', 'ROLE_SUPERADMIN'],
+    },
+    {
+      key: 'entidad',
+      label: 'Entidad',
+      icon: '🏛️',
+      route: '/admin/entidad',
+      visibleFor: ['ROLE_ADMIN_ENTIDAD', 'ROLE_SUPERADMIN'],
+    },
+  ];
+
+  protected readonly navItems = computed<NavItem[]>(() => {
+    const roles: string[] = this.authStore.user()?.roles ?? [];
+    return this.navDefs.filter(({ visibleFor }) =>
+      !visibleFor?.length || visibleFor.some(r => roles.includes(r))
+    );
+  });
+
   constructor() {
     const router = inject(Router);
 

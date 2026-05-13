@@ -1,8 +1,10 @@
 security:
     role_hierarchy:
-        ROLE_ADMIN_ENTIDAD: [ROLE_USER]
-        ROLE_ADMIN: [ROLE_ADMIN_ENTIDAD]
         ROLE_SUPERADMIN: [ROLE_ADMIN]
+        ROLE_ADMIN: [ROLE_ADMIN_ENTIDAD]
+        ROLE_ADMIN_ENTIDAD: [ROLE_EVENTO]
+        ROLE_EVENTO: [ROLE_USER]
+
 
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
@@ -41,5 +43,7 @@ security:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/registro, roles: ROLE_ADMIN_ENTIDAD }
         - { path: ^/api/superadmin, roles: ROLE_SUPERADMIN }
+        # ROLE_EVENTO puede acceder a rutas de eventos/actividades del área admin
+        - { path: ^/api/admin/eventos, roles: [ROLE_ADMIN_ENTIDAD, ROLE_EVENTO] }
         - { path: ^/api/admin, roles: ROLE_ADMIN_ENTIDAD }
         - { path: ^/api, roles: ROLE_USER }

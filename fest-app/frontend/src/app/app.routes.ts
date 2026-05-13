@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { adminGuard, authGuard } from './core/auth/auth-guard';
+import { adminGuard, authGuard, fullAdminGuard } from './core/auth/auth-guard';
 
 export const routes: Routes = [
   {
@@ -10,7 +10,6 @@ export const routes: Routes = [
   {
     path: 'lopd',
     canActivate: [authGuard],
-    // LOPD screen should be publicly reachable immediately after login
     loadComponent: () =>
       import('./lopd/lopd.component').then((m) => m.LopdComponent),
   },
@@ -89,18 +88,17 @@ export const routes: Routes = [
   {
     path: 'admin',
     canActivate: [authGuard, adminGuard],
-    // FIX: canActivateChild protege también accesos directos a rutas hijo del admin
-    canActivateChild: [authGuard, adminGuard],
     loadComponent: () =>
       import('./features/admin/admin-shell').then((m) => m.AdminShell),
     children: [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'dashboard',
+        redirectTo: 'eventos',
       },
       {
         path: 'dashboard',
+        canActivate: [fullAdminGuard],
         loadComponent: () =>
           import('./features/admin/ui/dashboard/dashboard').then((m) => m.AdminDashboard),
       },
@@ -108,11 +106,6 @@ export const routes: Routes = [
         path: 'eventos',
         loadComponent: () =>
           import('./features/admin/ui/eventos/eventos').then((m) => m.AdminEventos),
-      },
-      {
-        path: 'entidad',
-        loadComponent: () =>
-          import('./features/admin/ui/entidad/entidad-form').then((m) => m.AdminEntidadForm),
       },
       {
         path: 'eventos/crear',
@@ -125,21 +118,26 @@ export const routes: Routes = [
           import('./features/admin/ui/evento-form/evento-form').then((m) => m.AdminEventoForm),
       },
       {
+        path: 'entidad',
+        canActivate: [fullAdminGuard],
+        loadComponent: () =>
+          import('./features/admin/ui/entidad/entidad-form').then((m) => m.AdminEntidadForm),
+      },
+      {
         path: 'censo-usuarios',
+        canActivate: [fullAdminGuard],
         loadComponent: () =>
           import('./features/admin/ui/censo-usuarios/censo-usuarios').then((m) => m.AdminCensoUsuarios),
       },
-
-      /* MISMO COMPONENTE PARA CREAR */
       {
         path: 'usuarios/crear',
+        canActivate: [fullAdminGuard],
         loadComponent: () =>
           import('./features/admin/ui/usuario/usuario-form').then((m) => m.AdminUsuarioForm),
       },
-
-      /* MISMO COMPONENTE PARA EDITAR */
       {
         path: 'usuarios/:id',
+        canActivate: [fullAdminGuard],
         loadComponent: () =>
           import('./features/admin/ui/usuario/usuario-form').then((m) => m.AdminUsuarioForm),
       },

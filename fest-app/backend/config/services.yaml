@@ -10,6 +10,8 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+        bind:
+            string $defaultUri: '%app.uri%'
 
     App\:
         resource: '../src/'

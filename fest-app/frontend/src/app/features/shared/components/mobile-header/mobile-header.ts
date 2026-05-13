@@ -72,7 +72,11 @@ export class MobileHeader {
   protected canOpenAdmin(): boolean {
     if (this.lopdMode()) return false;
     const roles = this.authService.userSignal()?.roles ?? [];
-    return Array.isArray(roles) && (roles.includes('ROLE_ADMIN_ENTIDAD') || roles.includes('ROLE_SUPERADMIN'));
+    return Array.isArray(roles) && (
+      roles.includes('ROLE_ADMIN_ENTIDAD') ||
+      roles.includes('ROLE_SUPERADMIN') ||
+      roles.includes('ROLE_EVENTO')
+    );
   }
 
   protected isAdminView(): boolean {
@@ -84,7 +88,10 @@ export class MobileHeader {
   }
 
   protected viewSwitchRoute(): string {
-    return this.isAdminView() ? '/eventos/inicio' : '/admin/dashboard';
+    if (this.isAdminView()) return '/eventos/inicio';
+    const roles = this.authService.userSignal()?.roles ?? [];
+    const isFullAdmin = roles.includes('ROLE_ADMIN_ENTIDAD') || roles.includes('ROLE_SUPERADMIN');
+    return isFullAdmin ? '/admin/dashboard' : '/admin/eventos';
   }
 
   @HostListener('document:click')

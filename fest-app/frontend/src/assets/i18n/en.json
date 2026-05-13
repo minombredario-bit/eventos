@@ -31,6 +31,7 @@
 		"retrieving_user": "Retrieving user",
 		"role": "Role",
 		"role_admin": "Administrator",
+		"role_evento": "Events manager",
 		"role_user": "User",
 		"subtitle_create": "Manual create",
 		"subtitle_edit": "Manual edit",

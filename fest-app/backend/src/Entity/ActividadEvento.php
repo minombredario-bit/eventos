@@ -51,17 +51,17 @@ use Symfony\Component\Validator\Constraints as Assert;
         ),
 
         new Post(
-            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_EVENTO')",
             securityPostDenormalize: "is_granted('EVENTO_EDIT', object.getEvento())"
         ),
         new Post(
             uriTemplate: '/actividad_eventos',
-            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')",
+            security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_EVENTO')",
             securityPostDenormalize: "is_granted('EVENTO_EDIT', object.getEvento())"
         ),
         new Patch(security: "is_granted('EVENTO_EDIT', object.getEvento())"),
 
-        new Delete(security: "is_granted('ROLE_ADMIN_ENTIDAD') or is_granted('ROLE_SUPERADMIN')"),
+        new Delete(security: "is_granted('ACTIVIDAD_DELETE', object)"),
 
         new Patch(
             uriTemplate: '/actividad_eventos/{id}',
@@ -104,13 +104,13 @@ class ActividadEvento
     private string $nombre;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private ?string $descripcion = null;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: TipoActividadEnum::class)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     #[Assert\NotNull]
-    private TipoActividadEnum $tipoActividad;
+    private TipoActividadEnum $tipoActividad = TipoActividadEnum::LIBRE;
 
     #[ORM\Column(type: Types::STRING, length: 50, enumType: FranjaComidaEnum::class)]
     #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
@@ -148,7 +148,7 @@ class ActividadEvento
     private string|float|null $precioInfantil = null;
 
     #[ORM\Column(type: Types::INTEGER, nullable: true)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private ?int $unidadesMaximas = null;
 
     #[ORM\Column(type: Types::INTEGER)]
@@ -156,11 +156,11 @@ class ActividadEvento
     private int $ordenVisualizacion = 0;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'evento:write'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min', 'evento:write'])]
     private bool $activo = true;
 
     #[ORM\Column(type: Types::BOOLEAN)]
-    #[Groups(['actividad-evento:read', 'actividad-evento:write'])]
+    #[Groups(['actividad-evento:read', 'actividad-evento:write', 'actividad-evento:evento:item:min'])]
     private bool $confirmacionAutomatica = false;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
