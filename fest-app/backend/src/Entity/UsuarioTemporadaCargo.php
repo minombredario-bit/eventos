@@ -16,12 +16,12 @@ class UsuarioTemporadaCargo
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
-    #[Groups(['usuario:read', 'cargo:read', 'temporada:read'])]
+    #[Groups(['usuario:read', 'cargo:read', 'temporada:read', 'admin_usuario_output'])]
     private ?string $id = null;
 
     #[ORM\ManyToOne(targetEntity: Usuario::class, inversedBy: 'cargosTemporada')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups(['usuario:read', 'usuario:write', 'admin_usuario_output'])]
     #[Assert\NotNull]
     private ?Usuario $usuario = null;
 
@@ -37,7 +37,7 @@ class UsuarioTemporadaCargo
      */
     #[ORM\ManyToOne(targetEntity: EntidadCargo::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    #[Groups(['usuario:read', 'usuario:write'])]
+    #[Groups(['usuario:read', 'usuario:write', 'admin_usuario_output'])]
     #[Assert\NotNull]
     private ?EntidadCargo $entidadCargo = null;
 

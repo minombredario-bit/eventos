@@ -361,7 +361,8 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
       direccion: value.direccion.trim(),
       email: (() => { const e = value.email.trim(); return e ? e.toLowerCase() : null; })(),
       telefono: value.telefono.trim() || null,
-      documentoIdentidad: value.documentoIdentidad ? null : (value.documentoIdentidad?.trim() || null),
+      // FIX: condición corregida (estaba invertida)
+      documentoIdentidad: value.documentoIdentidad?.trim() || null,
       activo: value.activo,
       motivoBajaCenso: value.activo ? null : (value.motivoBajaCenso?.trim() || null),
       fechaNacimiento: value.fechaNacimiento,
@@ -370,6 +371,7 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
       formaPagoPreferida: value.formaPagoPreferida,
       debeCambiarPassword: value.debeCambiarPassword,
       roles,
+      // FIX: usar /api/entidad_cargos/ consistente con update
       cargos: this.cargosSeleccionados().map((id) => `/api/entidad_cargos/${id}`),
       relacionUsuarios: this.usuariosRelacionadosSeleccionados().map((item) => ({
         usuario: `/api/usuarios/${item.id}`,
@@ -432,7 +434,8 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
       direccion: value.direccion.trim(),
       email: (() => { const e = value.email.trim(); return e ? e.toLowerCase() : null; })(),
       telefono: value.telefono.trim() || null,
-      documentoIdentidad: value.documentoIdentidad ? null : (value.documentoIdentidad?.trim() || null),
+      // FIX: condición corregida (estaba invertida)
+      documentoIdentidad: value.documentoIdentidad?.trim() || null,
       activo: value.activo,
       motivoBajaCenso: value.activo ? null : (value.motivoBajaCenso?.trim() || null),
       antiguedad: value.antiguedad,
@@ -441,7 +444,8 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
       formaPagoPreferida: value.formaPagoPreferida,
       debeCambiarPassword: value.debeCambiarPassword,
       roles,
-      cargos: this.buildCargoIris(this.cargosSeleccionados()),
+      // FIX: usar /api/entidad_cargos/ directamente en lugar de buildCargoIris
+      cargos: this.cargosSeleccionados().map((id) => `/api/entidad_cargos/${id}`),
       relacionUsuarios: this.usuariosRelacionadosSeleccionados().map((item) => ({
         usuario: `/api/usuarios/${item.id}`,
         tipoRelacion: item.tipoRelacion as TipoRelacion,
@@ -587,13 +591,6 @@ export class AdminUsuarioForm implements AfterViewInit, OnDestroy {
     if (!value) return null;
     const normalized = value.trim().toLowerCase();
     return normalized === 'infantil' ? 'infantil' : 'adulto';
-  }
-
-  private buildCargoIris(cargoIds: string[]): string[] {
-    return [...new Set(cargoIds)]
-      .map((cargoId) => this.cargos().find((cargo) => this.getCargoSelectionKey(cargo) === cargoId))
-      .filter((cargo): cargo is Cargo => !!cargo)
-      .map((cargo) => cargo.iri ?? `/api/cargos/${cargo.id}`);
   }
 
   private getCargoSelectionKey(cargo: Cargo): string {

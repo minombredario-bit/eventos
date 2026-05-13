@@ -70,6 +70,7 @@ final class AdminUsuarioProcessor implements ProcessorInterface
 
         $this->entityManager->persist($usuario);
         $this->entityManager->flush();
+        $this->entityManager->refresh($usuario);
 
         if ($usuario->getEmail()) {
             $this->emailQueueService->enqueueUserWelcome($usuario, $passwordPlano, $this->appUri);
@@ -241,6 +242,117 @@ final class AdminUsuarioProcessor implements ProcessorInterface
         return $rel;
     }
 
+    /* ================= CARGOS ================= */
+
+    private function syncCargos(Usuario $usuario, array $cargosInput): void
+    {
+        $temporada = $this->findTemporadaActiva($usuario);
+
+        $deseadosIds = [];
+
+        foreach ($cargosInput as $item) {
+            if (is_string($item)) {
+                $id = $this->extractId($item);
+            } elseif (is_array($item)) {
+                $id = $this->extractId($item['@id'] ?? $item['id'] ?? null);
+            } else {
+                continue;
+            }
+
+            if ($id) {
+                $deseadosIds[$id] = true;
+            }
+        }
+
+        foreach ($usuario->getCargosTemporada()->toArray() as $utc) {
+            $entidadCargo = $utc->getEntidadCargo();
+            $entidadCargoId = $entidadCargo?->getId();
+
+            if (!$entidadCargoId || !isset($deseadosIds[$entidadCargoId])) {
+                $usuario->removeCargoTemporada($utc);
+                $this->entityManager->remove($utc);
+            }
+        }
+
+        $existentesIds = [];
+
+        foreach ($usuario->getCargosTemporada() as $utc) {
+            $entidadCargoId = $utc->getEntidadCargo()?->getId();
+
+            if ($entidadCargoId) {
+                $existentesIds[$entidadCargoId] = true;
+            }
+        }
+
+        foreach (array_keys($deseadosIds) as $id) {
+            if (isset($existentesIds[$id])) {
+                continue;
+            }
+
+            $entidadCargo = $this->entityManager->find(EntidadCargo::class, $id);
+
+            if (!$entidadCargo instanceof EntidadCargo) {
+                continue;
+            }
+
+            $utc = new UsuarioTemporadaCargo();
+            $utc->setEntidadCargo($entidadCargo);
+            $utc->setTemporada($temporada);
+
+            $usuario->addCargoTemporada($utc);
+
+            $this->entityManager->persist($utc);
+
+            $existentesIds[$id] = true;
+        }
+    }
+
+    /**
+     * Deriva la temporada activa a partir del día/mes de inicio configurado en la entidad.
+     * Calcula el inicio del ciclo actual y busca la TemporadaEntidad no cerrada que lo contenga.
+     * Si ninguna coincide exactamente, devuelve la más reciente no cerrada como fallback.
+     */
+    private function findTemporadaActiva(Usuario $usuario): ?TemporadaEntidad
+    {
+        $entidad = $usuario->getEntidad();
+        $hoy     = new \DateTimeImmutable('today');
+        $mes     = $entidad->getTemporadaInicioMes();
+        $dia     = $entidad->getTemporadaInicioDia();
+
+        // Inicio del ciclo de temporada en el año actual
+        $inicioEsteAnio = \DateTimeImmutable::createFromFormat(
+            'Y-n-j',
+            $hoy->format('Y') . "-$mes-$dia"
+        );
+
+        // Si hoy aún no hemos llegado al inicio del ciclo, la temporada arrancó el año pasado
+        $inicioTemporada = $hoy >= $inicioEsteAnio
+            ? $inicioEsteAnio
+            : $inicioEsteAnio->modify('-1 year');
+
+        $qb = $this->temporadaEntidadRepository->createQueryBuilder('t')
+            ->where('t.entidad = :entidad')
+            ->andWhere('t.cerrada = false')
+            ->setParameter('entidad', $entidad)
+            ->orderBy('t.fechaInicio', 'DESC')
+            ->setMaxResults(1);
+
+        // 1. Coincidencia exacta: la temporada cuyo rango contiene el inicio del ciclo actual
+        $exacta = (clone $qb)
+            ->andWhere('t.fechaInicio <= :inicio')
+            ->andWhere('t.fechaFin >= :inicio')
+            ->setParameter('inicio', $inicioTemporada)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($exacta !== null) {
+            return $exacta;
+        }
+
+        // 2. Fallback: la temporada no cerrada más reciente de la entidad
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
     /* ================= UTILS ================= */
 
     private function extractId(string|array|null $value): ?string
@@ -268,8 +380,57 @@ final class AdminUsuarioProcessor implements ProcessorInterface
             $usuario->setEmail($data->email);
         }
 
+        if ($isCreate || $data->telefono !== null) {
+            $usuario->setTelefono($data->telefono);
+        }
+
+        if ($isCreate || $data->documentoIdentidad !== null) {
+            $usuario->setDocumentoIdentidad($data->documentoIdentidad);
+        }
+
+        if ($isCreate || $data->activo !== null) {
+            $usuario->setActivo($data->activo ?? true);
+        }
+
+        if ($isCreate || $data->motivoBajaCenso !== null) {
+            $usuario->setMotivoBajaCenso($data->motivoBajaCenso);
+        }
+
+        if ($isCreate || $data->antiguedad !== null) {
+            $usuario->setAntiguedad($data->antiguedad);
+        }
+
+        if ($isCreate || $data->antiguedadReal !== null) {
+            $usuario->setAntiguedadReal($data->antiguedadReal);
+        }
+
+        if ($isCreate || $data->fechaNacimiento !== null) {
+            $usuario->setFechaNacimiento(
+                $data->fechaNacimiento !== null
+                    ? new \DateTimeImmutable($data->fechaNacimiento)
+                    : null
+            );
+        }
+
+        if ($isCreate || $data->formaPagoPreferida !== null) {
+            $usuario->setFormaPagoPreferida(
+                $data->formaPagoPreferida !== null
+                    ? MetodoPagoEnum::from($data->formaPagoPreferida)
+                    : null
+            );
+        }
+
         if (is_array($data->roles)) {
             $this->applyRoles($usuario, $data->roles);
+        }
+
+        if (is_array($data->cargos)) {
+            $this->syncCargos($usuario, $data->cargos);
+        }
+
+        // Solo en update — en create se fuerza a true en handleCreate
+        if (!$isCreate && $data->debeCambiarPassword !== null) {
+            $usuario->setDebeCambiarPassword($data->debeCambiarPassword);
         }
     }
 

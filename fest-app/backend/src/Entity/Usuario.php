@@ -990,7 +990,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->entidadCargos;
     }
 
-    #[Groups(['usuario:read', 'read_user_admin'])]
+    #[Groups(['usuario:read', 'read_user_admin', 'admin_usuario_output'])]
     public function getCargos(): array
     {
         $result = [];
