@@ -37,6 +37,7 @@ import {
   MealSlot,
 } from '../../../eventos/domain/eventos.models';
 import {EventoWritePayload} from '../../../eventos/domain/eventos.api.models';
+import {QuillEditorComponent} from 'ngx-quill';
 
 type SubmitMode = 'normal' | 'floating' | 'bottom';
 
@@ -82,7 +83,7 @@ type EventoFormGroup = UntypedFormGroup & {
 @Component({
   selector: 'app-admin-evento-form',
   standalone: true,
-  imports: [CommonModule, MobileHeader, ReactiveFormsModule, ConfirmModal],
+  imports: [CommonModule, MobileHeader, ReactiveFormsModule, ConfirmModal, QuillEditorComponent],
   templateUrl: './evento-form.html',
   styleUrl: './evento-form.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

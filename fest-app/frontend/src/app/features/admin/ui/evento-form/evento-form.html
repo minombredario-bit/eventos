@@ -44,9 +44,28 @@
               </label>
             </div>
 
-            <div class="field field--full">
-              <textarea id="descripcion" formControlName="descripcion" placeholder=" "></textarea>
-              <label for="descripcion">Descripción</label>
+            <div class="field field--full field--quill">
+              <label class="quill-label" for="descripcion">Descripción</label>
+
+              <quill-editor
+                formControlName="descripcion"
+                theme="snow"
+                class="evento-editor"
+                placeholder="Introduce la descripción..."
+                [modules]="{
+                  toolbar: [
+                    [{ header: [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ color: [] }, { background: [] }],
+                    [{ align: [] }],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    [{ indent: '-1' }, { indent: '+1' }],
+                    ['blockquote', 'code-block'],
+                    ['link'],
+                    ['clean']
+                  ]
+                }">
+              </quill-editor>
             </div>
 
             <div class="field field--full">
@@ -274,13 +293,31 @@
                       </label>
                     </div>
 
-                    <div class="field field--full">
-                    <textarea
-                      id="actividad-descripcion-{{ i }}"
-                      formControlName="descripcion"
-                      placeholder=" "
-                    ></textarea>
-                      <label [attr.for]="'actividad-descripcion-' + i">Descripción</label>
+                    <div class="field field--full field--quill">
+                      <label class="quill-label" [attr.for]="'actividad-descripcion-' + i">
+                        Descripción
+                      </label>
+
+                      <quill-editor
+                        id="actividad-descripcion-{{ i }}"
+                        formControlName="descripcion"
+                        theme="snow"
+                        class="evento-editor"
+                        placeholder="Introduce la descripción de la actividad..."
+                        [modules]="{
+                          toolbar: [
+                            [{ header: [1, 2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ color: [] }, { background: [] }],
+                            [{ align: [] }],
+                            [{ list: 'ordered' }, { list: 'bullet' }],
+                            [{ indent: '-1' }, { indent: '+1' }],
+                            ['blockquote', 'code-block'],
+                            ['link'],
+                            ['clean']
+                          ]
+                        }">
+                      </quill-editor>
                     </div>
 
                     <div class="field">
