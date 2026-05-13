@@ -40,7 +40,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('VIEW', object)"),
+        new Get(security: "is_granted('USUARIO_VIEW', object)"),
         new Get(
             uriTemplate: '/admin/usuarios/{id}',
             normalizationContext: [
@@ -72,7 +72,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             output: AdminUsuarioOutput::class,
             processor: AdminUsuarioProcessor::class,
         ),
-        new Patch(security: "is_granted('EDIT', object)"),
+        new Patch(security: "is_granted('USUARIO_EDIT', object)"),
         // Admin-specific PATCH that routes through a processor to handle relaciones and cargos
         new Patch(
             uriTemplate: '/admin/usuarios/{id}',

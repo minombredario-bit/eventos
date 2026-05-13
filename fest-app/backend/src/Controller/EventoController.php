@@ -65,7 +65,13 @@ class EventoController extends AbstractController
             return $this->json(['error' => 'Se requiere al menos una persona'], 400);
         }
 
-        $user = $this->iriConverter->getResourceFromIri($personaData['usuario']);
+        // Después
+        $usuarioId = basename($personaData['usuario']);
+        $user = $this->usuarioRepository->find($usuarioId);
+
+        if ($user === null) {
+            return $this->json(['error' => 'Usuario no encontrado'], 404);
+        }
 
         try {
             $inscripcion = $this->inscripcionService->crearInscripcion(

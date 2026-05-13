@@ -65,8 +65,29 @@ class UsuarioVoter extends Voter
             return true;
         }
 
-        // El usuario puede ver su propio perfil
-        return $user->getId() === $targetUser->getId();
+        if ($user->getId() === $targetUser->getId()) {
+            return true;
+        }
+
+        // Puede ver a usuarios con los que tiene una relación (grupo familiar/amistad)
+        return $this->tienenRelacion($user, $targetUser);
+    }
+
+    private function tienenRelacion(Usuario $user, Usuario $targetUser): bool
+    {
+        foreach ($user->getRelacionesOrigen() as $relacion) {
+            if ($relacion->getUsuarioDestino()->getId() === $targetUser->getId()) {
+                return true;
+            }
+        }
+
+        foreach ($user->getRelacionesDestino() as $relacion) {
+            if ($relacion->getUsuarioOrigen()->getId() === $targetUser->getId()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

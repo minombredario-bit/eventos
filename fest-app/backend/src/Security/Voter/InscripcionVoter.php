@@ -18,7 +18,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
  * - DELETE: Eliminar una inscripción (solo admins)
  *
  * Uso en entidades API Platform:
- * #[ApiResource(security: "is_granted('VIEW', object)")]
+ * #[ApiResource(security: "is_granted('USUARIO_VIEW', object)")]
  */
 class InscripcionVoter extends Voter
 {

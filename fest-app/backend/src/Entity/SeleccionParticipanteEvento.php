@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\Link;
+use App\Dto\SeleccionParticipanteEventoInput;
 use App\Repository\SeleccionParticipanteEventoRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -37,7 +38,8 @@ use App\State\SeleccionParticipantesEventoDeleteProcessor;
         new Post(
             normalizationContext: ['groups' => ['seleccion_participante_evento:read']],
             denormalizationContext: ['groups' => ['seleccion_participante_evento:write']],
-            security: "is_granted('ROLE_USER')",
+            securityPostDenormalize: "is_granted('ROLE_USER')",
+            input: SeleccionParticipanteEventoInput::class,
             processor: SeleccionParticipanteEventoPostProcessor::class,
         ),
         // Nested POST for creating a selection under an evento: /eventos/{eventoId}/seleccion_participantes
