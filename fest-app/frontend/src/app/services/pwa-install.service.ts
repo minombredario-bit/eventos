@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 
 const DISMISS_KEY = 'pwa-install-dismissed';
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
@@ -10,9 +10,28 @@ export class PwaInstallService {
   canInstall = signal(false);
   isInstalled = signal(false);
 
+  /** true si el usuario cerró el banner (tanto Android como iOS) */
+  private dismissed = signal(false);
+
+  /** true si es iOS Safari y la app NO está instalada en standalone */
+  readonly isIos = signal(
+    /iphone|ipad|ipod/i.test(navigator.userAgent) &&
+    !(window.navigator as any).standalone
+  );
+
+  /** Mostrar el hint iOS: es iOS, no instalada, y no ha descartado el banner */
+  readonly showIosHint = computed(
+    () => this.isIos() && !this.isInstalled() && !this.dismissed()
+  );
+
   constructor() {
     this.listenForInstallPrompt();
     this.listenForInstalled();
+
+    // Restaurar estado de dismiss persistido (aplica también a iOS)
+    if (this.isDismissedRecently()) {
+      this.dismissed.set(true);
+    }
   }
 
   private isDismissedRecently(): boolean {
@@ -61,7 +80,7 @@ export class PwaInstallService {
 
   dismiss() {
     this.canInstall.set(false);
-    // FIX: persistir el dismiss para no volver a mostrar el banner durante 7 días
+    this.dismissed.set(true);
     try {
       localStorage.setItem(DISMISS_KEY, Date.now().toString());
     } catch {
