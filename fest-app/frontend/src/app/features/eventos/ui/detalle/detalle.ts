@@ -368,6 +368,7 @@ export class Detalle {
   protected readonly participantsForSelection = computed<FamilyMember[]>(() => {
     const allParticipants = this.participants();
     const scope = this.activeActividadCompatibilityScope();
+    console.log(allParticipants);
     if (scope.allowsAdult && scope.allowsInfantil) {
       return allParticipants;
     }
