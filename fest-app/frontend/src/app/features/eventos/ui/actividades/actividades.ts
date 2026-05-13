@@ -1066,7 +1066,9 @@ export class Actividades {
       name,
       role: participant.origin === 'invitado'
         ? 'Invitado'
-        : (participant.id === this.authService.currentUserId ? '' : 'Relacionado'),
+        : participant.origin === 'amistad'
+          ? 'Amigo'
+          : (participant.id === this.authService.currentUserId ? '' : 'Familiar'),
       personType: participant.personType,
       origin: participant.origin,
       avatarInitial: name.charAt(0).toUpperCase() || 'P',

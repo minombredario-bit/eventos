@@ -1,11 +1,8 @@
-import {inject, Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
-import {EventosMapper} from '../data/eventos.mapper';
 import {Usuario} from '../../admin/domain/admin.models';
 
 export type EventStatus = 'abierto' | 'ultimas_plazas' | 'cerrado';
 export type PersonType = 'adulto' | 'infantil';
-export type ParticipantOrigin = 'familiar' | 'invitado';
+export type ParticipantOrigin = 'familiar' | 'invitado' | 'amistad';
 export type PaymentBadgeStatus = 'pagado' | 'pendiente' | 'no_requiere' | 'parcial';
 export type MealSlot = 'almuerzo' | 'comida' | 'merienda' | 'cena';
 export type ActivityCompatibility = 'adulto' | 'infantil' | 'ambos';
