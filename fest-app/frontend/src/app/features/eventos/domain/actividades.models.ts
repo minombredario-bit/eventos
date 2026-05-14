@@ -1,4 +1,5 @@
 import { FamilyMember, MealSlot, ParticipantOrigin } from './eventos.models';
+import {TipoPersona} from '../../admin/domain/admin.models';
 
 export interface ActivityChangePayload {
   memberId: string;
@@ -46,7 +47,7 @@ export interface ParticipantReference {
   id: string;
   origin: ParticipantOrigin;
   name?: string;
-  personType: FamilyMember['personType'];
+  personType: TipoPersona;
   enrollment?: FamilyMember['enrollment'];
   relationSummary?: ParticipantRelationSummary;
   relationLines?: ParticipantRelationLine[];

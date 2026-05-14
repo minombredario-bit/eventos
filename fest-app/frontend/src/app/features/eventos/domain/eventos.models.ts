@@ -1,7 +1,6 @@
-import {Usuario} from '../../admin/domain/admin.models';
+import {TipoPersona, Usuario} from '../../admin/domain/admin.models';
 
 export type EventStatus = 'abierto' | 'ultimas_plazas' | 'cerrado';
-export type PersonType = 'adulto' | 'infantil';
 export type ParticipantOrigin = 'familiar' | 'invitado' | 'amistad';
 export type PaymentBadgeStatus = 'pagado' | 'pendiente' | 'no_requiere' | 'parcial';
 export type MealSlot = 'almuerzo' | 'comida' | 'merienda' | 'cena';
@@ -37,7 +36,7 @@ export interface FamilyMember {
   id: string;
   name: string;
   role: string;
-  personType: PersonType;
+  personType: TipoPersona;
   origin: ParticipantOrigin;
   avatarInitial: string;
   notes?: string;
@@ -50,7 +49,7 @@ export interface PersonaFamiliar {
   apellidos: string;
   nombreCompleto: string;
   parentesco: string;
-  tipoPersona: PersonType;
+  tipoPersona: TipoPersona;
   observaciones?: string | null;
   inscripcion?: Enrollment | null;
 }
@@ -61,7 +60,7 @@ export interface Invitado {
   apellidos?: string;
   nombreCompleto?: string;
   parentesco?: string;
-  tipoPersona: PersonType;
+  tipoPersona: TipoPersona;
   observaciones?: string | null;
   origen?: ParticipantOrigin;
   esInvitado?: boolean;
@@ -181,7 +180,7 @@ export interface EventoActividadFormValue {
 
 export interface EventoParticipanteReporte {
   nombreCompleto: string;
-  tipoPersona: PersonType;
+  tipoPersona: TipoPersona;
   actividad: string;
   franjaComida?: MealSlot | null;
   observaciones?: string | null;
@@ -308,7 +307,7 @@ export interface InscripcionesPage {
 export interface AltaInvitadoPayload {
   nombre: string;
   apellidos: string;
-  tipoPersona: PersonType;
+  tipoPersona: TipoPersona;
   parentesco?: string;
   observaciones?: string;
 }
@@ -321,7 +320,7 @@ export interface RelacionUsuario {
     nombre?: string;
     apellidos?: string;
     nombreCompleto?: string,
-    tipoPersona?: PersonType
+    tipoPersona?: TipoPersona
   };
   usuarioDestino: {
     id?: string;
@@ -329,7 +328,7 @@ export interface RelacionUsuario {
     nombre?: string;
     apellidos?: string;
     nombreCompleto?: string,
-    tipoPersona?: PersonType
+    tipoPersona?: TipoPersona
   };
   tipoRelacion: string;
   createdAt: string;
@@ -350,7 +349,7 @@ export interface ParticipanteSeleccionLinea {
 export interface ParticipanteSeleccion {
   id: string;
   origen: ParticipantOrigin;
-  tipoPersona?: PersonType;
+  tipoPersona?: TipoPersona;
   nombre?: string;
   apellidos?: string;
   inscripcionRelacion?: {

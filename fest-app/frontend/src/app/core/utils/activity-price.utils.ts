@@ -1,6 +1,9 @@
+import {TipoPersona} from '../../features/admin/domain/admin.models';
+import {ParticipantOrigin} from '../../features/eventos/domain/eventos.models';
+
 export interface ActivityPriceMemberLike {
-  personType: 'adulto' | 'infantil' | string;
-  origin: 'invitado' | string;
+  personType: TipoPersona;
+  origin: ParticipantOrigin;
 }
 
 export interface ActivityPriceOptionLike {

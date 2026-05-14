@@ -31,6 +31,7 @@ class JWTAuthenticationSuccessListener
             'tipoEntidad' => mb_strtolower($user->getEntidad()->getTipoEntidad()?->getNombre() ?? ''),
             'aceptoLopd' => $user->isAceptoLopd(),
             'aceptoLopdAt' => $user->getAceptoLopdAt()?->format(DATE_ATOM),
+            'personType' => $user->getTipoPersona()?->value,
         ];
 
         $event->setData($data);

@@ -78,7 +78,7 @@ export class EventosMapper {
       name: displayName,
       role: relacion.tipoRelacion || 'Familiar',
       origin: 'familiar',
-      personType: relacion.usuarioDestino.tipoPersona || 'adulto',
+      personType: relacionado.tipoPersona || 'adulto',
       avatarInitial: displayName.charAt(0).toUpperCase() || 'U',
     };
   }

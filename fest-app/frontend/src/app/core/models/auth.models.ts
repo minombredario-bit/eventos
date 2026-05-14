@@ -1,3 +1,5 @@
+import {TipoPersona} from '../../features/admin/domain/admin.models';
+
 export type TipoEntidad = 'falla' | 'comparsa';
 
 export interface AuthUser {
@@ -18,6 +20,7 @@ export interface AuthUser {
   tipoEntidad?: TipoEntidad | null;
   aceptoLopd?: boolean;
   aceptoLopdAt?: string | null;
+  personType?: TipoPersona;
 }
 
 export interface LoginPayload {

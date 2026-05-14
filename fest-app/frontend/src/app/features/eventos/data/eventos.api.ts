@@ -13,7 +13,6 @@ import {
   EventoParticipanteReporte,
   EventoParticipantesAgrupadosPorFranja,
   EventoParticipantesReporteResponse,
-  PersonType,
   EventoResumen,
   Inscripcion,
   InscripcionResumen,

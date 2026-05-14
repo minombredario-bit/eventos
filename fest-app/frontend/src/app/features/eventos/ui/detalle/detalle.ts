@@ -113,12 +113,12 @@ export class Detalle {
     const nombre = user.nombre ?? '';
     const apellidos = user.apellidos ?? '';
     const email = typeof user.email === 'string' ? user.email : '';
-
+console.log(user);
     return {
       id: String(user.id ?? ''),
       name: `${nombre} ${apellidos}`.trim() || email,
       role: 'Titular',
-      personType: 'adulto' as const,
+      personType: user.personType ?? 'adulto',
       origin: 'familiar' as const,
       avatarInitial: (nombre.charAt(0) || email.charAt(0)).toUpperCase(),
     };
@@ -368,7 +368,7 @@ export class Detalle {
   protected readonly participantsForSelection = computed<FamilyMember[]>(() => {
     const allParticipants = this.participants();
     const scope = this.activeActividadCompatibilityScope();
-    console.log(allParticipants);
+
     if (scope.allowsAdult && scope.allowsInfantil) {
       return allParticipants;
     }
