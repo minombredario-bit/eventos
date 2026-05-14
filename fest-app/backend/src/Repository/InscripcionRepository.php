@@ -109,6 +109,27 @@ class InscripcionRepository extends ServiceEntityRepository
             ->setParameter('usuarioId', $usuarioId)
             ->setParameter('eventoId', $eventoId)
             ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
+            ->orderBy('i.createdAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findOneByUsuarioParticipanteAndEvento(string $usuarioId, string $eventoId): ?Inscripcion
+    {
+        return $this->createQueryBuilder('i')
+            ->join('i.lineas', 'l')
+            ->join('i.evento', 'e')
+            ->where('l.usuario = :usuarioId')
+            ->andWhere('e.id = :eventoId')
+            ->andWhere('i.estadoInscripcion != :cancelada')
+            ->andWhere('l.estadoLinea != :lineaCancelada')
+            ->setParameter('usuarioId', $usuarioId)
+            ->setParameter('eventoId', $eventoId)
+            ->setParameter('cancelada', EstadoInscripcionEnum::CANCELADA)
+            ->setParameter('lineaCancelada', EstadoLineaInscripcionEnum::CANCELADA)
+            ->orderBy('i.createdAt', 'DESC')
+            ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
     }

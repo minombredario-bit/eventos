@@ -39,8 +39,8 @@ class EventoController extends AbstractController
     #[Route('/eventos/{id}/inscribirme', name: 'api_eventos_inscribirme', methods: ['POST'])]
     public function inscribirme(string $id, Request $request): JsonResponse
     {
-        /** @var Usuario $user */
-        $user = $this->getUser();
+        /** @var Usuario $loggedUser */
+        $loggedUser = $this->getUser();
 
         $evento = $this->eventoRepository->find($id);
 
@@ -48,36 +48,30 @@ class EventoController extends AbstractController
             return $this->json(['error' => 'Evento no encontrado'], 404);
         }
 
-        // Verify user belongs to same entity
-        if ($evento->getEntidad()->getId() !== $user->getEntidad()->getId()) {
+        if ($evento->getEntidad()->getId() !== $loggedUser->getEntidad()->getId()) {
             return $this->json(['error' => 'No tienes acceso a este evento'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
-        // Legacy payloads are no longer supported; only canonical keys are accepted.
 
         if (empty($data['persona']) || !is_array($data['persona'])) {
             return $this->json(['error' => 'Se requiere al menos una persona'], 400);
         }
+
         $personaData = $data['persona'];
 
-        if (empty($personaData) || !is_array($personaData)) {
-            return $this->json(['error' => 'Se requiere al menos una persona'], 400);
-        }
-
-        // Después
         $usuarioId = basename($personaData['usuario']);
-        $user = $this->usuarioRepository->find($usuarioId);
+        $persona = $this->usuarioRepository->find($usuarioId);
 
-        if ($user === null) {
+        if ($persona === null) {
             return $this->json(['error' => 'Usuario no encontrado'], 404);
         }
 
         try {
             $inscripcion = $this->inscripcionService->crearInscripcion(
                 $evento,
-                $user,
-                [$personaData],   // el service hace foreach, necesita array de líneas
+                $persona,
+                [$personaData],
             );
 
             return $this->json([

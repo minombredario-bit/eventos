@@ -105,17 +105,10 @@ final class ApuntadosProvider implements ProviderInterface
      */
     private function buildApuntados(Evento $evento, Usuario $user, ?string $search = null): array
     {
-        $householdUserIds = $this->invitadoRepository->resolveHouseholdUserIds($user);
-
-        if ($householdUserIds === []) {
-            return [];
-        }
-
         $selecciones = $this->seleccionParticipanteEventoRepository
-            ->findByEventoAndInscritoPorUsuarioIds($evento, $householdUserIds);
+            ->findByEvento($evento);
 
         $seenParticipantes = [];
-
         $member = [];
 
         foreach ($selecciones as $seleccion) {
@@ -144,11 +137,6 @@ final class ApuntadosProvider implements ProviderInterface
             $opciones = [];
 
             if ($origen === 'familiar') {
-
-                if (!in_array($participanteId, $householdUserIds, true)) {
-                    continue;
-                }
-
                 $usuario = $this->usuarioRepository->find($participanteId);
 
                 if ($usuario === null) {
@@ -160,23 +148,18 @@ final class ApuntadosProvider implements ProviderInterface
                     : trim($usuario->getNombre() . ' ' . $usuario->getApellidos());
 
                 $inscripcion = $this->inscripcionRepository
-                    ->findOneByUsuarioAndEvento($participanteId, $evento->getId());
+                    ->findOneByUsuarioParticipanteAndEvento($participanteId, $evento->getId());
 
                 if ($inscripcion !== null) {
                     $inscripcionId = (string)$inscripcion->getId();
-
-                    $opciones = $this->extractUniqueActividadOptions(
-                        $inscripcion->getLineas()->toArray()
+                    $opciones = $this->extractUniqueActividadOptionsByUsuario(
+                        $inscripcion->getLineas()->toArray(),
+                        $participanteId,
+                        null
                     );
                 }
             } else {
-
-                $invitado = $this->invitadoRepository
-                    ->findActiveByIdAndEventoAndHouseholdUsuario(
-                        $participanteId,
-                        $evento,
-                        $user
-                    );
+                $invitado = $this->invitadoRepository->find($participanteId);
 
                 if ($invitado === null) {
                     continue;
@@ -187,16 +170,14 @@ final class ApuntadosProvider implements ProviderInterface
                 );
 
                 $inscripcion = $this->inscripcionRepository
-                    ->findOneByInvitadoAndEvento(
-                        $participanteId,
-                        $evento->getId()
-                    );
+                    ->findOneByInvitadoAndEvento($participanteId, $evento->getId());
 
                 if ($inscripcion !== null) {
                     $inscripcionId = (string)$inscripcion->getId();
-
-                    $opciones = $this->extractUniqueActividadOptions(
-                        $inscripcion->getLineas()->toArray()
+                    $opciones = $this->extractUniqueActividadOptionsByUsuario(
+                        $inscripcion->getLineas()->toArray(),
+                        null,
+                        $participanteId
                     );
                 }
             }
@@ -225,6 +206,39 @@ final class ApuntadosProvider implements ProviderInterface
         }
 
         return $member;
+    }
+
+    private function extractUniqueActividadOptionsByUsuario(
+        array $lineas,
+        ?string $usuarioId,
+        ?string $invitadoId
+    ): array {
+        $opciones = [];
+
+        foreach ($lineas as $linea) {
+            if ($linea->getEstadoLinea()->value === 'cancelada') {
+                continue;
+            }
+
+            // Filtrar por participante concreto
+            if ($usuarioId !== null) {
+                if ($linea->getUsuario()?->getId() !== $usuarioId) {
+                    continue;
+                }
+            } elseif ($invitadoId !== null) {
+                if ($linea->getInvitado()?->getId() !== $invitadoId) {
+                    continue;
+                }
+            }
+
+            $opcion = trim($linea->getNombreActividadSnapshot());
+
+            if ($opcion !== '') {
+                $opciones[$opcion] = true;
+            }
+        }
+
+        return array_keys($opciones);
     }
 
     private function extractUniqueActividadOptions(array $lineas): array

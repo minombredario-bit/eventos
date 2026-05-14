@@ -145,7 +145,7 @@ export class Apuntados {
             hasNext: false,
             hasPrevious: false,
           });
-          this.errorMessage.set(error?.error?.error ?? 'No pudimos filtrar el listado de apuntados. Probá de nuevo.');
+          this.errorMessage.set(error?.error?.error ?? 'No pudimos filtrar el listado de apuntados. Prueba de nuevo.');
         },
       });
   }

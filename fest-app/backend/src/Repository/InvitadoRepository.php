@@ -19,6 +19,14 @@ class InvitadoRepository extends ServiceEntityRepository
         parent::__construct($registry, Invitado::class);
     }
 
+    public function findByEvento(Evento $evento): array
+    {
+        return $this->createQueryBuilder('s')
+            ->andWhere('s.evento = :evento')
+            ->setParameter('evento', $evento)
+            ->getQuery()
+            ->getResult();
+    }
     /**
      * @return Invitado[]
      */
