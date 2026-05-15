@@ -15,6 +15,12 @@ import {
   UsuarioPatch,
   UsuariosFiltro,
   UsuariosPage, CargoMaster, TipoEntidadCargo,
+  DashboardAsistenciaStats,
+  InscripcionAdmin,
+  InscripcionAdminSummary,
+  InscripcionesPage,
+  PagoAdmin,
+  RegistrarPagoPayload,
 } from '../domain/admin.models';
 import {environment} from '../../../../environments/environment';
 
@@ -24,9 +30,23 @@ export class AdminApi {
   // Simple in-memory caches to avoid repeated network calls during a session
   private tipoEntidadesCache: any[] | null = null;
 
+  /**
+   * Devuelve únicamente el totalItems de usuarios que coinciden con los parámetros.
+   * Útil para el dashboard (no carga los datos completos).
+   */
+  getUsuariosCount(options: {
+    filtro?: UsuariosFiltro;
+    estadoValidacion?: string;
+  } = {}): Observable<number> {
+    return this.getUsuarios({ ...options, page: 1, itemsPerPage: 1 }).pipe(
+      map((page) => page.totalItems),
+    );
+  }
+
   getUsuarios(options: {
     search?: string;
     filtro?: UsuariosFiltro;
+    estadoValidacion?: string;
     page?: number;
     itemsPerPage?: number;
   } = {}): Observable<UsuariosPage> {
@@ -50,6 +70,10 @@ export class AdminApi {
 
     if (filtro === 'no_censado') {
       params = params.set('exists[fechaBajaCenso]', true);
+    }
+
+    if (options.estadoValidacion) {
+      params = params.set('estadoValidacion', options.estadoValidacion);
     }
 
     if (search) {
@@ -295,6 +319,87 @@ export class AdminApi {
       responseType: 'blob',
       observe: 'response',
     });
+  }
+
+  getDashboardAsistenciaStats(): Observable<DashboardAsistenciaStats> {
+    return this.http.get<DashboardAsistenciaStats>(`${environment.apiUrl}/admin/dashboard-stats`);
+  }
+
+  // ─── Inscripciones ────────────────────────────────────────────────────────
+
+  getInscripciones(options: {
+    eventoId?: string;
+    estadoInscripcion?: string;
+    estadoPago?: string;
+    page?: number;
+    itemsPerPage?: number;
+  } = {}): Observable<InscripcionesPage> {
+    const page         = options.page ?? 1;
+    const itemsPerPage = options.itemsPerPage ?? 20;
+
+    let params = new HttpParams()
+      .set('page', page)
+      .set('itemsPerPage', itemsPerPage);
+
+    if (options.eventoId)          params = params.set('evento', options.eventoId);
+    if (options.estadoInscripcion) params = params.set('estadoInscripcion', options.estadoInscripcion);
+    if (options.estadoPago)        params = params.set('estadoPago', options.estadoPago);
+
+    return this.http
+      .get<{ 'hydra:member': InscripcionAdminSummary[]; 'hydra:totalItems'?: number }>(
+        `${environment.apiUrl}/admin/inscripciones`, { params }
+      )
+      .pipe(
+        map((response) => {
+          const raw        = response as unknown as Record<string, any>;
+          const items      = (raw['hydra:member'] ?? []) as InscripcionAdminSummary[];
+          const totalItems = Number(raw['hydra:totalItems'] ?? items.length);
+          const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+          const view       = raw['hydra:view'] ?? {};
+
+          return {
+            items,
+            totalItems,
+            totalPages,
+            page,
+            itemsPerPage,
+            hasNext:     Boolean(view['hydra:next']),
+            hasPrevious: Boolean(view['hydra:previous']),
+          } satisfies InscripcionesPage;
+        })
+      );
+  }
+
+  getInscripcion(id: string): Observable<InscripcionAdmin> {
+    return this.http.get<InscripcionAdmin>(
+      `${environment.apiUrl}/admin/inscripciones/${encodeURIComponent(id)}`
+    );
+  }
+
+  registrarPago(inscripcionId: string, payload: RegistrarPagoPayload): Observable<{
+    pagoId: string;
+    importe: number;
+    metodoPago: string;
+    estadoPago: string;
+    estadoInscripcion: string;
+    importeTotal: number;
+    importePagado: number;
+  }> {
+    return this.http.post<any>(
+      `${environment.apiUrl}/admin/inscripciones/${encodeURIComponent(inscripcionId)}/registrar_pago`,
+      payload
+    );
+  }
+
+  // ─── Pagos ────────────────────────────────────────────────────────────────
+
+  getPagos(options: { eventoId?: string } = {}): Observable<PagoAdmin[]> {
+    let params = new HttpParams();
+    if (options.eventoId) params = params.set('evento', options.eventoId);
+
+    return this.http
+      .get<{ 'hydra:member': PagoAdmin[] }>(`${environment.apiUrl}/admin/pagos`, { params })
+      .pipe(map((r) => (r as any)['hydra:member'] ?? []));
   }
 
   private resolveCargoTipoPersona(codigo: string | null | undefined, nombre: string): CargoTipoPersona {

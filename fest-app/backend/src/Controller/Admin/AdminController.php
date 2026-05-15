@@ -4,14 +4,19 @@ namespace App\Controller\Admin;
 
 use App\Entity\Evento;
 use App\Entity\Inscripcion;
+use App\Entity\Pago;
 use App\Entity\Usuario;
 use App\Enum\CensadoViaEnum;
+use App\Enum\EstadoInscripcionEnum;
+use App\Enum\EstadoPagoEnum;
 use App\Enum\EstadoValidacionEnum;
 use App\Enum\MetodoPagoEnum;
 use App\Enum\TipoRelacionEconomicaEnum;
 use App\Enum\TipoRelacionEnum;
 use App\Repository\EventoRepository;
+use App\Repository\InscripcionLineaRepository;
 use App\Repository\InscripcionRepository;
+use App\Repository\PagoRepository;
 use App\Repository\UsuarioRepository;
 use App\Service\CensoImporterService;
 use App\Service\EmailQueueService;
@@ -35,11 +40,13 @@ class AdminController extends AbstractController
         private readonly UsuarioRepository $usuarioRepository,
         private readonly EventoRepository $eventoRepository,
         private readonly InscripcionRepository $inscripcionRepository,
+        private readonly InscripcionLineaRepository $inscripcionLineaRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly CensoImporterService $censoImporter,
         private readonly EmailQueueService $emailQueueService,
         private readonly string $defaultUri,
+        private readonly PagoRepository $pagoRepository,
     ) {}
 
     #[Route('/usuarios', name: 'api_admin_usuario_create', methods: ['POST'])]
@@ -466,6 +473,208 @@ class AdminController extends AbstractController
     }
 
     /**
+     * Get a single inscription with lines and payment history (admin).
+     */
+    #[Route('/inscripciones/{id}', name: 'api_admin_inscripcion_detail', methods: ['GET'])]
+    public function inscripcionDetalle(string $id): JsonResponse
+    {
+        /** @var Usuario $admin */
+        $admin = $this->getUser();
+        $inscripcion = $this->inscripcionRepository->find($id);
+
+        if (!$inscripcion) {
+            return $this->json(['error' => 'Inscripción no encontrada'], 404);
+        }
+
+        if ($inscripcion->getEntidad()->getId() !== $admin->getEntidad()->getId()) {
+            return $this->json(['error' => 'Acceso denegado'], 403);
+        }
+
+        $lineas = array_values(array_map(fn($linea) => [
+            'id'                           => $linea->getId(),
+            'nombrePersonaSnapshot'        => $linea->getNombrePersonaSnapshot(),
+            'tipoPersonaSnapshot'          => $linea->getTipoPersonaSnapshot(),
+            'tipoRelacionEconomicaSnapshot' => $linea->getTipoRelacionEconomicaSnapshot(),
+            'estadoValidacionSnapshot'     => $linea->getEstadoValidacionSnapshot(),
+            'nombreActividadSnapshot'      => $linea->getNombreActividadSnapshot(),
+            'franjaComidaSnapshot'         => $linea->getFranjaComidaSnapshot(),
+            'esDePagoSnapshot'             => $linea->isEsDePagoSnapshot(),
+            'precioUnitario'               => $linea->getPrecioUnitario(),
+            'estadoLinea'                  => $linea->getEstadoLinea()->value,
+            'pagada'                       => $linea->isPagada(),
+            'observaciones'               => $linea->getObservaciones(),
+        ], $inscripcion->getLineas()->toArray()));
+
+        $pagos = array_values(array_map(fn(Pago $pago) => [
+            'id'           => $pago->getId(),
+            'fecha'        => $pago->getFecha()->format('c'),
+            'importe'      => $pago->getImporte(),
+            'metodoPago'   => $pago->getMetodoPago()->value,
+            'referencia'   => $pago->getReferencia(),
+            'estado'       => $pago->getEstado(),
+            'observaciones' => $pago->getObservaciones(),
+            'registradoPor' => $pago->getRegistradoPor()->getNombreCompleto(),
+        ], $inscripcion->getPagos()->toArray()));
+
+        return $this->json([
+            'id'                => $inscripcion->getId(),
+            'codigo'            => $inscripcion->getCodigo(),
+            'usuario'           => [
+                'id'       => $inscripcion->getUsuario()->getId(),
+                'nombre'   => $inscripcion->getUsuario()->getNombre(),
+                'apellidos' => $inscripcion->getUsuario()->getApellidos(),
+                'email'    => $inscripcion->getUsuario()->getEmail(),
+            ],
+            'evento'            => [
+                'id'     => $inscripcion->getEvento()->getId(),
+                'titulo' => $inscripcion->getEvento()->getTitulo(),
+                'fecha'  => $inscripcion->getEvento()->getFechaEvento()->format('Y-m-d'),
+            ],
+            'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
+            'estadoPago'        => $inscripcion->getEstadoPago()->value,
+            'importeTotal'      => $inscripcion->calcularImporteTotal(),
+            'importePagado'     => $inscripcion->getImportePagado(),
+            'observaciones'     => $inscripcion->getObservaciones(),
+            'createdAt'         => $inscripcion->getCreatedAt()->format('c'),
+            'updatedAt'         => $inscripcion->getUpdatedAt()->format('c'),
+            'lineas'            => $lineas,
+            'pagos'             => $pagos,
+        ]);
+    }
+
+    /**
+     * Register a manual payment for an inscription (admin).
+     */
+    #[Route('/inscripciones/{id}/registrar_pago', name: 'api_admin_inscripcion_registrar_pago', methods: ['POST'])]
+    public function registrarPago(string $id, Request $request): JsonResponse
+    {
+        /** @var Usuario $admin */
+        $admin = $this->getUser();
+        $inscripcion = $this->inscripcionRepository->find($id);
+
+        if (!$inscripcion) {
+            return $this->json(['error' => 'Inscripción no encontrada'], 404);
+        }
+
+        if ($inscripcion->getEntidad()->getId() !== $admin->getEntidad()->getId()) {
+            return $this->json(['error' => 'Acceso denegado'], 403);
+        }
+
+        $pendiente = round($inscripcion->calcularImporteTotal() - $inscripcion->getImportePagado(), 2);
+
+        if ($pendiente <= 0.0) {
+            return $this->json(['error' => 'La inscripción no tiene importe pendiente de pago'], 400);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        if (empty($data['metodoPago'])) {
+            return $this->json(['error' => 'El campo metodoPago es obligatorio'], 400);
+        }
+
+        $metodoPago = MetodoPagoEnum::tryFrom((string) $data['metodoPago']);
+        if ($metodoPago === null) {
+            return $this->json(['error' => 'Método de pago no válido'], 400);
+        }
+
+        $pago = new Pago();
+        $pago->setInscripcion($inscripcion);
+        $pago->setImporte($pendiente);
+        $pago->setMetodoPago($metodoPago);
+        $pago->setReferencia($data['referencia'] ?? null);
+        $pago->setObservaciones($data['observaciones'] ?? null);
+        $pago->setRegistradoPor($admin);
+        $pago->setEstado('confirmado');
+
+        $this->entityManager->persist($pago);
+
+        // Actualizar importe pagado y estado de pago en la inscripción
+        $importePagadoActual = round($inscripcion->getImportePagado() + $pendiente, 2);
+        $importeTotal = round($inscripcion->calcularImporteTotal(), 2);
+        $inscripcion->setImportePagado(min($importePagadoActual, $importeTotal));
+
+        // Marcar líneas activas como pagadas
+        foreach ($inscripcion->getLineas() as $linea) {
+            if ($linea->getEstadoLinea()->value !== 'cancelada') {
+                $linea->setPagada(true);
+            }
+        }
+
+        $inscripcion->actualizarEstadoPago();
+        // Si el pago cubre el total → confirmar la inscripción
+        if ($inscripcion->getEstadoPago() === EstadoPagoEnum::PAGADO) {
+            $inscripcion->setEstadoInscripcion(EstadoInscripcionEnum::CONFIRMADA);
+        }
+
+        $this->entityManager->flush();
+        $this->emailQueueService->enqueueInscripcionCambio($inscripcion, 'pago');
+
+        return $this->json([
+            'pagoId'            => $pago->getId(),
+            'importe'           => $pago->getImporte(),
+            'metodoPago'        => $pago->getMetodoPago()->value,
+            'estadoPago'        => $inscripcion->getEstadoPago()->value,
+            'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
+            'importeTotal'      => $inscripcion->calcularImporteTotal(),
+            'importePagado'     => $inscripcion->getImportePagado(),
+        ], 201);
+    }
+
+    /**
+     * List payments for the admin's entity.
+     */
+    #[Route('/pagos', name: 'api_admin_pagos_list', methods: ['GET'])]
+    public function pagos(Request $request): JsonResponse
+    {
+        /** @var Usuario $admin */
+        $admin = $this->getUser();
+        $eventoId = $request->query->get('evento');
+
+        $qb = $this->entityManager->createQueryBuilder()
+            ->select('p', 'i', 'u', 'e')
+            ->from(Pago::class, 'p')
+            ->join('p.inscripcion', 'i')
+            ->join('i.usuario', 'u')
+            ->join('i.evento', 'e')
+            ->where('i.entidad = :entidad')
+            ->setParameter('entidad', $admin->getEntidad())
+            ->orderBy('p.fecha', 'DESC');
+
+        if ($eventoId) {
+            $qb->andWhere('e.id = :eventoId')->setParameter('eventoId', $eventoId);
+        }
+
+        /** @var Pago[] $pagos */
+        $pagos = $qb->getQuery()->getResult();
+
+        $data = array_map(fn(Pago $pago) => [
+            'id'            => $pago->getId(),
+            'fecha'         => $pago->getFecha()->format('c'),
+            'importe'       => $pago->getImporte(),
+            'metodoPago'    => $pago->getMetodoPago()->value,
+            'referencia'    => $pago->getReferencia(),
+            'estado'        => $pago->getEstado(),
+            'observaciones' => $pago->getObservaciones(),
+            'inscripcion'   => [
+                'id'     => $pago->getInscripcion()->getId(),
+                'codigo' => $pago->getInscripcion()->getCodigo(),
+            ],
+            'usuario'       => [
+                'id'       => $pago->getInscripcion()->getUsuario()->getId(),
+                'nombre'   => $pago->getInscripcion()->getUsuario()->getNombre(),
+                'apellidos' => $pago->getInscripcion()->getUsuario()->getApellidos(),
+            ],
+            'evento'        => [
+                'id'     => $pago->getInscripcion()->getEvento()->getId(),
+                'titulo' => $pago->getInscripcion()->getEvento()->getTitulo(),
+            ],
+            'registradoPor' => $pago->getRegistradoPor()->getNombreCompleto(),
+        ], $pagos);
+
+        return $this->json(['hydra:member' => $data, 'hydra:totalItems' => count($data)]);
+    }
+
+    /**
      * Get event registration summary.
      */
     #[Route('/eventos/{id}/reporte-resumen', name: 'api_admin_evento_reporte_resumen', methods: ['GET'])]
@@ -601,5 +810,167 @@ class AdminController extends AbstractController
             'fechaAltaCenso' => $usuario->getFechaAltaCenso()?->format('c'),
             'fechaBajaCenso' => $usuario->getFechaBajaCenso()?->format('c'),
         ];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Dashboard stats
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[Route('/dashboard-stats', name: 'api_admin_dashboard_stats', methods: ['GET'])]
+    public function dashboardStats(): JsonResponse
+    {
+        /** @var Usuario $admin */
+        $admin = $this->getUser();
+        $entidad = $admin->getEntidad();
+        $today = new \DateTimeImmutable('today');
+
+        $em = $this->entityManager;
+
+        // ── 1. Total asistencia histórica (lineas confirmadas en eventos pasados) ─────
+        $totalLineas = (int) $em->createQuery(
+            'SELECT COUNT(l.id)
+             FROM App\Entity\InscripcionLinea l
+             JOIN l.inscripcion i
+             JOIN i.evento e
+             WHERE e.entidad = :entidad
+               AND e.fechaEvento < :today
+               AND l.estadoLinea != :cancelada'
+        )
+        ->setParameter('entidad', $entidad)
+        ->setParameter('today', $today)
+        ->setParameter('cancelada', 'cancelada')
+        ->getSingleScalarResult();
+
+        // ── 2. Total eventos pasados ─────────────────────────────────────────────────
+        $totalEventosPasados = (int) $em->createQuery(
+            'SELECT COUNT(e.id)
+             FROM App\Entity\Evento e
+             WHERE e.entidad = :entidad
+               AND e.fechaEvento < :today
+               AND e.estado != :cancelado'
+        )
+        ->setParameter('entidad', $entidad)
+        ->setParameter('today', $today)
+        ->setParameter('cancelado', 'cancelado')
+        ->getSingleScalarResult();
+
+        // ── 3. Media por franja horaria ──────────────────────────────────────────────
+        //    Para cada franja, calculamos el total de asistentes y el nº de eventos que
+        //    incluyeron esa franja, y derivamos la media.
+        $franjaRaw = $em->createQuery(
+            'SELECT l.franjaComidaSnapshot AS franja,
+                    COUNT(l.id) AS totalAsistentes,
+                    COUNT(DISTINCT e.id) AS numEventos
+             FROM App\Entity\InscripcionLinea l
+             JOIN l.inscripcion i
+             JOIN i.evento e
+             WHERE e.entidad = :entidad
+               AND e.fechaEvento < :today
+               AND l.estadoLinea != :cancelada
+             GROUP BY l.franjaComidaSnapshot'
+        )
+        ->setParameter('entidad', $entidad)
+        ->setParameter('today', $today)
+        ->setParameter('cancelada', 'cancelada')
+        ->getResult();
+
+        $mediaPorFranja = [];
+        foreach ($franjaRaw as $row) {
+            $franjaRaw2 = $row['franja'];
+            // franjaComidaSnapshot es string, pero apply enum-safe cast por precaución
+            $franja = $franjaRaw2 instanceof \BackedEnum
+                ? $franjaRaw2->value
+                : (string) ($franjaRaw2 ?? '');
+            if ($franja === '') {
+                continue;
+            }
+            $numEventos = (int) $row['numEventos'];
+            $mediaPorFranja[$franja] = $numEventos > 0
+                ? round((int) $row['totalAsistentes'] / $numEventos, 1)
+                : 0.0;
+        }
+
+        // ── 4. Media por tipo de actividad (compatibilidadPersona) ──────────────────
+        //    Clasificamos cada evento pasado según la compatibilidad de sus actividades:
+        //      - "adulto"  → todas las actividades son adulto/cadete
+        //      - "infantil"→ todas las actividades son infantil
+        //      - "ambos"   → hay mezcla o alguna actividad con AMBOS
+        $eventosTipoRaw = $em->createQuery(
+            'SELECT e.id AS eventoId,
+                    a.compatibilidadPersona AS compat,
+                    COUNT(l.id) AS asistentes
+             FROM App\Entity\Evento e
+             JOIN e.actividades a
+             LEFT JOIN App\Entity\InscripcionLinea l
+                 WITH l.actividad = a
+                 AND l.estadoLinea != :cancelada
+             WHERE e.entidad = :entidad
+               AND e.fechaEvento < :today
+               AND e.estado != :cancelado
+             GROUP BY e.id, a.compatibilidadPersona'
+        )
+        ->setParameter('entidad', $entidad)
+        ->setParameter('today', $today)
+        ->setParameter('cancelada', 'cancelada')
+        ->setParameter('cancelado', 'cancelado')
+        ->getResult();
+
+        // Agrupa por evento → map eventoId → [compat → totalAsistentes]
+        $eventoCompatMap = [];
+        foreach ($eventosTipoRaw as $row) {
+            // UUID puede llegar como objeto en Doctrine → forzar string
+            $eventoId = (string) $row['eventoId'];
+
+            // El campo enum puede llegar como objeto BackedEnum o como string
+            $compatRaw = $row['compat'];
+            if ($compatRaw === null) {
+                continue; // actividad sin compatibilidad definida → ignorar
+            }
+            $compat = $compatRaw instanceof \BackedEnum
+                ? $compatRaw->value
+                : (string) $compatRaw;
+
+            if (!isset($eventoCompatMap[$eventoId])) {
+                $eventoCompatMap[$eventoId] = [];
+            }
+            $eventoCompatMap[$eventoId][$compat] = ((int) ($eventoCompatMap[$eventoId][$compat] ?? 0)) + (int) $row['asistentes'];
+        }
+
+        // Clasifica el evento y acumula
+        $tipoGroups = ['adulto' => ['total' => 0, 'eventos' => 0], 'infantil' => ['total' => 0, 'eventos' => 0], 'ambos' => ['total' => 0, 'eventos' => 0]];
+        foreach ($eventoCompatMap as $compats) {
+            $compatKeys = array_keys($compats);
+            $totalEvento = array_sum($compats);
+
+            $hasInfantil = in_array('infantil', $compatKeys, true);
+            $hasAdulto   = !empty(array_intersect($compatKeys, ['adulto', 'cadete']));
+            $hasAmbos    = in_array('ambos', $compatKeys, true);
+
+            if ($hasAmbos || ($hasInfantil && $hasAdulto)) {
+                $grupo = 'ambos';
+            } elseif ($hasInfantil) {
+                $grupo = 'infantil';
+            } else {
+                $grupo = 'adulto';
+            }
+
+            $tipoGroups[$grupo]['total'] += $totalEvento;
+            $tipoGroups[$grupo]['eventos']++;
+        }
+
+        $mediaPorTipo = [];
+        foreach ($tipoGroups as $tipo => $data) {
+            $mediaPorTipo[$tipo] = $data['eventos'] > 0
+                ? round($data['total'] / $data['eventos'], 1)
+                : null;
+        }
+
+        return $this->json([
+            'totalAsistenciaHistorica' => $totalLineas,
+            'totalEventosPasados'      => $totalEventosPasados,
+            'mediaAsistenciaGeneral'   => $totalEventosPasados > 0 ? round($totalLineas / $totalEventosPasados, 1) : 0.0,
+            'mediaPorFranja'           => $mediaPorFranja,
+            'mediaPorTipo'             => $mediaPorTipo,
+        ]);
     }
 }

@@ -7,7 +7,7 @@ COMPOSE_PROD = docker compose -f docker-compose.prod.yml
 
 .PHONY: help dev-up dev-down dev-logs dev-shell \
         prod-up prod-down prod-logs prod-shell \
-        ftp-info migrate cache-clear jwt-keys
+        ftp-info migrate cache-clear jwt-keys fix-perms
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -54,6 +54,9 @@ migrate-prod: ## Ejecuta migraciones Doctrine (prod)
 
 cache-clear: ## Limpia la caché de Symfony (dev)
 	$(COMPOSE_DEV) exec --user www-data php php bin/console cache:clear
+
+fix-perms: ## Corrige permisos del directorio var/ en el contenedor PHP (dev)
+	$(COMPOSE_DEV) exec --user root php sh /var/www/html/scripts/fix_var_permissions.sh
 
 jwt-keys: ## Genera las claves JWT (dev)
 	$(COMPOSE_DEV) exec --user www-data php php bin/console lexik:jwt:generate-keypair --overwrite

@@ -140,6 +140,8 @@ export interface EventoAdminListado {
   estado: EventoEstado | string;
   inscripcionAbierta?: boolean;
   personasApuntadas?: number;
+  lugar?: string | null;
+  horaInicio?: string | null;
 }
 
 export interface EventoFormValue {

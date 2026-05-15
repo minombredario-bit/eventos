@@ -1,17 +1,223 @@
 <section class="screen admin-dashboard-screen">
   <app-mobile-header
     title="Panel administración"
-    subtitle="Gestión interna"
+    subtitle=""
     actionType="logout"
     (actionPressed)="logout()"
   />
 
   <div class="content">
-    <article class="panel empty-panel">
-      <p class="eyebrow">Dashboard</p>
-      <h2>Estamos preparando este panel</h2>
-      <p>De momento puedes gestionar censo y usuarios desde la pestaña de censo.</p>
+
+    <!-- ── Error feedback ──────────────────────────────────────────────── -->
+    @if (errorMessage(); as error) {
+      <article class="feedback feedback--error" role="alert">
+        <strong>No se pudo cargar el panel.</strong>
+        <p>{{ error }}</p>
+      </article>
+    }
+
+    <!-- ── KPI Cards (3 cards) ────────────────────────────────────────── -->
+    @if (loading()) {
+      <div class="stats-grid stats-grid--3">
+        @for (i of [1,2,3]; track i) {
+          <article class="stat-card stat-card--skeleton">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton skeleton--value"></div>
+            <div class="skeleton skeleton--label"></div>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="stats-grid stats-grid--3">
+
+        <article class="stat-card" (click)="irACenso()" role="button" tabindex="0">
+          <div class="stat-card__icon">👥</div>
+          <strong class="stat-card__value">{{ stats().totalCensados }}</strong>
+          <span class="stat-card__label">Censados activos</span>
+        </article>
+
+        <article class="stat-card" (click)="irAEventos()" role="button" tabindex="0">
+          <div class="stat-card__icon">🎉</div>
+          <strong class="stat-card__value">{{ stats().totalEventosPublicados }}</strong>
+          <span class="stat-card__label">Eventos activos</span>
+        </article>
+
+        <article class="stat-card" (click)="irAEventos()" role="button" tabindex="0">
+          <div class="stat-card__icon">📋</div>
+          <strong class="stat-card__value">
+            {{ stats().proximosEventos.at(0)?.personasApuntadas ?? '—' }}
+          </strong>
+          <span class="stat-card__label">Apuntados próx. evento</span>
+        </article>
+
+      </div>
+    }
+
+    <!-- ── Próximos 3 Eventos ──────────────────────────────────────────── -->
+    <article class="panel">
+
+      <div class="head-row">
+        <div>
+          <p class="eyebrow">Agenda</p>
+          <h2>Próximos eventos</h2>
+        </div>
+        <button type="button" class="action-button action-button--soft action-button--icon" (click)="irAEventos()">
+          <span class="button-icon" aria-hidden="true">→</span>
+          <span class="button-text">Ver todos</span>
+        </button>
+      </div>
+
+      @if (loading()) {
+        <div class="event-list">
+          @for (i of [1,2,3]; track i) {
+            <div class="event-row-skeleton">
+              <div class="skeleton skeleton--date"></div>
+              <div class="skeleton-body">
+                <div class="skeleton skeleton--title"></div>
+                <div class="skeleton skeleton--meta"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (stats().proximosEventos.length === 0) {
+        <div class="empty-state">
+          <span class="empty-state__icon">📅</span>
+          <p>No hay eventos próximos programados.</p>
+          <button type="button" class="action-button action-button--icon" (click)="irAEventos()">
+            <span class="button-icon" aria-hidden="true">＋</span>
+            <span class="button-text">Crear evento</span>
+          </button>
+        </div>
+      } @else {
+        <div class="event-list">
+          @for (evento of stats().proximosEventos; track evento.id) {
+            <article class="event-row" [ngClass]="statusTone(evento)">
+
+              <button type="button" class="event-row__main" (click)="irAEvento(evento.id)">
+                <div class="event-row__date">
+                  <strong>{{ formatDay(evento.fechaEvento) }}</strong>
+                  <span class="month">{{ formatMonth(evento.fechaEvento) }}</span>
+                </div>
+
+                <div class="event-row__body">
+                  <div class="event-row__top">
+                    <div>
+                      <h3>{{ evento.titulo }}</h3>
+                      <p>{{ formatDate(evento.fechaEvento) }}</p>
+                    </div>
+                    <span class="status-badge" [ngClass]="statusTone(evento)">
+                      {{ statusLabel(evento) }}
+                    </span>
+                  </div>
+
+                  <div class="event-row__meta">
+                    <span class="meta-chip meta-chip--persons">
+                      <span aria-hidden="true">👤</span>
+                      {{ evento.personasApuntadas ?? 0 }} apuntados
+                    </span>
+                    @if (evento.lugar) {
+                      <span class="meta-chip">
+                        <span aria-hidden="true">📍</span>
+                        {{ evento.lugar }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </button>
+
+              <div class="event-row__actions">
+                <button
+                  type="button"
+                  class="action-button action-button--soft action-button--icon"
+                  (click)="descargarParticipantes(evento, $event)"
+                  [disabled]="downloadingId() === evento.id || !evento.personasApuntadas"
+                  aria-label="Descargar listado PDF"
+                >
+                  <span class="button-icon" aria-hidden="true">📄</span>
+                  <span class="button-text">
+                    {{ downloadingId() === evento.id ? 'Descargando...' : 'Descargar listado' }}
+                  </span>
+                </button>
+              </div>
+
+            </article>
+          }
+        </div>
+      }
+    </article>
+
+    <!-- ── Estadísticas históricas de asistencia ───────────────────────── -->
+    <article class="panel asistencia-panel">
+      <p class="eyebrow">Histórico</p>
+      <h2>Estadísticas de asistencia</h2>
+
+      @if (loadingAsistencia()) {
+        <!-- Skeleton del panel de asistencia -->
+        <div class="asistencia-totales">
+          @for (i of [1,2,3]; track i) {
+            <div class="asistencia-total-card asistencia-total-card--skeleton">
+              <div class="skeleton skeleton--value"></div>
+              <div class="skeleton skeleton--label"></div>
+            </div>
+          }
+        </div>
+        <div class="asistencia-section">
+          <div class="skeleton skeleton--section-title"></div>
+          <div class="asistencia-bar-list">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="asistencia-bar-row">
+                <div class="skeleton skeleton--bar-label"></div>
+                <div class="asistencia-bar-track"><div class="skeleton skeleton--bar-fill"></div></div>
+                <div class="skeleton skeleton--bar-value"></div>
+              </div>
+            }
+          </div>
+        </div>
+      } @else {
+        @if (asistenciaStats(); as a) {
+
+          <!-- Totales -->
+          <div class="asistencia-totales">
+            <div class="asistencia-total-card">
+              <strong class="asistencia-total-card__value">{{ a.totalAsistenciaHistorica }}</strong>
+              <span class="asistencia-total-card__label">Asistentes total</span>
+            </div>
+            <div class="asistencia-total-card">
+              <strong class="asistencia-total-card__value">{{ a.totalEventosPasados }}</strong>
+              <span class="asistencia-total-card__label">Eventos pasados</span>
+            </div>
+            <div class="asistencia-total-card asistencia-total-card--highlight">
+              <strong class="asistencia-total-card__value">{{ a.mediaAsistenciaGeneral }}</strong>
+              <span class="asistencia-total-card__label">Media general</span>
+            </div>
+          </div>
+
+          <!-- Gráficos en grid -->
+          <div class="charts-grid">
+
+            <div class="chart-card">
+              <h3 class="chart-card__title">Media por franja horaria</h3>
+              <div class="chart-card__wrap chart-card__wrap--bar">
+                <canvas #franjaChartCanvas></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <h3 class="chart-card__title">Media por tipo de evento</h3>
+              <div class="chart-card__wrap chart-card__wrap--donut">
+                <canvas #tipoChartCanvas></canvas>
+              </div>
+            </div>
+
+          </div>
+
+        } @else {
+          <div class="empty-state">
+            <span class="empty-state__icon">📊</span>
+            <p>Sin datos históricos disponibles todavía.</p>
+          </div>
+        }
+      }
     </article>
   </div>
 </section>
-

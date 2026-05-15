@@ -19,6 +19,10 @@ run_as_www_data() {
 }
 
 # Permisos Symfony
+# Asegurar que el directorio raíz tiene grupo www-data (SGID para herencia)
+chown root:www-data /var/www/html
+chmod 2775 /var/www/html
+
 if [ -f /var/www/html/scripts/fix_var_permissions.sh ]; then
     sh /var/www/html/scripts/fix_var_permissions.sh
 else

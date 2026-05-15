@@ -1,5 +1,99 @@
 import {EventoAdminListado} from '../../eventos/domain/eventos.models';
 
+// ─── Inscripciones admin ────────────────────────────────────────────────────
+
+export type EstadoInscripcion = 'pendiente' | 'confirmada' | 'cancelada' | 'lista_espera';
+export type EstadoPago = 'no_requiere_pago' | 'pendiente' | 'parcial' | 'pagado' | 'devuelto' | 'cancelado';
+
+export interface InscripcionLineaAdmin {
+  id: string;
+  nombrePersonaSnapshot: string;
+  tipoPersonaSnapshot: string;
+  tipoRelacionEconomicaSnapshot?: string;
+  nombreActividadSnapshot: string;
+  franjaComidaSnapshot?: string;
+  esDePagoSnapshot: boolean;
+  precioUnitario: number;
+  estadoLinea: string;
+  pagada: boolean;
+  observaciones?: string | null;
+}
+
+export interface PagoAdmin {
+  id: string;
+  fecha: string;
+  importe: number;
+  metodoPago: string;
+  referencia?: string | null;
+  estado: string;
+  observaciones?: string | null;
+  registradoPor?: string;
+  inscripcion?: { id: string; codigo: string };
+  usuario?: { id: string; nombre: string; apellidos: string };
+  evento?: { id: string; titulo: string };
+}
+
+export interface InscripcionAdmin {
+  id: string;
+  codigo: string;
+  usuario: { id: string; nombre: string; apellidos: string; email: string };
+  evento: { id: string; titulo: string; fecha: string };
+  estadoInscripcion: EstadoInscripcion;
+  estadoPago: EstadoPago;
+  importeTotal: number;
+  importePagado: number;
+  observaciones?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  lineas: InscripcionLineaAdmin[];
+  pagos: PagoAdmin[];
+}
+
+export interface InscripcionAdminSummary {
+  id: string;
+  codigo: string;
+  usuario: { id: string; nombre: string; apellidos: string; email: string };
+  evento: { id: string; titulo: string };
+  estadoInscripcion: EstadoInscripcion;
+  estadoPago: EstadoPago;
+  importeTotal: number;
+  importePagado: number;
+  createdAt: string;
+}
+
+export interface InscripcionesPage {
+  items: InscripcionAdminSummary[];
+  totalItems: number;
+  totalPages: number;
+  page: number;
+  itemsPerPage: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export interface RegistrarPagoPayload {
+  metodoPago: string;
+  referencia?: string;
+  observaciones?: string;
+}
+
+// ─── Dashboard ──────────────────────────────────────────────────────────────
+
+export interface DashboardStats {
+  totalCensados: number;
+  totalEventosPublicados: number;
+  proximosEventos: EventoAdminListado[];
+}
+
+export interface DashboardAsistenciaStats {
+  totalAsistenciaHistorica: number;
+  totalEventosPasados: number;
+  mediaAsistenciaGeneral: number;
+  mediaPorFranja: Record<string, number>;
+  mediaPorTipo: Record<'adulto' | 'infantil' | 'ambos', number | null>;
+}
+
+
 export type EstadoValidacion =
   | 'pendiente_validacion'
   | 'validado'

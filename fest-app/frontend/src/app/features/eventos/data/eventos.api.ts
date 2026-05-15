@@ -152,6 +152,57 @@ export class EventosApi {
     );
   }
 
+  /**
+   * Devuelve los próximos N eventos a partir de hoy, ordenados por fecha asc.
+   */
+  getProximosEventos(limit = 3): Observable<EventoAdminListado[]> {
+    const today = new Date().toISOString().substring(0, 10);
+    const params = new HttpParams()
+      .set('fechaEvento[after]', today)
+      .set('order[fechaEvento]', 'asc')
+      .set('order[horaInicio]', 'asc')
+      .set('itemsPerPage', limit)
+      .set('pagination', 'true');
+
+    return this.http
+      .get<ApiCollection<EventoAdminListado>>(`${environment.apiUrl}/eventos`, { params })
+      .pipe(
+        map((response) => {
+          const raw = response as unknown as Record<string, any>;
+          const items = (raw['member'] ?? raw['hydra:member'] ?? []) as EventoAdminListado[];
+          return items.map((item) => this.normalizeEventoListado(item));
+        }),
+      );
+  }
+
+  /**
+   * Devuelve estadísticas de apuntados para un conjunto de IDs de eventos.
+   * Útil para el dashboard.
+   */
+  getEventosAdminStats(options: { upcoming?: boolean; limit?: number } = {}): Observable<EventoAdminListado[]> {
+    const { upcoming = false, limit = 5 } = options;
+    const today = new Date().toISOString().substring(0, 10);
+
+    let params = new HttpParams()
+      .set('order[fechaEvento]', upcoming ? 'asc' : 'desc')
+      .set('itemsPerPage', limit)
+      .set('pagination', 'true');
+
+    if (upcoming) {
+      params = params.set('fechaEvento[after]', today);
+    }
+
+    return this.http
+      .get<ApiCollection<EventoAdminListado>>(`${environment.apiUrl}/eventos`, { params })
+      .pipe(
+        map((response) => {
+          const raw = response as unknown as Record<string, any>;
+          const items = (raw['member'] ?? raw['hydra:member'] ?? []) as EventoAdminListado[];
+          return items.map((item) => this.normalizeEventoListado(item));
+        }),
+      );
+  }
+
   // Fallback legacy: usar solo cuando GET /api/eventos/{id} no incluya actividades embebidas.
   getActividadesByEvento(eventoId: string): Observable<ActividadEvento[]> {
     return this.http
