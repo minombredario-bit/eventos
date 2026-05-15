@@ -91,6 +91,7 @@ export interface DashboardAsistenciaStats {
   mediaAsistenciaGeneral: number;
   mediaPorFranja: Record<string, number>;
   mediaPorTipo: Record<'adulto' | 'infantil' | 'ambos', number | null>;
+  mediaPorActividad: Record<string, number | null>;
 }
 
 

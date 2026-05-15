@@ -8,6 +8,7 @@ use App\Entity\Pago;
 use App\Entity\Usuario;
 use App\Enum\CensadoViaEnum;
 use App\Enum\EstadoInscripcionEnum;
+use App\Enum\EstadoLineaInscripcionEnum;
 use App\Enum\EstadoPagoEnum;
 use App\Enum\EstadoValidacionEnum;
 use App\Enum\MetodoPagoEnum;
@@ -826,22 +827,22 @@ class AdminController extends AbstractController
 
         $em = $this->entityManager;
 
-        // ── 1. Total asistencia histórica (lineas confirmadas en eventos pasados) ─────
+        // ── 1. Total asistentes (join directo linea → actividad → evento) ──────────
         $totalLineas = (int) $em->createQuery(
             'SELECT COUNT(l.id)
              FROM App\Entity\InscripcionLinea l
-             JOIN l.inscripcion i
-             JOIN i.evento e
+             JOIN l.actividad a
+             JOIN a.evento e
              WHERE e.entidad = :entidad
-               AND e.fechaEvento < :today
+               AND e.estado != :cancelado
                AND l.estadoLinea != :cancelada'
         )
         ->setParameter('entidad', $entidad)
-        ->setParameter('today', $today)
-        ->setParameter('cancelada', 'cancelada')
+        ->setParameter('cancelado', 'cancelado')
+        ->setParameter('cancelada', EstadoLineaInscripcionEnum::CANCELADA)
         ->getSingleScalarResult();
 
-        // ── 2. Total eventos pasados ─────────────────────────────────────────────────
+        // ── 2. Total eventos pasados (informativo) ───────────────────────────────────
         $totalEventosPasados = (int) $em->createQuery(
             'SELECT COUNT(e.id)
              FROM App\Entity\Evento e
@@ -854,30 +855,39 @@ class AdminController extends AbstractController
         ->setParameter('cancelado', 'cancelado')
         ->getSingleScalarResult();
 
-        // ── 3. Media por franja horaria ──────────────────────────────────────────────
-        //    Para cada franja, calculamos el total de asistentes y el nº de eventos que
-        //    incluyeron esa franja, y derivamos la media.
+        // ── 2b. Total actividades evento distintas (denominador media general) ───────
+        $totalActividadesEventos = (int) $em->createQuery(
+            'SELECT COUNT(DISTINCT a.id)
+             FROM App\Entity\ActividadEvento a
+             JOIN a.evento e
+             WHERE e.entidad = :entidad
+               AND e.estado != :cancelado'
+        )
+        ->setParameter('entidad', $entidad)
+        ->setParameter('cancelado', 'cancelado')
+        ->getSingleScalarResult();
+
+        // ── 3. Media por franja horaria (linea → actividad → evento) ────────────────
         $franjaRaw = $em->createQuery(
             'SELECT l.franjaComidaSnapshot AS franja,
                     COUNT(l.id) AS totalAsistentes,
                     COUNT(DISTINCT e.id) AS numEventos
              FROM App\Entity\InscripcionLinea l
-             JOIN l.inscripcion i
-             JOIN i.evento e
+             JOIN l.actividad a
+             JOIN a.evento e
              WHERE e.entidad = :entidad
-               AND e.fechaEvento < :today
+               AND e.estado != :cancelado
                AND l.estadoLinea != :cancelada
              GROUP BY l.franjaComidaSnapshot'
         )
         ->setParameter('entidad', $entidad)
-        ->setParameter('today', $today)
-        ->setParameter('cancelada', 'cancelada')
+        ->setParameter('cancelado', 'cancelado')
+        ->setParameter('cancelada', EstadoLineaInscripcionEnum::CANCELADA)
         ->getResult();
 
         $mediaPorFranja = [];
         foreach ($franjaRaw as $row) {
             $franjaRaw2 = $row['franja'];
-            // franjaComidaSnapshot es string, pero apply enum-safe cast por precaución
             $franja = $franjaRaw2 instanceof \BackedEnum
                 ? $franjaRaw2->value
                 : (string) ($franjaRaw2 ?? '');
@@ -890,11 +900,7 @@ class AdminController extends AbstractController
                 : 0.0;
         }
 
-        // ── 4. Media por tipo de actividad (compatibilidadPersona) ──────────────────
-        //    Clasificamos cada evento pasado según la compatibilidad de sus actividades:
-        //      - "adulto"  → todas las actividades son adulto/cadete
-        //      - "infantil"→ todas las actividades son infantil
-        //      - "ambos"   → hay mezcla o alguna actividad con AMBOS
+        // ── 4. Media por tipo de evento (todos los eventos con actividades) ──────────
         $eventosTipoRaw = $em->createQuery(
             'SELECT e.id AS eventoId,
                     a.compatibilidadPersona AS compat,
@@ -905,26 +911,20 @@ class AdminController extends AbstractController
                  WITH l.actividad = a
                  AND l.estadoLinea != :cancelada
              WHERE e.entidad = :entidad
-               AND e.fechaEvento < :today
                AND e.estado != :cancelado
              GROUP BY e.id, a.compatibilidadPersona'
         )
         ->setParameter('entidad', $entidad)
-        ->setParameter('today', $today)
-        ->setParameter('cancelada', 'cancelada')
+        ->setParameter('cancelada', EstadoLineaInscripcionEnum::CANCELADA)
         ->setParameter('cancelado', 'cancelado')
         ->getResult();
 
-        // Agrupa por evento → map eventoId → [compat → totalAsistentes]
         $eventoCompatMap = [];
         foreach ($eventosTipoRaw as $row) {
-            // UUID puede llegar como objeto en Doctrine → forzar string
             $eventoId = (string) $row['eventoId'];
-
-            // El campo enum puede llegar como objeto BackedEnum o como string
             $compatRaw = $row['compat'];
             if ($compatRaw === null) {
-                continue; // actividad sin compatibilidad definida → ignorar
+                continue;
             }
             $compat = $compatRaw instanceof \BackedEnum
                 ? $compatRaw->value
@@ -936,7 +936,6 @@ class AdminController extends AbstractController
             $eventoCompatMap[$eventoId][$compat] = ((int) ($eventoCompatMap[$eventoId][$compat] ?? 0)) + (int) $row['asistentes'];
         }
 
-        // Clasifica el evento y acumula
         $tipoGroups = ['adulto' => ['total' => 0, 'eventos' => 0], 'infantil' => ['total' => 0, 'eventos' => 0], 'ambos' => ['total' => 0, 'eventos' => 0]];
         foreach ($eventoCompatMap as $compats) {
             $compatKeys = array_keys($compats);
@@ -965,12 +964,47 @@ class AdminController extends AbstractController
                 : null;
         }
 
+        // ── 5. Media por compatibilidad de actividad (linea → actividad → evento) ───
+        $actividadRaw = $em->createQuery(
+            'SELECT a.compatibilidadPersona AS compat,
+                    COUNT(l.id) AS totalAsistentes,
+                    COUNT(DISTINCT e.id) AS numEventos
+             FROM App\Entity\InscripcionLinea l
+             JOIN l.actividad a
+             JOIN a.evento e
+             WHERE e.entidad = :entidad
+               AND e.estado != :cancelado
+               AND l.estadoLinea != :cancelada
+             GROUP BY a.compatibilidadPersona'
+        )
+        ->setParameter('entidad', $entidad)
+        ->setParameter('cancelado', 'cancelado')
+        ->setParameter('cancelada', EstadoLineaInscripcionEnum::CANCELADA)
+        ->getResult();
+
+        $mediaPorActividad = [];
+        foreach ($actividadRaw as $row) {
+            $compatRaw = $row['compat'];
+            if ($compatRaw === null) {
+                continue;
+            }
+            $compat = $compatRaw instanceof \BackedEnum ? $compatRaw->value : (string) $compatRaw;
+            if ($compat === '') {
+                continue;
+            }
+            $numEventos = (int) $row['numEventos'];
+            $mediaPorActividad[$compat] = $numEventos > 0
+                ? round((int) $row['totalAsistentes'] / $numEventos, 1)
+                : null;
+        }
+
         return $this->json([
             'totalAsistenciaHistorica' => $totalLineas,
             'totalEventosPasados'      => $totalEventosPasados,
-            'mediaAsistenciaGeneral'   => $totalEventosPasados > 0 ? round($totalLineas / $totalEventosPasados, 1) : 0.0,
+            'mediaAsistenciaGeneral'   => $totalActividadesEventos > 0 ? round($totalLineas / $totalActividadesEventos, 1) : 0.0,
             'mediaPorFranja'           => $mediaPorFranja,
             'mediaPorTipo'             => $mediaPorTipo,
+            'mediaPorActividad'        => $mediaPorActividad,
         ]);
     }
 }

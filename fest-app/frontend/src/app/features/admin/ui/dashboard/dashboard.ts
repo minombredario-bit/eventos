@@ -17,6 +17,8 @@ import { EventoAdminListado } from '../../../eventos/domain/eventos.models';
 
 Chart.register(...registerables);
 
+type ChartMode = 'bar' | 'doughnut' | 'pie';
+
 // Paleta coherente con el tema de la app
 const BRAND_ORANGE  = 'rgba(232, 82, 10, 0.85)';
 const BRAND_ORANGE2 = 'rgba(200, 61, 0, 0.80)';
@@ -24,6 +26,7 @@ const COLOR_BLUE    = 'rgba(59, 130, 246, 0.80)';
 const COLOR_PURPLE  = 'rgba(139, 92, 246, 0.80)';
 const COLOR_GREEN   = 'rgba(34, 197, 94, 0.80)';
 const COLOR_AMBER   = 'rgba(245, 158, 11, 0.85)';
+const COLOR_TEAL    = 'rgba(20, 184, 166, 0.80)';
 const GRID_COLOR    = 'rgba(0,0,0,0.06)';
 
 @Component({
@@ -41,11 +44,13 @@ export class AdminDashboard {
   private readonly eventosApi = inject(EventosApi);
   private readonly destroyRef = inject(DestroyRef);
 
-  @ViewChild('franjaChartCanvas') franjaCanvas?: ElementRef<HTMLCanvasElement>;
-  @ViewChild('tipoChartCanvas')   tipoCanvas?:   ElementRef<HTMLCanvasElement>;
+  @ViewChild('franjaChartCanvas')    franjaCanvas?:    ElementRef<HTMLCanvasElement>;
+  @ViewChild('tipoChartCanvas')      tipoCanvas?:      ElementRef<HTMLCanvasElement>;
+  @ViewChild('actividadChartCanvas') actividadCanvas?: ElementRef<HTMLCanvasElement>;
 
-  private franjaChart: Chart | null = null;
-  private tipoChart:   Chart | null = null;
+  private franjaChart:    Chart | null = null;
+  private tipoChart:      Chart | null = null;
+  private actividadChart: Chart | null = null;
 
   protected readonly loading            = signal(true);
   protected readonly loadingAsistencia  = signal(false);
@@ -73,6 +78,23 @@ export class AdminDashboard {
     { key: 'ambos',    label: 'Mixtos'        },
   ];
 
+  protected readonly COMPAT_ACTIVIDAD: { key: string; label: string }[] = [
+    { key: 'adulto',   label: 'Adulto'   },
+    { key: 'cadete',   label: 'Cadete'   },
+    { key: 'infantil', label: 'Infantil' },
+    { key: 'ambos',    label: 'Ambos'    },
+  ];
+
+  protected readonly CHART_MODES: { key: ChartMode; label: string }[] = [
+    { key: 'bar',      label: 'Barras'   },
+    { key: 'doughnut', label: 'Anillo'   },
+    { key: 'pie',      label: 'Sectores' },
+  ];
+
+  protected readonly franjaChartMode    = signal<ChartMode>('bar');
+  protected readonly tipoChartMode      = signal<ChartMode>('doughnut');
+  protected readonly actividadChartMode = signal<ChartMode>('bar');
+
   protected readonly formatDate  = formatDate;
   protected readonly formatDay   = formatDay;
   protected readonly formatMonth = formatMonth;
@@ -81,23 +103,27 @@ export class AdminDashboard {
     this.loadStats();
     this.loadAsistenciaStats();
 
-    // Redibuja los gráficos cada vez que llegan los datos
+    // Redibuja los gráficos cada vez que llegan los datos o cambia el tipo
     effect(() => {
-      const stats = this.asistenciaStats();
+      const stats    = this.asistenciaStats();
+      const franjaM  = this.franjaChartMode();
+      const tipoM    = this.tipoChartMode();
+      const actividM = this.actividadChartMode();
+      if (!stats) return;
+      // Esperar un tick para que el DOM actualice los canvas
       untracked(() => {
-        if (stats) {
-          // Esperar un tick para que el DOM actualice los canvas
-          Promise.resolve().then(() => {
-            this.buildFranjaChart(stats);
-            this.buildTipoChart(stats);
-          });
-        }
+        Promise.resolve().then(() => {
+          this.buildFranjaChart(stats, franjaM);
+          this.buildTipoChart(stats, tipoM);
+          this.buildActividadChart(stats, actividM);
+        });
       });
     });
 
     this.destroyRef.onDestroy(() => {
       this.franjaChart?.destroy();
       this.tipoChart?.destroy();
+      this.actividadChart?.destroy();
     });
   }
 
@@ -210,109 +236,111 @@ export class AdminDashboard {
 
   // ── Chart.js ─────────────────────────────────────────────────────────────────
 
-  private buildFranjaChart(stats: DashboardAsistenciaStats): void {
-    const canvas = this.franjaCanvas?.nativeElement;
-    if (!canvas) return;
-
-    const labels: string[] = [];
-    const values: number[] = [];
-
-    for (const franja of this.FRANJAS) {
-      const val = stats.mediaPorFranja[franja.key];
-      if (val != null) {
-        labels.push(franja.label);
-        values.push(val);
-      }
-    }
-
-    this.franjaChart?.destroy();
-    this.franjaChart = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Media asistentes',
-          data: values,
-          backgroundColor: [BRAND_ORANGE, COLOR_BLUE, COLOR_PURPLE, BRAND_ORANGE2],
-          borderRadius: 8,
-          borderSkipped: false,
-        }],
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => ` ${ctx.parsed.x} asistentes de media`,
-            },
-          },
-        },
-        scales: {
-          x: {
-            beginAtZero: true,
-            grid: { color: GRID_COLOR },
-            ticks: { font: { size: 11 } },
-          },
-          y: {
-            grid: { display: false },
-            ticks: { font: { size: 12, weight: 'bold' } },
-          },
-        },
-      },
-    });
+  protected hasActividadData(stats: DashboardAsistenciaStats): boolean {
+    return Object.values(stats.mediaPorActividad ?? {}).some((v) => v != null);
   }
 
-  private buildTipoChart(stats: DashboardAsistenciaStats): void {
-    const canvas = this.tipoCanvas?.nativeElement;
+  private buildFranjaChart(stats: DashboardAsistenciaStats, mode: ChartMode): void {
+    const canvas = this.franjaCanvas?.nativeElement;
     if (!canvas) return;
-
     const labels: string[] = [];
     const values: number[] = [];
+    for (const franja of this.FRANJAS) {
+      const val = stats.mediaPorFranja[franja.key];
+      if (val != null) { labels.push(franja.label); values.push(val); }
+    }
+    this.franjaChart?.destroy();
+    this.franjaChart = this.buildChart(
+      canvas, mode, labels, values,
+      [BRAND_ORANGE, COLOR_BLUE, COLOR_PURPLE, BRAND_ORANGE2],
+    );
+  }
 
+  private buildTipoChart(stats: DashboardAsistenciaStats, mode: ChartMode): void {
+    const canvas = this.tipoCanvas?.nativeElement;
+    if (!canvas) return;
+    const labels: string[] = [];
+    const values: number[] = [];
     for (const tipo of this.TIPOS) {
       const val = stats.mediaPorTipo[tipo.key];
-      if (val != null) {
-        labels.push(tipo.label);
-        values.push(val);
-      }
+      if (val != null) { labels.push(tipo.label); values.push(val); }
     }
-
     if (values.length === 0) return;
-
     this.tipoChart?.destroy();
-    this.tipoChart = new Chart(canvas, {
-      type: 'doughnut',
+    this.tipoChart = this.buildChart(
+      canvas, mode, labels, values,
+      [BRAND_ORANGE, COLOR_BLUE, COLOR_GREEN],
+    );
+  }
+
+  private buildActividadChart(stats: DashboardAsistenciaStats, mode: ChartMode): void {
+    const canvas = this.actividadCanvas?.nativeElement;
+    if (!canvas) return;
+    const labels: string[] = [];
+    const values: number[] = [];
+    for (const compat of this.COMPAT_ACTIVIDAD) {
+      const val = stats.mediaPorActividad?.[compat.key];
+      if (val != null) { labels.push(compat.label); values.push(val); }
+    }
+    if (values.length === 0) return;
+    this.actividadChart?.destroy();
+    this.actividadChart = this.buildChart(
+      canvas, mode, labels, values,
+      [BRAND_ORANGE, COLOR_TEAL, COLOR_BLUE, COLOR_PURPLE],
+    );
+  }
+
+  /** Construye un Chart.js en función del modo elegido */
+  private buildChart(
+    canvas: HTMLCanvasElement,
+    mode: ChartMode,
+    labels: string[],
+    values: number[],
+    colors: string[],
+  ): Chart {
+    if (mode === 'bar') {
+      return new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{ label: 'Media asistentes', data: values,
+            backgroundColor: colors.slice(0, values.length),
+            borderRadius: 8, borderSkipped: false }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x} asistentes de media` } },
+          },
+          scales: {
+            x: { beginAtZero: true, grid: { color: GRID_COLOR }, ticks: { font: { size: 11 } } },
+            y: { grid: { display: false }, ticks: { font: { size: 12, weight: 'bold' } } },
+          },
+        },
+      });
+    }
+    // doughnut / pie
+    return new Chart(canvas, {
+      type: mode,
       data: {
         labels,
-        datasets: [{
-          data: values,
-          backgroundColor: [BRAND_ORANGE, COLOR_BLUE, COLOR_GREEN],
-          borderWidth: 0,
-          hoverOffset: 8,
-        }],
+        datasets: [{ data: values,
+          backgroundColor: colors.slice(0, values.length),
+          borderWidth: 2, borderColor: '#fff', hoverOffset: 8 }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
+        cutout: mode === 'doughnut' ? '62%' : 0,
         plugins: {
           legend: {
             position: 'bottom',
-            labels: {
-              padding: 16,
-              font: { size: 12 },
-              usePointStyle: true,
-              pointStyleWidth: 10,
-            },
+            labels: { padding: 14, font: { size: 11 }, usePointStyle: true, pointStyleWidth: 9 },
           },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => ` ${ctx.label}: ${ctx.parsed} de media`,
-            },
-          },
+          tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed} de media` } },
         },
       },
     });
