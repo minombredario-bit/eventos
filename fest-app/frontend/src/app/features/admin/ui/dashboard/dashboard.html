@@ -194,6 +194,33 @@
           <div class="charts-grid">
 
             <div class="chart-card">
+            <div class="chart-card__header">
+              <h3 class="chart-card__title">Media por tipo de actividad</h3>
+              @if (hasActividadData(a)) {
+                <div class="chart-mode-selector">
+                  @for (m of CHART_MODES; track m.key) {
+                    <button type="button" class="chart-mode-btn"
+                            [class.is-active]="actividadChartMode() === m.key"
+                            (click)="actividadChartMode.set(m.key)" [title]="m.label">
+                      {{ m.label }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            @if (hasActividadData(a)) {
+              <div class="chart-card__wrap chart-card__wrap--bar">
+                <canvas #actividadChartCanvas></canvas>
+              </div>
+            } @else {
+              <div class="chart-no-data">
+                <span>📊</span>
+                <p>Sin datos de actividad todavía</p>
+              </div>
+            }
+          </div>
+
+            <div class="chart-card">
               <div class="chart-card__header">
                 <h3 class="chart-card__title">Media por franja horaria</h3>
                 <div class="chart-mode-selector">
@@ -227,33 +254,6 @@
               <div class="chart-card__wrap chart-card__wrap--donut">
                 <canvas #tipoChartCanvas></canvas>
               </div>
-            </div>
-
-            <div class="chart-card">
-              <div class="chart-card__header">
-                <h3 class="chart-card__title">Media por tipo de actividad</h3>
-                @if (hasActividadData(a)) {
-                  <div class="chart-mode-selector">
-                    @for (m of CHART_MODES; track m.key) {
-                      <button type="button" class="chart-mode-btn"
-                        [class.is-active]="actividadChartMode() === m.key"
-                        (click)="actividadChartMode.set(m.key)" [title]="m.label">
-                        {{ m.label }}
-                      </button>
-                    }
-                  </div>
-                }
-              </div>
-              @if (hasActividadData(a)) {
-                <div class="chart-card__wrap chart-card__wrap--bar">
-                  <canvas #actividadChartCanvas></canvas>
-                </div>
-              } @else {
-                <div class="chart-no-data">
-                  <span>📊</span>
-                  <p>Sin datos de actividad todavía</p>
-                </div>
-              }
             </div>
 
           </div>

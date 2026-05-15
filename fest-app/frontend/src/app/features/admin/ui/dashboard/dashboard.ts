@@ -103,20 +103,31 @@ export class AdminDashboard {
     this.loadStats();
     this.loadAsistenciaStats();
 
-    // Redibuja los gráficos cada vez que llegan los datos o cambia el tipo
+    // Efecto independiente para cada chart → solo se redibuja el que cambió
     effect(() => {
-      const stats    = this.asistenciaStats();
-      const franjaM  = this.franjaChartMode();
-      const tipoM    = this.tipoChartMode();
-      const actividM = this.actividadChartMode();
+      const stats = this.asistenciaStats();
+      const mode = this.franjaChartMode();
       if (!stats) return;
-      // Esperar un tick para que el DOM actualice los canvas
       untracked(() => {
-        Promise.resolve().then(() => {
-          this.buildFranjaChart(stats, franjaM);
-          this.buildTipoChart(stats, tipoM);
-          this.buildActividadChart(stats, actividM);
-        });
+        Promise.resolve().then(() => this.buildFranjaChart(stats, mode));
+      });
+    });
+
+    effect(() => {
+      const stats = this.asistenciaStats();
+      const mode = this.tipoChartMode();
+      if (!stats) return;
+      untracked(() => {
+        Promise.resolve().then(() => this.buildTipoChart(stats, mode));
+      });
+    });
+
+    effect(() => {
+      const stats = this.asistenciaStats();
+      const mode = this.actividadChartMode();
+      if (!stats) return;
+      untracked(() => {
+        Promise.resolve().then(() => this.buildActividadChart(stats, mode));
       });
     });
 
