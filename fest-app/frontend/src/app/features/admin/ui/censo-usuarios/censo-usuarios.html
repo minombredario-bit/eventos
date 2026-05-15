@@ -9,7 +9,7 @@
   <div class="content">
     <article class="panel actions-panel admin-search-panel">
 
-      <!-- Botones de acción: primera fila en mobile, derecha en desktop -->
+      <!-- Botones de acción -->
       <div class="actions-row">
         @if (downloadAvailable()) {
           <button
@@ -43,7 +43,7 @@
         </button>
       </div>
 
-      <!-- Barra de búsqueda -->
+      <!-- Búsqueda por nombre / email -->
       <label class="search-field" aria-label="Buscar usuario">
         <span>Buscar por nombre o email</span>
         <input
@@ -54,13 +54,130 @@
         />
       </label>
 
-      <!-- Chips de filtro + borrar -->
+      <!-- Rango de fecha de nacimiento -->
+      <div class="date-range-row" role="group" aria-label="Filtro por mes de nacimiento">
+        <label class="date-field">
+          <span>Cumples desde</span>
+
+          <select
+            [value]="mesNacimientoDesde()"
+            (change)="setMesNacimientoDesde(($any($event.target).value ?? '').toString())"
+          >
+            <option value="">Todos</option>
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <option value="03">Marzo</option>
+            <option value="04">Abril</option>
+            <option value="05">Mayo</option>
+            <option value="06">Junio</option>
+            <option value="07">Julio</option>
+            <option value="08">Agosto</option>
+            <option value="09">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </label>
+
+        <label class="date-field">
+          <span>Cumples hasta</span>
+
+          <select
+            [value]="mesNacimientoHasta()"
+            (change)="setMesNacimientoHasta(($any($event.target).value ?? '').toString())"
+          >
+            <option value="">Todos</option>
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <option value="03">Marzo</option>
+            <option value="04">Abril</option>
+            <option value="05">Mayo</option>
+            <option value="06">Junio</option>
+            <option value="07">Julio</option>
+            <option value="08">Agosto</option>
+            <option value="09">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          class="birthday-export-button"
+          (click)="downloadUsuariosExcel(true)"
+        >
+          🎂
+          <span>Exportar cumpleaños</span>
+        </button>
+      </div>
+
+      <!-- Chips: estado de censo -->
       <div class="filter-row" role="group" aria-label="Filtros de censo">
-        <button type="button" class="chip-filter" [class.active]="filtro() === 'todos'" (click)="setFiltro('todos')">Todos</button>
-        <button type="button" class="chip-filter" [class.active]="filtro() === 'censado'" (click)="setFiltro('censado')">Censado</button>
-        <button type="button" class="chip-filter" [class.active]="filtro() === 'no_censado'" (click)="setFiltro('no_censado')">No censado</button>
-        <button type="button" class="chip-filter chip-filter--clear" (click)="setFiltro('todos'); setSearchTerm('')">
-          <span aria-hidden="true">✕</span> Borrar filtros
+
+        <button
+          type="button"
+          class="chip-filter chip-filter--censado"
+          [class.active]="filtro() === 'censado'"
+          (click)="setFiltro(filtro() === 'censado' ? 'todos' : 'censado')"
+          aria-label="Censado"
+        >
+          <span class="chip-text">Censado</span>
+          <span class="chip-mobile-icon" aria-hidden="true">✓</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-filter chip-filter--no-censado"
+          [class.active]="filtro() === 'no_censado'"
+          (click)="setFiltro(filtro() === 'no_censado' ? 'todos' : 'no_censado')"
+          aria-label="No censado"
+        >
+          <span class="chip-text">No censado</span>
+          <span class="chip-mobile-icon" aria-hidden="true">–</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-filter chip-filter--adulto"
+          [class.active]="tipoPersona() === 'adulto'"
+          (click)="setTipoPersona(tipoPersona() === 'adulto' ? null : 'adulto')"
+          aria-label="Adulto"
+        >
+          <span class="chip-text">Adulto</span>
+          <span class="chip-mobile-icon" aria-hidden="true">A</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-filter chip-filter--cadete"
+          [class.active]="tipoPersona() === 'cadete'"
+          (click)="setTipoPersona(tipoPersona() === 'cadete' ? null : 'cadete')"
+          aria-label="Cadete"
+        >
+          <span class="chip-text">Cadete</span>
+          <span class="chip-mobile-icon" aria-hidden="true">C</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-filter chip-filter--infantil"
+          [class.active]="tipoPersona() === 'infantil'"
+          (click)="setTipoPersona(tipoPersona() === 'infantil' ? null : 'infantil')"
+          aria-label="Infantil"
+        >
+          <span class="chip-text">Infantil</span>
+          <span class="chip-mobile-icon" aria-hidden="true">I</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-filter chip-filter--clear"
+          (click)="clearAllFilters()"
+          aria-label="Borrar filtros"
+        >
+          <span class="chip-text">✕ Borrar filtros</span>
+          <span class="chip-mobile-icon" aria-hidden="true">×</span>
         </button>
       </div>
 
@@ -103,6 +220,7 @@
               <thead>
               <tr>
                 <th>Nombre completo</th>
+                <th>Categoría</th>
                 <th>Teléfono</th>
                 <th>Antigüedad</th>
               </tr>
@@ -110,11 +228,10 @@
               <tbody>
                 @for (usuario of usuarios(); track usuario.id) {
                   <tr [routerLink]="['/admin/usuarios', usuario.id]" class="table-row-link">
-                    <td>
-                      <strong>{{ fullName(usuario) }}</strong>
-                    </td>
+                    <td><strong>{{ fullName(usuario) }}</strong></td>
+                    <td>{{ usuario.tipoPersona | titlecase }}</td>
                     <td>{{ usuario.telefono || '-' }}</td>
-                    <td>{{ antiguedadLabel(usuario) }}</td>
+                    <td>{{ usuario.antiguedad || '-' }}</td>
                   </tr>
                 }
               </tbody>
@@ -122,11 +239,23 @@
           </div>
 
           <div class="pagination-row">
-            <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="!hasPreviousPage()" (click)="loadPreviousPage()" aria-label="Página anterior">
+            <button
+              type="button"
+              class="action-button secondary action-button--icon action-button--pag"
+              [disabled]="!hasPreviousPage()"
+              (click)="loadPreviousPage()"
+              aria-label="Página anterior"
+            >
               <span class="button-icon" aria-hidden="true">&lt;</span>
             </button>
             <span>Página {{ currentPage() }} / {{ totalPages() }}</span>
-            <button type="button" class="action-button secondary action-button--icon action-button--pag" [disabled]="!hasNextPage()" (click)="loadNextPage()" aria-label="Página siguiente">
+            <button
+              type="button"
+              class="action-button secondary action-button--icon action-button--pag"
+              [disabled]="!hasNextPage()"
+              (click)="loadNextPage()"
+              aria-label="Página siguiente"
+            >
               <span class="button-icon" aria-hidden="true">&gt;</span>
             </button>
           </div>

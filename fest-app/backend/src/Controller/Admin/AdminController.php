@@ -174,7 +174,7 @@ class AdminController extends AbstractController
         }
     }
 
-    #[Route('/usuarios-exportar-excel', name: 'api_admin_usuarios_exportar_excel', methods: ['GET'])]
+//    #[Route('/usuarios-exportar-excel', name: 'api_admin_usuarios_exportar_excel', methods: ['GET'])]
     public function exportarUsuariosExcel(): Response
     {
         /** @var Usuario $admin */

@@ -146,6 +146,116 @@ class CensoImporterService
         return $resultado;
     }
 
+    public function exportar(array $usuarios): string
+    {
+        $gruposFamiliares = $this->generarCodigosGrupo($usuarios, TipoRelacionEnum::FAMILIAR, 'fam');
+        $gruposAmistad    = $this->generarCodigosGrupo($usuarios, TipoRelacionEnum::AMISTAD,  'ami');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Usuarios');
+
+        $sheet->fromArray([
+            'codigo_usuario',
+            'Nombre',
+            'Apellidos',
+            'direccion',
+            'dni',
+            'movil',
+            'fecha_nacimiento',
+            'email',
+            'debe_cambiar_password',
+            'fecha_baja_censo',
+            'motivo_baja_censo',
+            'antiguedad',
+            'grupo_familiar',
+            'grupo_amistad',
+        ], null, 'A1');
+
+        $row = 2;
+
+        foreach ($usuarios as $usuario) {
+            $userId = (string) $usuario->getId();
+
+            $sheet->fromArray([
+                $userId,
+                $usuario->getNombre(),
+                $usuario->getApellidos(),
+                $usuario->getDireccion(),
+                $usuario->getDocumentoIdentidad(),
+                $usuario->getTelefono(),
+                $usuario->getFechaNacimiento()?->format('d/m/Y'),
+                $usuario->getEmail(),
+                $usuario->isDebeCambiarPassword() ? 1 : 0,
+                $usuario->getFechaBajaCenso()?->format('d/m/Y'),
+                $usuario->getMotivoBajaCenso(),
+                $usuario->getAntiguedad(),
+                $gruposFamiliares[$userId] ?? '',
+                $gruposAmistad[$userId]    ?? '',
+            ], null, 'A' . $row);
+
+            $row++;
+        }
+
+        foreach (range('A', 'N') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $filePath = sys_get_temp_dir()
+            . DIRECTORY_SEPARATOR
+            . 'usuarios_entidad_'
+            . date('Ymd_His')
+            . '.xlsx';
+
+        (new Xlsx($spreadsheet))->save($filePath);
+
+        return $filePath;
+    }
+
+    public function exportarCumples(array $usuarios): string
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setTitle('Cumpleaños');
+
+        $sheet->setCellValue('A1', 'Nombre completo');
+        $sheet->setCellValue('B1', 'Fecha nacimiento');
+        $sheet->setCellValue('C1', 'Cumple este año');
+
+        $row = 2;
+
+        foreach ($usuarios as $usuario) {
+            $nombreCompleto = method_exists($usuario, 'getNombreCompleto') && $usuario->getNombreCompleto()
+                ? $usuario->getNombreCompleto()
+                : trim(($usuario->getNombre() ?? '') . ' ' . ($usuario->getApellidos() ?? ''));
+
+            $fechaNacimiento = $usuario->getFechaNacimiento();
+
+            $sheet->setCellValue("A{$row}", $nombreCompleto);
+            $sheet->setCellValue("B{$row}", $fechaNacimiento?->format('d/m/Y') ?? '');
+            $sheet->setCellValue("C{$row}", $this->calcularEdadCumpleAnioActual($fechaNacimiento));
+
+            $row++;
+        }
+
+        foreach (range('A', 'C') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $sheet->getStyle('A1:C1')->getFont()->setBold(true);
+
+        $filePath = sys_get_temp_dir()
+            . DIRECTORY_SEPARATOR
+            . 'usuarios_cumples_'
+            . date('Ymd_His')
+            . '.xlsx';
+
+        (new Xlsx($spreadsheet))->save($filePath);
+
+        return $filePath;
+    }
+
     private function procesarFila(array $row, array $headerMap, Entidad $entidad, string $appUri): array
     {
         $nombre = $this->normalizarTextoPersona(
@@ -865,5 +975,15 @@ class CensoImporterService
         }
 
         return $result;
+    }
+
+    private function calcularEdadCumpleAnioActual(?\DateTimeInterface $fechaNacimiento): ?int
+    {
+        if (!$fechaNacimiento instanceof \DateTimeInterface) {
+            return null;
+        }
+
+        return (int) (new \DateTimeImmutable('today'))->format('Y')
+            - (int) $fechaNacimiento->format('Y');
     }
 }

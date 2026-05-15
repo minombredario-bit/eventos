@@ -47,14 +47,17 @@ export class AdminApi {
     search?: string;
     filtro?: UsuariosFiltro;
     estadoValidacion?: string;
+    tipoPersona?: string;
+    mesNacimientoDesde?: string;
+    mesNacimientoHasta?: string;
     page?: number;
     itemsPerPage?: number;
   } = {}): Observable<UsuariosPage> {
     let params = new HttpParams();
 
-    const search = (options.search ?? '').trim();
-    const filtro = options.filtro ?? 'censado';
-    const page = options.page ?? 1;
+    const search       = (options.search ?? '').trim();
+    const filtro       = options.filtro ?? 'censado';
+    const page         = options.page ?? 1;
     const itemsPerPage = options.itemsPerPage ?? 10;
 
     params = params
@@ -74,6 +77,18 @@ export class AdminApi {
 
     if (options.estadoValidacion) {
       params = params.set('estadoValidacion', options.estadoValidacion);
+    }
+
+    if (options.tipoPersona) {
+      params = params.set('tipoPersona', options.tipoPersona);
+    }
+
+    if (options.mesNacimientoDesde) {
+      params = params.set('mesNacimientoDesde', options.mesNacimientoDesde);
+    }
+
+    if (options.mesNacimientoHasta) {
+      params = params.set('mesNacimientoHasta', options.mesNacimientoHasta);
     }
 
     if (search) {
@@ -102,7 +117,7 @@ export class AdminApi {
             totalPages,
             page,
             itemsPerPage,
-            hasNext: Boolean(view?.['next'] ?? view?.['hydra:next']),
+            hasNext:     Boolean(view?.['next']     ?? view?.['hydra:next']),
             hasPrevious: Boolean(view?.['previous'] ?? view?.['hydra:previous']),
           } satisfies UsuariosPage;
         }),
@@ -314,8 +329,28 @@ export class AdminApi {
     });
   }
 
-  exportarUsuariosExcel(): Observable<HttpResponse<Blob>> {
+  exportarUsuariosExcel(params?: {
+    search?: string;           // ?nombreCompleto=mar
+    filtro?: string;           // 'censado' | 'no_censado' | 'todos'
+    tipoPersona?: string;      // ?tipoPersona[]=adulto
+    mesNacimientoDesde?: string;  // ?fechaNacimiento[after]=YYYY-MM-DD
+    mesNacimientoHasta?: string;  // ?fechaNacimiento[before]=YYYY-MM-DD
+    soloCumples?: boolean;
+  }): Observable<HttpResponse<Blob>> {
+    let httpParams = new HttpParams().set('pagination', 'false')
+
+    if (params?.search)              httpParams = httpParams.set('nombreCompleto', params.search);
+    if (params?.tipoPersona)         httpParams = httpParams.set('tipoPersona[]', params.tipoPersona);
+    if (params?.mesNacimientoDesde) httpParams = httpParams.set('fechaNacimiento[after]',  params.mesNacimientoDesde);
+    if (params?.mesNacimientoHasta) httpParams = httpParams.set('fechaNacimiento[before]', params.mesNacimientoHasta);
+    if (params?.soloCumples) httpParams = httpParams.set('soloCumples', '1');
+
+    if (params?.filtro === 'censado')    httpParams = httpParams.set('fechaBajaCenso[exists]', 'false');
+    if (params?.filtro === 'no_censado') httpParams = httpParams.set('fechaBajaCenso[exists]', 'true');
+    // 'todos' → sin parámetro extra
+
     return this.http.get(`${environment.apiUrl}/admin/usuarios-exportar-excel`, {
+      params: httpParams,
       responseType: 'blob',
       observe: 'response',
     });

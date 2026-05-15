@@ -7,8 +7,10 @@ use App\Dto\AdminCreateUsuarioInput;
 use App\Dto\AdminUpdateUsuarioInput;
 use App\Dto\AdminUsuarioOutput;
 use App\Enum\TipoPersonaEnum;
+use App\Filter\MesNacimientoFilter;
 use App\Repository\UsuarioRepository;
 use App\State\AdminUsuarioProcessor;
+use App\State\ExportarUsuariosExcelProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -60,6 +62,15 @@ use Symfony\Component\Validator\Constraints as Assert;
             output: PersonaFamiliarView::class,
             provider: PersonaFamiliarMiasProvider::class
         ),
+
+        new GetCollection(
+            uriTemplate: '/admin/usuarios-exportar-excel',
+            // Sin normalizationContext: el provider devuelve directamente una BinaryFileResponse
+            paginationEnabled: false,
+            security: "is_granted('ROLE_ADMIN_ENTIDAD')",
+            provider: ExportarUsuariosExcelProvider::class,
+        ),
+
         new Post(
             uriTemplate: '/admin/usuarios',
             normalizationContext: [
@@ -93,7 +104,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ApiFilter(SearchFilter::class, properties: [
     'entidad' => 'exact',
     'entidad.id' => 'exact',
-    'estadoValidacion' => 'exact',
+    'tipoPersona' => 'exact',
     'tipoUsuarioEconomico' => 'exact',
     'nombre' => 'partial',
     'apellidos' => 'partial',
@@ -101,8 +112,9 @@ use Symfony\Component\Validator\Constraints as Assert;
     'email' => 'partial',
 ])]
 #[ApiFilter(BooleanFilter::class, properties: ['activo', 'esCensadoInterno'])]
-#[ApiFilter(DateFilter::class, properties: ['createdAt', 'fechaSolicitudAlta', 'fechaAltaCenso','fechaBajaCenso', 'fechaValidacion'])]
+#[ApiFilter(DateFilter::class, properties: ['createdAt', 'fechaSolicitudAlta', 'fechaAltaCenso','fechaBajaCenso'])]
 #[ApiFilter(ExistsFilter::class, properties: ['fechaAltaCenso', 'fechaBajaCenso'])]
+#[ApiFilter(MesNacimientoFilter::class)]
 #[ApiFilter(
     OrderFilter::class,
     properties: ['nombreCompleto', 'createdAt', 'fechaSolicitudAlta', 'fechaValidacion'],
@@ -223,6 +235,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
         'usuario:write',
         'relacion:read',
         'read_user_admin',
+        'usuario:collection'
     ])]
     #[Assert\NotNull]
     private TipoPersonaEnum $tipoPersona;
