@@ -218,12 +218,27 @@
           <div class="users-table-wrap">
             <table class="users-table" aria-label="Tabla de usuarios">
               <thead>
-              <tr>
-                <th>Nombre completo</th>
-                <th>Categoría</th>
-                <th>Teléfono</th>
-                <th>Antigüedad</th>
-              </tr>
+                <tr>
+                  <th>
+                    <span class="th-desktop">Nombre completo</span>
+                    <span class="th-mobile">Nombre</span>
+                  </th>
+
+                  <th>
+                    <span class="th-desktop">Categoría</span>
+                    <span class="th-mobile">Cat.</span>
+                  </th>
+
+                  <th>
+                    <span class="th-desktop">Teléfono</span>
+                    <span class="th-mobile">Telf.</span>
+                  </th>
+
+                  <th>
+                    <span class="th-desktop">Antigüedad</span>
+                    <span class="th-mobile">Anti.</span>
+                  </th>
+                </tr>
               </thead>
               <tbody>
                 @for (usuario of usuarios(); track usuario.id) {

@@ -459,3 +459,17 @@
     width: 100%;
   }
 }
+
+.th-mobile {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .th-desktop {
+    display: none;
+  }
+
+  .th-mobile {
+    display: inline;
+  }
+}
