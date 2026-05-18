@@ -32,7 +32,25 @@ class CensoImporterService
         string $temporada
     ): array {
         $spreadsheet = IOFactory::load($filePath);
-        $rows = $spreadsheet->getActiveSheet()->toArray();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Leer celdas manualmente para detectar fechas serializadas por Excel
+        $rows = [];
+        foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+            $rowData = [];
+            foreach ($row->getCellIterator() as $cell) {
+                if (\PhpOffice\PhpSpreadsheet\Shared\Date::isDateTime($cell) && $cell->getValue() !== null) {
+                    // Formatear fechas internas de Excel directamente a d/m/Y
+                    $rowData[] = \PhpOffice\PhpSpreadsheet\Style\NumberFormat::toFormattedString(
+                        $cell->getValue(),
+                        'DD/MM/YYYY'
+                    );
+                } else {
+                    $rowData[] = $cell->getValue();
+                }
+            }
+            $rows[] = $rowData;
+        }
 
         if (empty($rows)) {
             return [
@@ -350,7 +368,11 @@ class CensoImporterService
             $usuario->setActivo(true);
         }
 
-        $debeGenerarPassword = $isNew || $debeCambiarPasswordExcel === true;
+        // Solo genera nueva contraseña si es un usuario nuevo,
+        // o si el Excel pide debe_cambiar_password=true y el usuario
+        // aún no lo tiene activado (evita regenerar si ya estaba en ese estado).
+        $yaDebeCambiar = $usuario->isDebeCambiarPassword();
+        $debeGenerarPassword = $isNew || ($debeCambiarPasswordExcel === true && !$yaDebeCambiar);
 
         if ($debeGenerarPassword) {
             $plainPassword = $this->generateTemporaryPassword();
@@ -386,65 +408,6 @@ class CensoImporterService
             'email' => $email,
             'password' => $plainPassword,
         ];
-    }
-
-    private function crearRelacionesCompletas(array $usuarios, TipoRelacionEnum $tipoRelacion): int
-    {
-        $usuarios = array_values(array_filter($usuarios, fn ($u) => $u instanceof Usuario));
-
-        $total = count($usuarios);
-
-        if ($total < 2) {
-            return 0;
-        }
-
-        if ($total > 10) {
-            throw new \RuntimeException(
-                sprintf('Grupo de relación demasiado grande: %d usuarios. Máximo permitido: 10.', $total)
-            );
-        }
-
-        $creadas = 0;
-
-        for ($i = 0; $i < $total; $i++) {
-            for ($j = $i + 1; $j < $total; $j++) {
-                $creadas += $this->crearRelacionSiNoExiste($usuarios[$i], $usuarios[$j], $tipoRelacion);
-                $creadas += $this->crearRelacionSiNoExiste($usuarios[$j], $usuarios[$i], $tipoRelacion);
-            }
-        }
-
-        return $creadas;
-    }
-
-    private function crearRelacionSiNoExiste(
-        Usuario $usuarioOrigen,
-        Usuario $usuarioDestino,
-        TipoRelacionEnum $tipoRelacion
-    ): int {
-        if ($usuarioOrigen->getId() === $usuarioDestino->getId()) {
-            return 0;
-        }
-
-        $existente = $this->entityManager
-            ->getRepository(RelacionUsuario::class)
-            ->findOneBy([
-                'usuarioOrigen' => $usuarioOrigen,
-                'usuarioDestino' => $usuarioDestino,
-                'tipoRelacion' => $tipoRelacion,
-            ]);
-
-        if ($existente instanceof RelacionUsuario) {
-            return 0;
-        }
-
-        $relacion = new RelacionUsuario();
-        $relacion->setUsuarioOrigen($usuarioOrigen);
-        $relacion->setUsuarioDestino($usuarioDestino);
-        $relacion->setTipoRelacion($tipoRelacion);
-
-        $this->entityManager->persist($relacion);
-
-        return 1;
     }
 
     private function buscarUsuario(
@@ -540,7 +503,7 @@ class CensoImporterService
                 continue;
             }
 
-            if (in_array($columnName, ['fechanacimiento', 'fecha_nacimiento', 'nacimiento', 'birthdate'], true)) {
+            if (in_array($columnName, ['fechanacimiento', 'fecha_nacimiento', 'nacimiento', 'birthdate', 'fecha_naci', 'fechanaci', 'fnacimiento'], true)) {
                 $mapping['fecha_nacimiento'] = $index;
                 continue;
             }
@@ -688,6 +651,14 @@ class CensoImporterService
         return strtoupper(str_replace([' ', '-', '.'], '', trim($dni)));
     }
 
+    /**
+     * Parsea una fecha en formato d/m/Y (único formato aceptado tras la normalización
+     * en importar(), donde las fechas internas de Excel ya se convierten a DD/MM/YYYY
+     * mediante PhpSpreadsheet antes de llegar aquí).
+     *
+     * También acepta variantes con guión (d-m-Y) para fechas introducidas manualmente
+     * como texto en celdas no formateadas como fecha por Excel.
+     */
     private function parseFecha(?string $value): ?\DateTimeImmutable
     {
         if ($value === null || trim($value) === '') {
@@ -695,12 +666,24 @@ class CensoImporterService
         }
 
         $value = trim($value);
+        $utc = new \DateTimeZone('UTC');
 
-        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'Y/m/d', 'd/m/y', 'd-m-y'] as $format) {
-            $date = \DateTimeImmutable::createFromFormat($format, $value);
+        // Formatos día/mes/año únicamente — el formato MM/DD/YYYY americano
+        // queda descartado porque importar() ya normaliza todas las celdas
+        // de tipo fecha de Excel a DD/MM/YYYY antes de procesar las filas.
+        foreach (['d/m/Y', 'd-m-Y', 'd/m/y', 'd-m-y', 'Y-m-d', 'Y/m/d'] as $format) {
+            $date = \DateTimeImmutable::createFromFormat($format, $value, $utc);
 
             if ($date instanceof \DateTimeImmutable) {
-                return $date;
+                // Verificar que día y mes son coherentes con el valor parseado
+                // para evitar que createFromFormat "corrija" silenciosamente
+                // fechas inválidas (ej: día 32 → día 1 del mes siguiente).
+                $errors = \DateTimeImmutable::getLastErrors();
+                if (!empty($errors['warnings']) || !empty($errors['errors'])) {
+                    continue;
+                }
+
+                return $date->setTime(0, 0, 0);
             }
         }
 
