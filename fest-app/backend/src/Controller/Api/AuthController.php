@@ -146,18 +146,12 @@ class AuthController extends AbstractController
             'nombre'              => $user->getNombre(),
             'apellidos'           => $user->getApellidos(),
             'nombreCompleto'      => $user->getNombreCompleto(),
+            'direccion'           => $user->getDireccion(),
             'telefono'            => $user->getTelefono(),
             'fechaNacimiento'     => $user->getFechaNacimiento()?->format('Y-m-d'),
             'formaPagoPreferida'  => $user->getFormaPagoPreferida()?->value,
-            'debeCambiarPassword' => $user->isDebeCambiarPassword(),
-            'tipoUsuarioEconomico'=> $user->getTipoUsuarioEconomico()->value,
-            'roles'               => $user->getRoles(),
             'nombreEntidad'       => $user->getEntidad()->getNombre(),
             'tipoEntidad'         => mb_strtolower($user->getEntidad()->getTipoEntidad()?->getNombre() ?? ''),
-            'aceptoLopd'          => $user->isAceptoLopd(),
-            'aceptoLopdAt'        => $user->getAceptoLopdAt()?->format(DATE_ATOM),
-            'antiguedad'          => $user->getAntiguedad(),
-            'antiguedadReal'      => $user->getAntiguedadReal(),
         ];
     }
 }
