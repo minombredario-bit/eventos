@@ -23,6 +23,18 @@ run_as_www_data() {
 chown root:www-data /var/www/html
 chmod 2775 /var/www/html
 
+mkdir -p /var/www/html/public/uploads
+mkdir -p /var/www/html/public/uploads/entidades
+chown -R www-data:www-data /var/www/html/public/uploads
+chmod 2775 /var/www/html/public/uploads /var/www/html/public/uploads/entidades
+find /var/www/html/public/uploads -type d -exec chmod 2775 {} \;
+find /var/www/html/public/uploads -type f -exec chmod 0664 {} \;
+if [ -d /legacy-app-data/public/uploads ] && [ -z "$(ls -A /var/www/html/public/uploads 2>/dev/null)" ] && [ -n "$(ls -A /legacy-app-data/public/uploads 2>/dev/null)" ]; then
+    echo "[entrypoint] Migrando uploads existentes al volumen compartido..."
+    cp -a /legacy-app-data/public/uploads/. /var/www/html/public/uploads/
+    chown -R www-data:www-data /var/www/html/public/uploads
+fi
+
 if [ -f /var/www/html/scripts/fix_var_permissions.sh ]; then
     sh /var/www/html/scripts/fix_var_permissions.sh
 else

@@ -2,10 +2,12 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\Entidad;
 use App\Entity\Evento;
 use App\Entity\Inscripcion;
 use App\Entity\Pago;
 use App\Entity\Usuario;
+use App\Repository\EntidadRepository;
 use App\Enum\CensadoViaEnum;
 use App\Enum\EstadoInscripcionEnum;
 use App\Enum\EstadoLineaInscripcionEnum;
@@ -21,6 +23,7 @@ use App\Repository\PagoRepository;
 use App\Repository\UsuarioRepository;
 use App\Service\CensoImporterService;
 use App\Service\EmailQueueService;
+use App\Service\ImageStorageService;
 use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,10 +31,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\SerializerInterface;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 #[Route('/api/admin')]
@@ -39,6 +44,7 @@ class AdminController extends AbstractController
 {
     public function __construct(
         private readonly UsuarioRepository $usuarioRepository,
+        private readonly EntidadRepository $entidadRepository,
         private readonly EventoRepository $eventoRepository,
         private readonly InscripcionRepository $inscripcionRepository,
         private readonly InscripcionLineaRepository $inscripcionLineaRepository,
@@ -46,9 +52,51 @@ class AdminController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly CensoImporterService $censoImporter,
         private readonly EmailQueueService $emailQueueService,
+        private readonly ImageStorageService $imageStorageService,
+        private readonly SerializerInterface $serializer,
+        private readonly RequestStack $requestStack,
         private readonly string $defaultUri,
+        private readonly string $publicAssetUri,
         private readonly PagoRepository $pagoRepository,
     ) {}
+
+    #[Route('/entidades/{id}/logo', name: 'api_admin_entidad_logo_upload', methods: ['POST'])]
+    public function subirLogoEntidad(string $id, Request $request): JsonResponse
+    {
+        $entidad = $this->entidadRepository->find($id);
+
+        if (!$entidad instanceof Entidad) {
+            return $this->json(['error' => 'Entidad no encontrada'], 404);
+        }
+
+        $this->denyAccessUnlessGranted('ENTIDAD_EDIT', $entidad);
+
+        /** @var UploadedFile|null $file */
+        $file = $request->files->get('logo');
+
+        if (!$file instanceof UploadedFile) {
+            return $this->json(['error' => 'Archivo no proporcionado'], 400);
+        }
+
+        $mimeType = (string) $file->getMimeType();
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+
+        if (!str_starts_with($mimeType, 'image/') || !in_array($extension, $allowedExtensions, true)) {
+            return $this->json(['error' => 'Formato de imagen no válido. Use JPG, PNG, WEBP o GIF.'], 400);
+        }
+
+        $logoPath = $this->imageStorageService->saveImage($file, 'entidades', $entidad->getLogo());
+        $entidad->setLogo($logoPath);
+        $this->entityManager->flush();
+
+        $data = $this->serializer->normalize($entidad, null, ['groups' => ['entidad:read']]);
+        if (is_array($data)) {
+            $data['logo'] = $this->resolvePublicUrl($entidad->getLogo());
+        }
+
+        return new JsonResponse($data, 200);
+    }
 
     #[Route('/usuarios', name: 'api_admin_usuario_create', methods: ['POST'])]
     public function crearUsuario(Request $request): JsonResponse
@@ -1006,5 +1054,29 @@ class AdminController extends AbstractController
             'mediaPorTipo'             => $mediaPorTipo,
             'mediaPorActividad'        => $mediaPorActividad,
         ]);
+    }
+
+    private function resolvePublicUrl(?string $path): ?string
+    {
+        $path = trim((string) $path);
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (preg_match('#^(?:https?:)?//#i', $path) === 1 || str_starts_with($path, 'data:')) {
+            return $path;
+        }
+
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request === null) {
+            return $path;
+        }
+
+        $baseUri = trim($this->publicAssetUri) !== ''
+            ? $this->publicAssetUri
+            : $request->getSchemeAndHttpHost();
+
+        return rtrim($baseUri, '/') . '/' . ltrim($path, '/');
     }
 }

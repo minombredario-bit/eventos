@@ -5,7 +5,7 @@ import { QuillModule } from 'ngx-quill';
 import { AdminApi } from '../../data/admin.api';
 import { Entidad, EntidadCargo, CargoMaster } from '../../domain/admin.models';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, forkJoin } from 'rxjs';
+import { catchError, finalize, forkJoin, of, switchMap, tap } from 'rxjs';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ToastService } from '../../../shared/components/toast/toast.service';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
@@ -38,6 +38,13 @@ export class AdminEntidadForm {
 
   protected readonly entidades         = signal<Entidad[]>([]);
   protected readonly selectedEntidadId = signal<string | null>(null);
+  protected readonly selectedLogoFile = signal<File | null>(null);
+  protected readonly logoPreviewUrl = signal<string | null>(null);
+  protected readonly logoFileName = signal<string | null>(null);
+
+  protected readonly selectedEntidad = computed(
+    () => this.entidades().find((e) => e.id === this.selectedEntidadId()) ?? null,
+  );
 
   /** Cargos maestros disponibles según tipoEntidad */
   protected readonly availableCargoMasters = signal<CargoMaster[]>([]);
@@ -127,6 +134,9 @@ export class AdminEntidadForm {
     const entidad = this.entidades().find((e) => e.id === id) ?? null;
     if (!entidad) {
       this.form.reset();
+      this.selectedLogoFile.set(null);
+      this.logoPreviewUrl.set(null);
+      this.logoFileName.set(null);
       return;
     }
 
@@ -139,8 +149,43 @@ export class AdminEntidadForm {
       textoLopd:     entidad.textoLopd ?? null,
     });
 
+    this.selectedLogoFile.set(null);
+    this.logoFileName.set(null);
+    this.logoPreviewUrl.set(this.resolveLogoUrl(entidad.logo));
+
     // Cargar cargos de la entidad y cargos maestros disponibles en paralelo
     this.loadCargosData();
+  }
+
+  protected onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+
+    this.selectedLogoFile.set(file);
+    this.logoFileName.set(file?.name ?? null);
+
+    if (!file) {
+      this.logoPreviewUrl.set(this.resolveLogoUrl(this.selectedEntidad()?.logo));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.logoPreviewUrl.set(typeof reader.result === 'string' ? reader.result : null);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  protected resolveLogoUrl(logo: string | null | undefined): string | null {
+    if (!logo) {
+      return null;
+    }
+
+    if (logo.startsWith('data:') || logo.startsWith('http://') || logo.startsWith('https://')) {
+      return logo;
+    }
+
+    return logo.startsWith('/') ? logo : `/${logo}`;
   }
 
   private loadCargosData(): void {
@@ -373,7 +418,29 @@ export class AdminEntidadForm {
 
     this.adminApi
       .updateEntidad(entidadId, payload)
-      .pipe(finalize(() => this.saving.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((updated) => {
+          const logoFile = this.selectedLogoFile();
+
+          if (!logoFile) {
+            return of(updated);
+          }
+
+          return this.adminApi.uploadEntidadLogo(entidadId, logoFile).pipe(
+            tap((uploaded) => {
+              this.selectedLogoFile.set(null);
+              this.logoFileName.set(null);
+              this.logoPreviewUrl.set(this.resolveLogoUrl(uploaded.logo));
+            }),
+            catchError(() => {
+              this.toast.showError('No se ha podido subir el escudo de la entidad.');
+              return of(updated);
+            }),
+          );
+        }),
+        finalize(() => this.saving.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (updated) => {
           this.toast.showSuccess(this.translate.instant('admin.entidad.successSaved'));

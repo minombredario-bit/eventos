@@ -29,6 +29,37 @@
               </h3>
             </div>
           </div>
+
+          <div class="logo-upload">
+            <div class="logo-upload__preview" aria-hidden="true">
+              @if (logoPreviewUrl()) {
+                <img [src]="logoPreviewUrl()!" alt="Previsualización del escudo de la entidad" />
+              } @else {
+                <div class="logo-upload__placeholder">
+                  <span>Sin escudo</span>
+                </div>
+              }
+            </div>
+
+            <div class="logo-upload__control">
+              <label for="logo" class="logo-upload__label">Escudo de la entidad</label>
+              <input
+                id="logo"
+                type="file"
+                accept="image/*"
+                class="logo-upload__input"
+                (change)="onLogoSelected($event)"
+              />
+              <p class="logo-upload__help">
+                Sube una imagen JPG, PNG, WEBP o GIF. Se guardará como archivo público.
+              </p>
+
+              @if (logoFileName()) {
+                <p class="logo-upload__filename">Archivo seleccionado: {{ logoFileName() }}</p>
+              }
+            </div>
+          </div>
+
           <div class="field">
             <input id="emailContacto" type="email" formControlName="emailContacto" placeholder=" " />
             <label for="emailContacto">

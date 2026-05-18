@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\Entidad;
 use App\Repository\EntidadRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -22,6 +23,8 @@ final class EntidadAdminCollectionController
         private readonly AuthorizationCheckerInterface $authChecker,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly SerializerInterface $serializer,
+        private readonly RequestStack $requestStack,
+        private readonly string $publicAssetUri,
     ) {
     }
 
@@ -54,7 +57,40 @@ final class EntidadAdminCollectionController
         // Normalize entities to arrays using the serializer and the entidad:read group
         $data = $this->serializer->normalize($items, null, ['groups' => ['entidad:read']]);
 
+        if (is_array($data)) {
+            foreach ($data as &$item) {
+                if (is_array($item)) {
+                    $item['logo'] = $this->resolvePublicUrl($item['logo'] ?? null);
+                }
+            }
+            unset($item);
+        }
+
         return new JsonResponse($data);
+    }
+
+    private function resolvePublicUrl(?string $path): ?string
+    {
+        $path = trim((string) $path);
+
+        if ($path === '') {
+            return null;
+        }
+
+        if (preg_match('#^(?:https?:)?//#i', $path) === 1 || str_starts_with($path, 'data:')) {
+            return $path;
+        }
+
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request === null) {
+            return $path;
+        }
+
+        $baseUri = trim($this->publicAssetUri) !== ''
+            ? $this->publicAssetUri
+            : $request->getSchemeAndHttpHost();
+
+        return rtrim($baseUri, '/') . '/' . ltrim($path, '/');
     }
 }
 

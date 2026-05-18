@@ -5,6 +5,12 @@ echo "[entrypoint] Iniciando en modo producción..."
 
 cd /var/www/html
 
+mkdir -p /var/www/html/public/uploads/entidades
+chown -R www-data:www-data /var/www/html/public/uploads
+chmod 2775 /var/www/html/public/uploads /var/www/html/public/uploads/entidades
+find /var/www/html/public/uploads -type d -exec chmod 2775 {} +
+find /var/www/html/public/uploads -type f -exec chmod 0664 {} +
+
 run_as_www_data() {
     su -s /bin/sh -c "cd /var/www/html && $*" www-data
 }

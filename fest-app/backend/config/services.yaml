@@ -5,6 +5,7 @@ parameters:
         - 'http://localhost:4250'
     app.mailer_from: '%env(MAILER_FROM)%'
     app.uri: '%env(DEFAULT_URI)%'
+    app.public_asset_uri: '%env(PUBLIC_ASSET_URI)%'
 
 services:
     _defaults:
@@ -12,6 +13,7 @@ services:
         autoconfigure: true
         bind:
             string $defaultUri: '%app.uri%'
+            string $publicAssetUri: '%app.public_asset_uri%'
 
     App\:
         resource: '../src/'

@@ -136,6 +136,7 @@ export interface Entidad {
   telefono?: string | null;
   direccion?: string | null;
   textoLopd?: string | null;
+  logo?: string | null;
 }
 
 export type TipoPersona = 'infantil' | 'cadete' | 'adulto';

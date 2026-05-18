@@ -319,6 +319,16 @@ export class AdminApi {
     );
   }
 
+  uploadEntidadLogo(id: string, file: File): Observable<Entidad> {
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    return this.http.post<Entidad>(
+      `${environment.apiUrl}/admin/entidades/${encodeURIComponent(id)}/logo`,
+      formData
+    );
+  }
+
   importarExcel(file: File): Observable<HttpResponse<Blob>> {
     const formData = new FormData();
     formData.append('file', file);
