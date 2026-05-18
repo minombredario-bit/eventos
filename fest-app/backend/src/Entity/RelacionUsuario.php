@@ -54,6 +54,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Delete(
             uriTemplate: '/relaciones/{id}',
             security: "is_granted('RELACION_DELETE', object)",
+            processor: RelacionUsuarioProcessor::class,
         ),
     ],
     normalizationContext: ['groups' => ['relacion:read'], 'enable_max_depth' => 2],

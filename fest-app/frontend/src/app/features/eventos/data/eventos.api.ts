@@ -547,6 +547,34 @@ export class EventosApi {
       );
   }
 
+  deleteRelacion(relacionId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${environment.apiUrl}/relaciones/${encodeURIComponent(relacionId)}`,
+    ).pipe(map(() => void 0));
+  }
+
+  /**
+   * Obtener datos de un usuario por ID
+   * Requiere: ser el propio usuario, admin de la entidad, superadmin, o tener relación
+   */
+  getUsuario(usuarioId: string): Observable<Usuario> {
+    return this.http.get<Usuario>(
+      `${environment.apiUrl}/usuarios/${encodeURIComponent(usuarioId)}`,
+    );
+  }
+
+  /**
+   * Actualizar datos de un usuario
+   * Requiere: ser el propio usuario, admin de la entidad, superadmin, o tener relación (si es infantil)
+   */
+  updateUsuario(usuarioId: string, usuario: Partial<Usuario>): Observable<Usuario> {
+    return this.http.patch<Usuario>(
+      `${environment.apiUrl}/usuarios/${encodeURIComponent(usuarioId)}`,
+      usuario,
+    );
+  }
+
+
   // ── Privados ──────────────────────────────────────────────────────────
 
   private eventoBasePath(eventoId: string): string {

@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, Observable } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
+import { ConfirmModal } from '../../../shared/components/confirm-modal/confirm-modal';
 import { AuthService } from '../../../../core/auth/auth';
 import { EventosStore } from '../../store/eventos.store';
 import { EventosApi } from '../../data/eventos.api';
-import { METODOS_PAGO_OPTIONS, MetodoPago } from '../../domain/eventos.models';
+import { METODOS_PAGO_OPTIONS, MetodoPago, RelacionUsuario } from '../../domain/eventos.models';
 import { TranslatePipe } from '@ngx-translate/core';
 
 interface Feedback {
@@ -19,7 +20,7 @@ interface Feedback {
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [ReactiveFormsModule, MobileHeader, CtaButton, TranslatePipe],
+  imports: [ReactiveFormsModule, MobileHeader, CtaButton, TranslatePipe, ConfirmModal],
   templateUrl: './perfil.html',
   styleUrl: './perfil.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -77,6 +78,17 @@ export class Perfil {
   protected readonly unsubmitting = signal(false);
   protected readonly unsubscribeMessage = signal<Feedback | null>(null);
 
+   // ── Relaciones ────────────────────────────────────────────────────────
+   protected readonly relaciones = signal<RelacionUsuario[]>([]);
+   protected readonly loadingRelaciones = signal(false);
+   protected readonly errorRelaciones = signal<string | null>(null);
+   protected readonly deletingRelacionId = signal<string | null>(null);
+   protected readonly deleteRelacionMessage = signal<Feedback | null>(null);
+   protected readonly editingChildId = signal<string | null>(null);
+    // Estado para el modal de confirmación al borrar una relación
+    protected readonly showDeleteRelacionModal = signal(false);
+    protected readonly relacionToDelete = signal<RelacionUsuario | null>(null);
+
   protected canSaveProfile(): boolean {
     return !this.savingProfile();
   }
@@ -87,7 +99,7 @@ export class Perfil {
 
   constructor() {
     this.loadProfile();
-    void this.eventosStore.loadPersonasMias().subscribe();
+    this.loadRelaciones();
   }
 
   protected goBack(): void {
@@ -105,17 +117,31 @@ export class Perfil {
     this.profileMessage.set(null);
     this.savingProfile.set(true);
 
-    const { nombre, apellidos, direccion, telefono, fechaNacimiento, formaPagoPreferida } = this.profileForm.getRawValue();
+    const {
+      nombre,
+      apellidos,
+      direccion,
+      telefono,
+      fechaNacimiento,
+      formaPagoPreferida,
+    } = this.profileForm.getRawValue();
 
-    this.authService
-      .updateMe({
-        nombre: nombre.trim() || null,
-        apellidos: apellidos.trim() || null,
-        direccion: direccion.trim() || null,
-        telefono: telefono.trim() || null,
-        fechaNacimiento: fechaNacimiento || null,
-        formaPagoPreferida: formaPagoPreferida || null,
-      })
+    const payload = {
+      nombre: nombre.trim() || undefined,
+      apellidos: apellidos.trim() || undefined,
+      direccion: direccion.trim() || undefined,
+      telefono: telefono.trim() || undefined,
+      fechaNacimiento: fechaNacimiento || undefined,
+      formaPagoPreferida: formaPagoPreferida || undefined,
+    };
+
+    const childId = this.editingChildId();
+
+    const saveRequest$: Observable<any> = childId
+      ? this.eventosApi.updateUsuario(childId, payload)
+      : this.authService.updateMe(payload);
+
+    saveRequest$
       .pipe(
         finalize(() => this.savingProfile.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -123,9 +149,36 @@ export class Perfil {
       .subscribe({
         next: () => {
           this.profileForm.markAsPristine();
-          this.profileMessage.set({ text: 'Perfil actualizado correctamente.', type: 'success' });
+
+          if (childId) {
+            this.editingChildId.set(null);
+
+            this.profileMessage.set({
+              text: 'Datos del hijo/a actualizados correctamente.',
+              type: 'success',
+            });
+
+            this.loadRelaciones();
+
+            this.authService.getMe()
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe({
+                next: (user) => this.patchProfileForm(user),
+                error: () => {
+                  const fallback = this.authService.getUser();
+                  this.patchProfileForm(fallback);
+                },
+              });
+
+            return;
+          }
+
+          this.profileMessage.set({
+            text: 'Perfil actualizado correctamente.',
+            type: 'success',
+          });
         },
-        error: (error) => {
+        error: (error: any) => {
           this.profileMessage.set({
             text: this.resolveApiError(error) ?? 'No se pudo actualizar el perfil.',
             type: 'error',
@@ -202,6 +255,151 @@ export class Perfil {
           text: this.resolveApiError(err) ?? 'No se pudo enviar la solicitud.',
           type: 'error',
         });
+      },
+    });
+  }
+
+  // ── Relaciones ────────────────────────────────────────────────────────
+
+  private loadRelaciones(): void {
+    const currentUserId = this.authService.currentUserId?.trim();
+    if (!currentUserId) {
+      this.relaciones.set([]);
+      return;
+    }
+
+    this.loadingRelaciones.set(true);
+    this.errorRelaciones.set(null);
+
+    this.eventosApi.getRelacionesByUsuario(currentUserId).pipe(
+      finalize(() => this.loadingRelaciones.set(false)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (relaciones) => {
+        this.relaciones.set(relaciones);
+      },
+      error: () => {
+        this.errorRelaciones.set('No pudimos cargar tus relaciones.');
+        this.relaciones.set([]);
+      },
+    });
+  }
+
+  protected getRelacionadoNombre(relacion: RelacionUsuario): string {
+    const currentUserId = this.authService.currentUserId?.trim();
+    const esOrigen = relacion.usuarioOrigen.id === currentUserId;
+    const usuario = esOrigen ? relacion.usuarioDestino : relacion.usuarioOrigen;
+
+    const nombre = usuario.nombre?.trim() ?? '';
+    const apellidos = usuario.apellidos?.trim() ?? '';
+    const nombreCompleto = usuario.nombreCompleto?.trim() ?? '';
+
+    if (nombreCompleto) return nombreCompleto;
+    if (nombre && apellidos) return `${nombre} ${apellidos}`;
+    if (nombre) return nombre;
+    return 'Usuario desconocido';
+  }
+
+  protected deleteRelacion(relacion: RelacionUsuario): void {
+    // Abrir el modal de confirmación en lugar de usar window.confirm
+    this.relacionToDelete.set(relacion);
+    this.showDeleteRelacionModal.set(true);
+  }
+
+  protected onConfirmDeleteRelacion(confirmed: boolean): void {
+    const relacion = this.relacionToDelete();
+    // cerrar modal
+    this.showDeleteRelacionModal.set(false);
+    this.relacionToDelete.set(null);
+
+    if (!confirmed || !relacion) {
+      return;
+    }
+
+    this.deletingRelacionId.set(relacion.id);
+    this.deleteRelacionMessage.set(null);
+
+    this.eventosApi.deleteRelacion(relacion.id).pipe(
+      finalize(() => this.deletingRelacionId.set(null)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.relaciones.set(this.relaciones().filter((r) => r.id !== relacion.id));
+        this.deleteRelacionMessage.set({ text: 'Relación eliminada correctamente.', type: 'success' });
+      },
+      error: (error) => {
+        this.deleteRelacionMessage.set({
+          text: this.resolveApiError(error) ?? 'No se pudo eliminar la relación.',
+          type: 'error',
+        });
+      },
+    });
+  }
+
+  protected cancelDeleteRelacion(): void {
+    this.showDeleteRelacionModal.set(false);
+    this.relacionToDelete.set(null);
+  }
+
+  protected getRelacionado(relacion: RelacionUsuario) {
+    const currentUserId = this.authService.currentUserId?.trim();
+    const esOrigen = relacion.usuarioOrigen.id === currentUserId;
+
+    return esOrigen ? relacion.usuarioDestino : relacion.usuarioOrigen;
+  }
+
+  protected isRelacionInfantil(relacion: RelacionUsuario): boolean {
+    return this.getRelacionado(relacion).tipoPersona === 'infantil';
+  }
+
+  protected editRelacionIfInfantil(relacion: RelacionUsuario): void {
+    const usuario = this.getRelacionado(relacion);
+    const usuarioId = usuario.id;
+
+    if (usuario.tipoPersona !== 'infantil' || !usuarioId) {
+      return;
+    }
+
+    this.authService.getUsuario(usuarioId).subscribe({
+      next: (usuarioCompleto) => {
+        this.editingChildId.set(usuarioId);
+
+        this.profileForm.patchValue({
+          nombre: usuarioCompleto.nombre?.trim() ?? '',
+          apellidos: usuarioCompleto.apellidos?.trim() ?? '',
+          telefono: usuarioCompleto.telefono ?? '',
+          direccion: usuarioCompleto.direccion ?? '',
+          fechaNacimiento: this.normalizeDateForInput(usuarioCompleto.fechaNacimiento),
+          formaPagoPreferida: this.normalizeMetodoPago(usuarioCompleto.formaPagoPreferida),
+        });
+
+        document.querySelector('.form-card')?.scrollIntoView({
+          behavior: 'smooth',
+        });
+      },
+      error: (error) => {
+        this.profileMessage.set({
+          text: this.resolveApiError(error) ?? 'No se han podido cargar los datos del usuario infantil.',
+          type: 'error',
+        });
+      },
+    });
+  }
+
+  protected cancelEditChild(): void {
+    if (!this.editingChildId()) return;
+
+    this.editingChildId.set(null);
+
+    this.loadRelaciones();
+
+    this.authService.getMe().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (user) => this.patchProfileForm(user),
+      error: () => {
+        const fallback = this.authService.getUser();
+        this.patchProfileForm(fallback);
       },
     });
   }

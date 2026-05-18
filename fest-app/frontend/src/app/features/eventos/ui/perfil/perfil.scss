@@ -40,6 +40,50 @@
   letter-spacing: -0.01em;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+
+  h2 { margin: 0 0 0.25rem; }
+
+  /* Ensure the header button stays compact and doesn't expand or overlap inputs */
+  app-cta-button { flex: 0 0 auto; min-width: 0; }
+
+  /* Tighten internal button styles to keep it visually small */
+  app-cta-button button {
+    padding: 0.28rem 0.6rem;
+    height: 36px;
+    font-size: 0.78rem;
+    line-height: 1;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* Add a small separation between header and the form so elements don't overlap */
+  margin-bottom: 0.5rem;
+}
+
+.mis-datos-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-muted);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.mis-datos-icon svg { display: block; width: 16px; height: 16px; }
+
+.mis-datos-icon:hover { background: color-mix(in srgb, var(--brand-primary) 8%, var(--surface-muted)); }
+
+
 form {
   display: grid;
   grid-template-columns: 1fr;
@@ -144,6 +188,99 @@ textarea {
   input { display: none; }
 
   .pill-name { font-weight: 700; }
+}
+
+// ── Relaciones ────────────────────────────────────────────────────
+
+.relations-card {
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .supporting-copy {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+}
+
+.relations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.relation-item {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: var(--surface-soft);
+
+  .relation-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .relation-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+
+
+  }
+  .relation-info--clickable {
+    cursor: pointer;
+    &:hover .relation-name {
+      color: var(--brand-primary);
+    }
+  }
+  .relation-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+    transition: color .15s;
+  }
+
+  .relation-type {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: capitalize;
+    font-weight: 600;
+  }
+
+  .delete-btn {
+    min-height: 40px;
+    min-width: 100px;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--color-error, #c62828);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-error, #c62828) 8%, var(--surface));
+    color: var(--color-error, #c62828);
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--color-error, #c62828) 15%, var(--surface));
+      border-color: var(--color-error, #c62828);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
 }
 
 @media (max-width: 640px) {

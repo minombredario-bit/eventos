@@ -15,7 +15,10 @@ export class ConfirmModal {
   readonly confirmLabel = input('Eliminar');
   readonly cancelLabel = input('Cancelar');
 
+  // Emite cuando el usuario confirma la acción
   readonly confirmed = output<boolean>();
+  // Emite cuando el usuario cancela / cierra el modal
+  readonly cancel = output<void>();
 
   private readonly loading = signal(false);
 
@@ -26,7 +29,10 @@ export class ConfirmModal {
   }
 
   protected onCancel(): void {
-    this.confirmed.emit(false);
+    // Emitimos sólo el evento de cancel para que el consumidor lo gestione
+    // (no debemos emitir `confirmed(false)` porque en plantillas se
+    // manejan ambos eventos por separado).
+    this.cancel.emit();
   }
 }
 

@@ -53,6 +53,17 @@ export class AuthService {
       );
   }
 
+  getUsuario(id: string): Observable<AuthUser> {
+    return this.http.get<AuthUser>(
+      `${environment.apiUrl}/usuarios/${id}`,
+      {
+        headers: {
+          Accept: 'application/ld+json',
+        },
+      },
+    );
+  }
+
   getMe(): Observable<AuthUser> {
     return this.http.get<AuthUser>(`${environment.apiUrl}/me`).pipe(
       tap((user) => {

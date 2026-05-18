@@ -2,6 +2,7 @@
 
 namespace App\State;
 
+use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\RelacionUsuario;
@@ -25,10 +26,27 @@ class RelacionUsuarioProcessor implements ProcessorInterface
         private readonly Security $security,
     ) {}
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): RelacionUsuario
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): ?RelacionUsuario
     {
         if (!$data instanceof RelacionUsuario) {
             throw new BadRequestHttpException('Payload de relacion no valido.');
+        }
+
+        if ($operation instanceof Delete) {
+            $inversa = $this->relacionUsuarioRepository->findOneBy([
+                'usuarioOrigen'  => $data->getUsuarioDestino(),
+                'usuarioDestino' => $data->getUsuarioOrigen(),
+                'tipoRelacion'   => $data->getTipoRelacion(),
+            ]);
+
+            if ($inversa instanceof RelacionUsuario) {
+                $this->entityManager->remove($inversa);
+            }
+
+            $this->entityManager->remove($data);
+            $this->entityManager->flush();
+
+            return null;
         }
 
         $relacion = $data;

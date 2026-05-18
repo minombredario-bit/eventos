@@ -49,10 +49,26 @@ class RelacionUsuarioProvider implements ProviderInterface
         $resultado = [];
 
         foreach ($relaciones as $relacion) {
-            $origenId  = $relacion->getUsuarioOrigen()->getId();
-            $destinoId = $relacion->getUsuarioDestino()->getId();
+            $origen = $relacion->getUsuarioOrigen();
+            $destino = $relacion->getUsuarioDestino();
 
-            // Clave simétrica independiente del sentido
+            if (!$origen || !$destino) {
+                continue;
+            }
+
+            // No mostrar relaciones donde alguno de los dos usuarios esté inactivo o de baja
+            if (
+                !$origen->isActivo()
+                || $origen->getFechaBajaCenso() !== null
+                || !$destino->isActivo()
+                || $destino->getFechaBajaCenso() !== null
+            ) {
+                continue;
+            }
+
+            $origenId  = $origen->getId();
+            $destinoId = $destino->getId();
+
             $clave = implode('|', [min($origenId, $destinoId), max($origenId, $destinoId)]);
 
             if (isset($seen[$clave])) {
@@ -64,33 +80,5 @@ class RelacionUsuarioProvider implements ProviderInterface
         }
 
         return $resultado;
-    }
-
-    public function provide2(Operation $operation, array $uriVariables = [], array $context = []): array
-    {
-        $usuarioId = $uriVariables['id'] ?? null;
-
-        $usuario = $this->usuarioRepository->find($usuarioId);
-
-        if (!$usuario) {
-            throw new NotFoundHttpException('Usuario no encontrado.');
-        }
-
-        // Solo el propio usuario, admin de su entidad o superadmin.
-        $usuarioActual = $this->security->getUser();
-        if (!$usuarioActual instanceof Usuario) {
-            throw new AccessDeniedHttpException('No tienes permiso para ver estas relaciones.');
-        }
-
-        $isOwner = $usuarioActual->getId() === $usuario->getId();
-        $isSuperadmin = $this->security->isGranted('ROLE_SUPERADMIN');
-        $isAdminEntidad = $this->security->isGranted('ROLE_ADMIN_ENTIDAD')
-            && $usuarioActual->getEntidad()->getId() === $usuario->getEntidad()->getId();
-
-        if (!$isOwner && !$isAdminEntidad && !$isSuperadmin) {
-            throw new AccessDeniedHttpException('No tienes permiso para ver estas relaciones.');
-        }
-
-        return $this->relacionRepository->findRelacionadosByUsuario($usuario);
     }
 }

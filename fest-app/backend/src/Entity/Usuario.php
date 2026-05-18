@@ -42,7 +42,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
-        new Get(security: "is_granted('USUARIO_VIEW', object)"),
+        new Get(
+            uriTemplate: '/usuarios/{id}',
+            security: "is_granted('USUARIO_VIEW', object)"
+        ),
         new Get(
             uriTemplate: '/admin/usuarios/{id}',
             normalizationContext: [

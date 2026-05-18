@@ -3,6 +3,7 @@
 namespace App\Security\Voter;
 
 use App\Entity\Usuario;
+use App\Enum\TipoPersonaEnum;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
@@ -54,6 +55,7 @@ class UsuarioVoter extends Voter
      * - Es superadmin
      * - Es admin de la misma entidad
      * - Es el propio usuario
+     * - Existe una relación de amistad/familia entre ellos
      */
     private function canView(Usuario $targetUser, Usuario $user): bool
     {
@@ -94,6 +96,8 @@ class UsuarioVoter extends Voter
      * Puede editar el usuario si:
      * - Es superadmin
      * - Es admin de la misma entidad
+     * - Es el propio usuario
+     * - Existe relación y el usuario destino es infantil (permite editar datos de hijos)
      */
     private function canEdit(Usuario $targetUser, Usuario $user): bool
     {
@@ -102,6 +106,15 @@ class UsuarioVoter extends Voter
         }
 
         if ($this->isAdminOfSameEntidad($user, $targetUser)) {
+            return true;
+        }
+
+        if ($user->getId() === $targetUser->getId()) {
+            return true;
+        }
+
+        // Permite editar a un usuario infantil si existe relación (padre/tutor editando a hijo)
+        if ($targetUser->getTipoPersona() === TipoPersonaEnum::INFANTIL && $this->tienenRelacion($user, $targetUser)) {
             return true;
         }
 
