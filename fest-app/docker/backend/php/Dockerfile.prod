@@ -30,59 +30,21 @@ RUN apk add --no-cache \
         gd \
     && apk del .build-deps \
     && rm -rf /var/cache/apk/*
-server {
-    listen 80;
-    server_name festivapp.es www.festivapp.es _;
-    root /usr/share/nginx/html;
-    index index.html;
 
+COPY docker/php/conf.d/opcache.prod.ini      /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platform.ini
+COPY docker/php/conf.d/www.conf              /usr/local/etc/php/php-fpm.d/zz-app.conf
+COPY docker/php/php.prod.ini                 /usr/local/etc/php/php.ini
 COPY docker/backend/php/conf.d/opcache.prod.ini      /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/backend/php/conf.d/api-platform.prod.ini /usr/local/etc/php/conf.d/api-platform.ini
 COPY docker/backend/php/conf.d/www.conf              /usr/local/etc/php/php-fpm.d/zz-app.conf
 COPY docker/backend/php/php.prod.ini                 /usr/local/etc/php/php.ini
-    location /health {
-        access_log off;
-        add_header Content-Type text/plain;
-        return 200 "OK\n";
-    }
 
 FROM php_base AS composer_deps
-    location /api/ {
-        proxy_pass http://back-nginx;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Port $server_port;
-        proxy_set_header Authorization $http_authorization;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 300s;
-        proxy_read_timeout 300s;
-        proxy_buffering off;
-    }
 
 WORKDIR /app
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY backend/composer.json backend/composer.lock ./
-    location ^~ /uploads/ {
-        proxy_pass http://back-nginx;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Port $server_port;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 300s;
-        proxy_read_timeout 300s;
-        proxy_buffering off;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
 
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
     --no-dev \
@@ -90,56 +52,27 @@ RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
     --prefer-dist \
     --optimize-autoloader \
     --no-scripts
-    location = /ngsw-worker.js {
-        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
-        try_files $uri =404;
-    }
 
 FROM php_base
-    location = /ngsw.json {
-        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
-        try_files $uri =404;
-    }
 
 WORKDIR /var/www/html
 COPY backend/ .
 COPY --from=composer_deps /app/vendor ./vendor
-    location = /manifest.webmanifest {
-        add_header Cache-Control "no-cache" always;
-        try_files $uri =404;
-    }
 
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \
     && mkdir -p var/cache var/log config/jwt \
     && chown -R www-data:www-data var/ config/jwt \
     && chmod 775 config/jwt
-    location ~* \.(?:js|css|png|jpg|jpeg|gif|svg|ico|webp|avif|woff|woff2|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable" always;
-        access_log off;
-        try_files $uri =404;
-    }
 
 COPY docker/backend/php/entrypoint.prod.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
 
 EXPOSE 9000
-    location ~ /\. {
-        deny all;
-        access_log off;
-        log_not_found off;
-    }
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
     CMD pgrep php-fpm > /dev/null || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm", "-F"]
-    access_log /var/log/nginx/access.log;
-    error_log  /var/log/nginx/error.log warn;
-}
 
