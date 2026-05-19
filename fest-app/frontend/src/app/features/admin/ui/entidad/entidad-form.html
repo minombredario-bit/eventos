@@ -43,20 +43,27 @@
 
             <div class="logo-upload__control">
               <label for="logo" class="logo-upload__label">Escudo de la entidad</label>
-              <input
-                id="logo"
-                type="file"
-                accept="image/*"
-                class="logo-upload__input"
-                (change)="onLogoSelected($event)"
-              />
+              <div class="logo-upload__picker">
+                <input
+                  id="logo"
+                  type="file"
+                  accept="image/*"
+                  class="logo-upload__input"
+                  (change)="onLogoSelected($event)"
+                />
+                <label for="logo" class="logo-upload__button">
+                  <span class="logo-upload__button-icon" aria-hidden="true">▣</span>
+                  <span class="logo-upload__button-text">
+                    {{ logoFileName() ? 'Cambiar imagen' : 'Seleccionar imagen' }}
+                  </span>
+                </label>
+                <span class="logo-upload__status">
+                  {{ logoFileName() ?? 'Ningún archivo seleccionado' }}
+                </span>
+              </div>
               <p class="logo-upload__help">
                 Sube una imagen JPG, PNG, WEBP o GIF. Se guardará como archivo público.
               </p>
-
-              @if (logoFileName()) {
-                <p class="logo-upload__filename">Archivo seleccionado: {{ logoFileName() }}</p>
-              }
             </div>
           </div>
 
