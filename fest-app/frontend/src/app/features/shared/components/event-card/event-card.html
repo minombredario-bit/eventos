@@ -14,7 +14,7 @@
       </div>
 
       <p class="meta">{{ event().time }} · {{ event().location }}</p>
-      <p class="description">{{ event().description }}</p>
+      <div class="description" [innerHTML]="event()?.description"></div>
     </div>
   </article>
 </a>
