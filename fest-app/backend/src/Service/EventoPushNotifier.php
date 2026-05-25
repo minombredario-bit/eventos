@@ -77,14 +77,13 @@ final class EventoPushNotifier
 
         $subscriptions = $this->pushSubscriptionRepository->findByEntidadId($entidadId);
 
-        foreach ($subscriptions as $subscription) {
-            $this->pushNotificationService->send(
-                $subscription,
-                $title,
-                $body,
-                $url
-            );
+        if ($subscriptions === []) {
+            return;
         }
+
+        // Usar sendToMany() para enviar todas las notificaciones de forma eficiente
+        // en una sola cola WebPush, en lugar de iterar y llamar send() por cada una.
+        $this->pushNotificationService->sendToMany($subscriptions, $title, $body, $url);
     }
 
     private function getEventoTitulo(Evento $evento): string

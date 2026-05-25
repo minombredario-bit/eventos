@@ -12,8 +12,7 @@ use App\Enum\EstadoEventoEnum;
 use App\Enum\FranjaComidaEnum;
 use App\Enum\TipoActividadEnum;
 use App\Repository\ActividadEventoRepository;
-use App\Repository\PushSubscriptionRepository;
-use App\Service\PushNotificationService;
+use App\Service\EventoPushNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -32,8 +31,7 @@ final class EventoWriteProcessor implements ProcessorInterface
         private readonly ProcessorInterface         $persistProcessor,
         private readonly RequestStack               $requestStack,
         private readonly Security                   $security,
-        private readonly PushNotificationService    $pushNotificationService,
-        private readonly PushSubscriptionRepository $pushSubscriptionRepository,
+        private readonly EventoPushNotifier         $eventoPushNotifier,
     ) {}
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): Evento
@@ -52,8 +50,10 @@ final class EventoWriteProcessor implements ProcessorInterface
         /** @var Evento $saved */
         $saved = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
+        // Notificar solo si el evento es visible y NO está en borrador
         if ($saved->isVisible() && $saved->getEstado() !== EstadoEventoEnum::BORRADOR) {
-            $this->notificarEvento($saved, $isNew, (string) $user->getEntidad()->getId());
+            // Usar EventoPushNotifier con el método específico para eventos creados
+            $this->eventoPushNotifier->notifyEventoCreado($saved);
         }
 
         return $saved;
@@ -61,26 +61,6 @@ final class EventoWriteProcessor implements ProcessorInterface
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function notificarEvento(Evento $evento, bool $isNew, string $entidadId): void
-    {
-        // FIX: buscar suscripciones directamente por entidadId — más eficiente
-        // que iterar todos los usuarios de la entidad para recoger sus IDs.
-        // entidadId se guarda en la suscripción al momento de registrarse.
-        $subscriptions = $this->pushSubscriptionRepository->findByEntidadId($entidadId);
-
-        if ($subscriptions === []) {
-            return;
-        }
-
-        $title = $isNew ? 'Nuevo evento publicado' : 'Evento actualizado';
-        $body  = $evento->getTitulo();
-        $url   = '/eventos/' . $evento->getId() . '/detalle';
-
-        // sendToMany envía todas en una sola cola WebPush (más eficiente que send() en bucle)
-        $this->pushNotificationService->sendToMany($subscriptions, $title, $body, $url);
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
 
     private function syncSlug(Evento $evento, Operation $operation): void
     {
