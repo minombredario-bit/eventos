@@ -31,6 +31,7 @@ export class Login {
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly showValidationMessages = signal(false);
+  protected readonly showPassword = signal(false);
 
   // ✅ Validador: email o DNI/NIE
   static identificador(control: AbstractControl): ValidationErrors | null {
