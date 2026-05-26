@@ -81,16 +81,7 @@ final class EntidadAdminCollectionController
             return $path;
         }
 
-        $request = $this->requestStack->getCurrentRequest();
-        if ($request === null) {
-            return $path;
-        }
-
-        $baseUri = trim($this->publicAssetUri) !== ''
-            ? $this->publicAssetUri
-            : $request->getSchemeAndHttpHost();
-
-        return rtrim($baseUri, '/') . '/' . ltrim($path, '/');
+        return '/' . ltrim($path, '/');
     }
 }
 

@@ -20,6 +20,7 @@ services:
             APP_DEBUG: "0"
         volumes:
             - uploads_data:/var/www/html/public/uploads
+            - ./storage/uploads:/legacy-uploads:ro
         extra_hosts:
             - "db:10.96.1.248"
         networks:

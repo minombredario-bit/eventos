@@ -5,11 +5,25 @@ echo "[entrypoint] Iniciando en modo producción..."
 
 cd /var/www/html
 
-mkdir -p /var/www/html/public/uploads/entidades
-chown -R www-data:www-data /var/www/html/public/uploads
-chmod 2775 /var/www/html/public/uploads /var/www/html/public/uploads/entidades
-find /var/www/html/public/uploads -type d -exec chmod 2775 {} +
-find /var/www/html/public/uploads -type f -exec chmod 0664 {} +
+UPLOADS_DIR=/var/www/html/public/uploads
+LEGACY_UPLOADS_DIR=/legacy-uploads
+
+mkdir -p "$UPLOADS_DIR"
+
+if [ -d "$LEGACY_UPLOADS_DIR" ]; then
+    HAS_UPLOADS=$(find "$UPLOADS_DIR" -mindepth 1 -maxdepth 1 ! -name entidades -print -quit 2>/dev/null || true)
+    if [ -z "$HAS_UPLOADS" ]; then
+        echo "[entrypoint] Migrando uploads antiguos al volumen Docker..."
+        cp -a "$LEGACY_UPLOADS_DIR/." "$UPLOADS_DIR/" 2>/dev/null || true
+    fi
+fi
+
+mkdir -p "$UPLOADS_DIR/entidades"
+
+chown -R www-data:www-data "$UPLOADS_DIR"
+chmod 2775 "$UPLOADS_DIR" "$UPLOADS_DIR/entidades"
+find "$UPLOADS_DIR" -type d -exec chmod 2775 {} +
+find "$UPLOADS_DIR" -type f -exec chmod 0664 {} +
 
 run_as_www_data() {
     su -s /bin/sh -c "cd /var/www/html && $*" www-data
