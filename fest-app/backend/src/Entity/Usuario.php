@@ -11,6 +11,7 @@ use App\Filter\MesNacimientoFilter;
 use App\Repository\UsuarioRepository;
 use App\State\AdminUsuarioProcessor;
 use App\State\ExportarUsuariosExcelProvider;
+use App\State\UsuarioPatchProcessor;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -86,7 +87,10 @@ use Symfony\Component\Validator\Constraints as Assert;
             output: AdminUsuarioOutput::class,
             processor: AdminUsuarioProcessor::class,
         ),
-        new Patch(security: "is_granted('USUARIO_EDIT', object)"),
+        new Patch(
+            security: "is_granted('USUARIO_EDIT', object)",
+            processor: UsuarioPatchProcessor::class
+        ),
         // Admin-specific PATCH that routes through a processor to handle relaciones and cargos
         new Patch(
             uriTemplate: '/admin/usuarios/{id}',
