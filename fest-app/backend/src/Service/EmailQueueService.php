@@ -104,6 +104,27 @@ class EmailQueueService
         );
     }
 
+    public function enqueuePasswordChanged(Usuario $usuario, string $plainPassword, string $appUri): void
+    {
+        if (!$usuario->getEmail()) {
+            return;
+        }
+
+        $this->enqueue(
+            $usuario->getEmail(),
+            'Tu contraseña ha sido restablecida',
+            'email/password_changed.html.twig',
+            [
+                'nombre' => $usuario->getNombre(),
+                'email' => $usuario->getEmail(),
+                'password' => $plainPassword,
+                'appUri' => $appUri,
+            ],
+            $usuario->getEntidad(),
+            $usuario,
+        );
+    }
+
     public function enqueueEventoCreado(Evento $evento): void
     {
         foreach ($evento->getEntidad()->getUsuarios() as $usuario) {
@@ -262,4 +283,3 @@ class EmailQueueService
         return rtrim($this->appUri, '/') . '/' . ltrim($logo, '/');
     }
 }
-

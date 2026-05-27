@@ -74,6 +74,7 @@ final class AdminUsuarioProcessor implements ProcessorInterface
 
         if ($usuario->getEmail()) {
             $this->emailQueueService->enqueueUserWelcome($usuario, $passwordPlano, $this->appUri);
+            $this->entityManager->flush();
             return new AdminUsuarioOutput($usuario, null);
         }
 
@@ -92,7 +93,22 @@ final class AdminUsuarioProcessor implements ProcessorInterface
 
         $this->assertCanEdit($admin, $usuario);
 
+        // Guardar email anterior para detectar cambios
+        $emailAnterior = $usuario->getEmail();
+
+        // Si se envía debeCambiarPassword = true y el usuario tiene email, generar nueva contraseña
+        $debeRegenerarPassword =
+            $data->debeCambiarPassword === true
+            && $usuario->isDebeCambiarPassword() !== true;
+        $passwordPlano = null;
+
         $this->applyCommon($usuario, $data, false);
+
+        // Generar nueva contraseña si es necesario
+        if ($debeRegenerarPassword) {
+            $passwordPlano = $this->generateRandomPassword();
+            $usuario->setPassword($this->passwordHasher->hashPassword($usuario, $passwordPlano));
+        }
 
         if (is_array($data->relacionUsuarios)) {
             $this->syncRelacionesBidireccionales($usuario, $data->relacionUsuarios);
@@ -100,7 +116,25 @@ final class AdminUsuarioProcessor implements ProcessorInterface
 
         $this->entityManager->flush();
 
-        return new AdminUsuarioOutput($usuario, null);
+        // Enviar email de cambio de contraseña
+        if ($debeRegenerarPassword && $passwordPlano && $usuario->getEmail()) {
+            $this->emailQueueService->enqueuePasswordChanged($usuario, $passwordPlano, $this->appUri);
+            $passwordPlano = null;
+        }
+
+        // Notificar si el email cambió
+        if ($emailAnterior !== $usuario->getEmail() && $emailAnterior && $usuario->getEmail()) {
+            $this->emailQueueService->enqueueUserEmailChanged(
+                $usuario,
+                $emailAnterior,
+                $usuario->getEmail(),
+                $this->appUri
+            );
+        }
+
+        $this->entityManager->flush();
+
+        return new AdminUsuarioOutput($usuario, $passwordPlano);
     }
 
     /* ================= RELACIONES ================= */
