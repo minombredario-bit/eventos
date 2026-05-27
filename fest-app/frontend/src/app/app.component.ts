@@ -43,6 +43,11 @@ export class AppComponent implements OnInit {
         return;
       }
 
+      // Permitir acceso a rutas públicas de auth (olvido de contraseña, reset de contraseña)
+      if (currentUrl.startsWith('/auth/forgot-password') || currentUrl.startsWith('/auth/reset-password')) {
+        return;
+      }
+
       if (user.debeCambiarPassword && currentUrl !== '/auth/cambiar-password') {
         void this.router.navigateByUrl('/auth/cambiar-password', { replaceUrl: true });
         return;

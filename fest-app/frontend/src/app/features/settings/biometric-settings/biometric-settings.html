@@ -1,0 +1,90 @@
+<main class="settings-page">
+  <section class="settings-card">
+    <header class="settings-header">
+      <h1>Seguridad Biométrica</h1>
+      <p class="subtitle">Gestiona tus dispositivos con huella / Face ID</p>
+    </header>
+
+    <div class="settings-content">
+      <!-- Support check -->
+      @if (!isSupported()) {
+        <div class="alert alert-warning" role="alert">
+          <p>Tu navegador no soporta biometría. Actualiza a una versión más reciente.</p>
+        </div>
+      } @else {
+        <!-- Register new passkey -->
+        <section class="register-section">
+          <h2>Registrar nuevo dispositivo</h2>
+          <p class="description">Registra un nuevo dispositivo con tu huella biométrica o Face ID para un acceso más rápido.</p>
+
+          <div class="button-group">
+            <app-cta-button
+              label="Registrar dispositivo"
+              loadingLabel="Registrando..."
+              type="button"
+              [loading]="registering()"
+              [disabled]="registering()"
+              (click)="registerNewPasskey()"
+              ariaLabel="Registrar nuevo dispositivo biométrico"
+            />
+          </div>
+
+          @if (successMessage()) {
+            <div class="alert alert-success" role="status">
+              {{ successMessage() }}
+            </div>
+          }
+
+          @if (errorMessage()) {
+            <div class="alert alert-error" role="alert">
+              {{ errorMessage() }}
+            </div>
+          }
+        </section>
+
+        <!-- Registered devices -->
+        @if (credentials().length > 0) {
+          <section class="devices-section">
+            <h2>Dispositivos registrados</h2>
+            <div class="device-list">
+              @for (cred of credentials(); track cred.id) {
+                <div class="device-card">
+                  <div class="device-info">
+                    <h3>{{ cred.deviceName }}</h3>
+                    <p class="date">
+                      Registrado: {{ cred.createdAt | date: 'short' }}
+                    </p>
+                    @if (cred.lastUsedAt) {
+                      <p class="date">
+                        Último uso: {{ cred.lastUsedAt | date: 'short' }}
+                      </p>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    class="btn-delete"
+                    (click)="deleteCredential(cred.id)"
+                    aria-label="Eliminar dispositivo"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              }
+            </div>
+          </section>
+        } @else if (!loading()) {
+          <section class="empty-state">
+            <p class="icon">🔒</p>
+            <p>No tienes dispositivos registrados aún.</p>
+            <p class="hint">Registra tu dispositivo para usar biometría en el acceso.</p>
+          </section>
+        }
+      }
+    </div>
+
+    <footer class="settings-footer">
+      <a routerLink="/eventos" class="back-link">← Volver</a>
+    </footer>
+  </section>
+</main>
+

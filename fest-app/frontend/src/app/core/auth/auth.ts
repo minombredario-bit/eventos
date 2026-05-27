@@ -10,6 +10,16 @@ import {
   LoginResponse,
 } from '../models/auth.models';
 
+export interface ForgotPasswordResponse {
+  ok: boolean;
+  message: string;
+}
+
+export interface ResetPasswordResponse {
+  ok: boolean;
+  message: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -96,6 +106,20 @@ export class AuthService {
 
   logout(): void {
     this.authStore.logout();
+  }
+
+  forgotPassword(identifier: string): Observable<ForgotPasswordResponse> {
+    return this.http.post<ForgotPasswordResponse>(
+      `${environment.apiUrl}/password/reset-request`,
+      { identifier },
+    );
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<ResetPasswordResponse> {
+    return this.http.post<ResetPasswordResponse>(
+      `${environment.apiUrl}/auth/reset-password`,
+      { token, newPassword },
+    );
   }
 
   getUser(): AuthUser | null {

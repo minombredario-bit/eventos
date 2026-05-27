@@ -40,6 +40,15 @@ services:
             $appUri: '%app.uri%'
             $mailerFrom: '%app.mailer_from%'
 
+    App\Service\PasswordResetService:
+        arguments:
+            $appUri: '%app.uri%'
+
+    App\Service\PasskeyService:
+        arguments:
+            $appUri: '%app.uri%'
+            $cache: '@cache.app'
+
     App\Service\CalculadorAntiguedadService:
         arguments:
             $temporadaEntidadRepository: '@App\Repository\TemporadaEntidadRepository'

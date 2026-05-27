@@ -1,0 +1,72 @@
+<article class="panel form-card">
+  <div class="panel-header">
+    <h2>Datos personales</h2>
+    @if (editingChildId()) {
+      <button
+        type="button"
+        class="icon-btn"
+        aria-label="Volver a mis datos"
+        (click)="cancelEditChild()"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" fill="currentColor"/>
+          <path d="M4 20c0-2.761 4.477-5 8-5s8 2.239 8 5v1H4v-1z" fill="currentColor"/>
+        </svg>
+      </button>
+    }
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="saveProfile()" novalidate>
+    <div class="field">
+      <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
+      <label for="nombre">{{ 'usuario.nombre' | translate }}</label>
+    </div>
+
+    <div class="field">
+      <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
+      <label for="apellidos">{{ 'usuario.apellidos' | translate }}</label>
+    </div>
+
+    <div class="field field--full">
+      <input id="direccion" type="text" formControlName="direccion" placeholder=" " />
+      <label for="direccion">{{ 'usuario.direccion' | translate }}</label>
+    </div>
+
+    <div class="field">
+      <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
+      <label for="telefono">{{ 'usuario.telefono' | translate }}</label>
+    </div>
+
+    <div class="field">
+      <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
+      <label for="fechaNacimiento">{{ 'usuario.fechaNacimiento' | translate }}</label>
+    </div>
+
+    <div class="field">
+      <select id="formaPagoPreferida" formControlName="formaPagoPreferida">
+        <option value="">— Selecciona —</option>
+        @for (option of metodosPago; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+      <label for="formaPagoPreferida">{{ 'usuario.formaPagoPreferida' | translate }}</label>
+    </div>
+
+    @if (feedbackMessage()) {
+      <p class="feedback" [class.feedback--success]="feedbackMessage()!.type === 'success'" [class.feedback--error]="feedbackMessage()!.type === 'error'" role="status">
+        {{ feedbackMessage()!.text }}
+      </p>
+    }
+
+    <div class="form-actions">
+      <app-cta-button
+        type="submit"
+        [label]="saving() ? 'Guardando...' : 'Guardar perfil'"
+        [disabled]="!canSave()"
+        [loading]="saving()"
+        ariaLabel="Guardar cambios del perfil"
+      />
+    </div>
+  </form>
+</article>
+

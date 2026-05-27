@@ -1,0 +1,240 @@
+
+.settings-page {
+  min-height: 100dvh;
+  padding: 1.5rem 1rem max(1.5rem, env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(ellipse 120% 50% at 50% -10%,
+      color-mix(in srgb, var(--brand-primary) 60%, transparent) 0%,
+      transparent 70%),
+    var(--page-bg);
+}
+
+.settings-card {
+  width: min(100%, 600px);
+  margin: 0 auto;
+  background: var(--surface);
+  border-radius: 24px;
+  border: 1px solid var(--border-soft);
+  box-shadow:
+    0 2px 0 rgba(255,255,255,.7) inset,
+    var(--shadow-elevated);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 2rem;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--brand-primary) 12%, var(--surface)) 0%,
+    var(--surface) 100%
+  );
+  border-bottom: 1px solid var(--border-soft);
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 5vw, 1.8rem);
+    font-weight: 900;
+    color: var(--brand-ink);
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+}
+
+.settings-content {
+  padding: 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+// ── Alerts ──────────────────────────────────────────────────
+.alert {
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+
+  &.alert-warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+  }
+
+  &.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+  }
+
+  &.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+}
+
+// ── Register Section ────────────────────────────────────────
+.register-section {
+  h2 {
+    margin: 0 0 0.6rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--brand-ink);
+  }
+
+  .description {
+    margin: 0 0 1.2rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+}
+
+.button-group {
+  margin-bottom: 1rem;
+
+  app-cta-button {
+    display: block;
+    width: 100%;
+  }
+}
+
+// ── Devices Section ────────────────────────────────────────
+.devices-section {
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--brand-ink);
+  }
+}
+
+.device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.device-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.2rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  transition: all 140ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--brand-primary) 5%, var(--surface-soft));
+    border-color: var(--brand-primary);
+  }
+}
+
+.device-info {
+  flex: 1;
+
+  h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .date {
+    margin: 0.3rem 0 0;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  opacity: 0.6;
+  transition: opacity 140ms ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// ── Empty State ─────────────────────────────────────────────
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text-secondary);
+
+  .icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .hint {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+  }
+}
+
+// ── Footer ──────────────────────────────────────────────────
+.settings-footer {
+  padding: 1.5rem 2rem max(1.5rem, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
+}
+
+.back-link {
+  display: inline-block;
+  min-height: 44px;
+  align-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 140ms;
+
+  &:hover {
+    color: var(--brand-primary);
+  }
+}
+
+// ── Responsive ──────────────────────────────────────────────
+@media (max-width: 600px) {
+  .settings-header {
+    padding: 1.5rem;
+  }
+
+  .settings-content {
+    padding: 1.5rem;
+    gap: 2rem;
+  }
+
+  .settings-footer {
+    padding: 1.2rem 1.5rem max(1.2rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+

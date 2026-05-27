@@ -552,6 +552,230 @@ export class EstadoPagoPipe implements PipeTransform {
 
 ---
 
+---
+
+## Estándar: Componentes que Manejan Colecciones
+
+Todo componente que cargue y/o manipule colecciones debe seguir este patrón estandarizado.
+
+### Signals Requeridas
+
+```typescript
+// ── Data principal ────────────────────────────────────────────
+readonly items = signal<T[]>([]);              // La colección
+readonly loading = signal(false);              // Carga inicial
+readonly errorMessage = signal<string | null>(null);
+readonly successMessage = signal<string | null>(null);
+
+// ── Estado de acciones ────────────────────────────────────────
+readonly registering = signal(false);          // Registrando nuevo item
+readonly deleting = signal(false);             // Eliminando
+readonly updating = signal(false);             // Actualizando
+```
+
+### Con Paginación: Usar Computed
+
+```typescript
+protected readonly itemsPage = signal<Page>({
+  items: [],
+  totalPages: 0,
+  totalItems: 0,
+  page: 1,
+  hasNext: false,
+  hasPrevious: false,
+});
+
+// Extraer con computed, NO asignación directa
+protected readonly items = computed<T[]>(() => this.itemsPage().items);
+protected readonly totalPages = computed<number>(() => this.itemsPage().totalPages);
+protected readonly currentPage = computed<number>(() => this.itemsPage().page);
+```
+
+### Estructura del Componente
+
+```typescript
+import { Component, inject, signal } from '@angular/core';
+import { finalize, takeUntilDestroyed } from 'rxjs';
+
+@Component({
+  selector: 'app-mi-coleccion',
+  standalone: true,
+  imports: [CommonModule, CtaButton],
+  templateUrl: './mi-coleccion.html',
+  styleUrl: './mi-coleccion.scss',
+})
+export class MiColeccion {
+  private readonly api = inject(MiApi);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly items = signal<T[]>([]);
+  readonly loading = signal(false);
+  readonly registering = signal(false);
+  readonly errorMessage = signal<string | null>(null);
+  readonly successMessage = signal<string | null>(null);
+
+  constructor() {
+    this.loadData();  // ✅ Cargar en constructor, no en ngOnInit
+  }
+
+  private loadData(): void {
+    // Siempre resetear mensajes antes de cargar
+    this.loading.set(true);
+    this.errorMessage.set(null);
+
+    this.api.getItems()
+      .pipe(
+        finalize(() => this.loading.set(false)),
+        takeUntilDestroyed(this.destroyRef)  // ✅ SIEMPRE usar esto
+      )
+      .subscribe({
+        next: (items) => {
+          this.items.set(items);
+        },
+        error: (err: unknown) => {
+          this.items.set([]); // Reset en error
+          this.errorMessage.set(
+            err instanceof Error ? err.message : 'Error al cargar'
+          );
+        },
+      });
+  }
+
+  registerItem(data: CreateItemDTO): void {
+    if (this.registering()) return; // Prevent duplicates
+
+    this.registering.set(true);
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+
+    this.api.createItem(data)
+      .pipe(
+        finalize(() => this.registering.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (newItem) => {
+          this.successMessage.set('✅ Item creado');
+          // Opción 1: Agregar a la lista
+          this.items.update(items => [newItem, ...items]);
+          // Opción 2: Recargar si es complejo
+          // setTimeout(() => this.loadData(), 300);
+        },
+        error: (err: unknown) => {
+          this.errorMessage.set(
+            err instanceof Error ? err.message : 'Error al crear'
+          );
+        },
+      });
+  }
+
+  deleteItem(id: string): void {
+    if (!confirm('¿Eliminar?')) return;
+
+    this.api.deleteItem(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.successMessage.set('✅ Eliminado');
+          this.items.update(items => items.filter(i => i.id !== id));
+        },
+        error: (err: unknown) => {
+          this.errorMessage.set(
+            err instanceof Error ? err.message : 'Error'
+          );
+        },
+      });
+  }
+}
+```
+
+### Template Pattern
+
+```html
+<main class="page">
+  <section class="card">
+    <h1>Mi Colección</h1>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <p class="loading">Cargando…</p>
+    } @else {
+      
+      <!-- Messages -->
+      @if (errorMessage()) {
+        <div class="alert alert-error" role="alert">{{ errorMessage() }}</div>
+      }
+      @if (successMessage()) {
+        <div class="alert alert-success" role="status">{{ successMessage() }}</div>
+      }
+
+      <!-- Action Button -->
+      <button (click)="registerItem()" [disabled]="registering()">
+        {{ registering() ? 'Registrando…' : '＋ Nuevo' }}
+      </button>
+
+      <!-- List -->
+      @if (items().length > 0) {
+        <div class="items-list">
+          @for (item of items(); track item.id) {
+            <div class="item-card">
+              <span>{{ item.name }}</span>
+              <button (click)="deleteItem(item.id)">🗑️</button>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="empty">No hay items.</p>
+      }
+    }
+  </section>
+</main>
+```
+
+### Inyecciones Correctas
+
+```typescript
+// ✅ CORRECTO: Usar inject()
+private readonly http = inject(HttpClient);
+private readonly destroyRef = inject(DestroyRef);
+
+// ❌ INCORRECTO: Constructor viejo estilo
+constructor(private http: HttpClient) {}
+```
+
+### Operaciones en Signals
+
+```typescript
+// ✅ USAR
+this.items.set(newItems);
+this.items.update(items => [...items, newItem]);
+this.items.update(items => items.filter(i => i.id !== id));
+
+// ❌ NO HACER
+this.items.push(newItem);  // NO: mutation
+this.items.length = 0;     // NO: mutation
+```
+
+### Mensajes de Feedback
+
+```typescript
+// ✅ ESTÁNDAR: Usar emojis consistentes
+this.successMessage.set('✅ Dispositivo registrado con éxito');
+this.errorMessage.set('⚠️ No se pudo conectar al servidor');
+
+// Con delay de auto-limpieza (opcional)
+this.successMessage.set('✅ Guardado');
+setTimeout(() => this.successMessage.set(null), 3000);
+```
+
+### Ejemplos en el Proyecto
+
+- ✅ `BiometricSettings` - Ejemplo perfecto
+- ✅ `AdminCensoUsuarios` - Con paginación y filtros
+- ✅ `Perfil` - Maneja múltiples colecciones
+
+---
+
 ## Checklist antes de hacer PR
 
 - [ ] Ninguna lógica de precios en el frontend (solo mostrar lo que devuelve el backend)
@@ -562,3 +786,6 @@ export class EstadoPagoPipe implements PipeTransform {
 - [ ] La PWA tiene las rutas de API en la estrategia de cache correcta
 - [ ] Los lazy modules están configurados para reducir el bundle inicial
 - [ ] Los componentes standalone usan `inject()` en lugar de constructor injection
+- [ ] Componentes con colecciones siguen el patrón: signals + loading + error + success
+- [ ] Todos los `.subscribe()` usan `takeUntilDestroyed()` y `finalize()`
+- [ ] Los templates usan `@for` con atributo `track` para rendimiento

@@ -11,6 +11,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth';
 import { AuthStore } from '../../core/auth/auth-store';
+import { BiometricService } from '../../core/services/biometric.service';
 import { CtaButton } from '../../features/shared/components/cta-button/cta-button';
 
 @Component({
@@ -27,11 +28,13 @@ export class Login {
   private readonly authStore = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  protected readonly biometricService = inject(BiometricService);
 
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly showValidationMessages = signal(false);
   protected readonly showPassword = signal(false);
+  protected readonly biometricLoading = signal(false);
 
   // ✅ Validador: email o DNI/NIE
   static identificador(control: AbstractControl): ValidationErrors | null {
@@ -137,5 +140,41 @@ export class Login {
     const control = this.form.controls[controlName];
     const shouldShow = control.touched || control.dirty || this.showValidationMessages();
     return shouldShow && control.hasError(errorName);
+  }
+
+  protected loginWithBiometric(): void {
+    if (this.biometricLoading()) return;
+
+    this.biometricLoading.set(true);
+    this.errorMessage.set(null);
+
+    // Try to get email if available, otherwise allow discoverable credentials
+    const identificador = this.form.controls.identificador.value?.trim() || '';
+    const email = identificador.includes('@')
+      ? identificador.toLowerCase()
+      : undefined;
+
+    this.biometricService.loginWithPasskey(email)
+      .then((token) => {
+        this.authStore.login({ token });
+        const rawReturnUrl =
+          this.route.snapshot.queryParamMap.get('returnUrl') ?? '/eventos';
+        const safeReturnUrl =
+          rawReturnUrl.startsWith('/') && !rawReturnUrl.startsWith('//')
+            ? rawReturnUrl
+            : '/eventos';
+        void this.router.navigateByUrl(safeReturnUrl);
+      })
+      .catch((err: unknown) => {
+        const msg =
+          err instanceof Error ? err.message : 'La autenticación biométrica falló.';
+        // Cancelled by user — don't show error
+        if (msg.toLowerCase().includes('cancel') || msg.toLowerCase().includes('user')) {
+          this.errorMessage.set(null);
+        } else {
+          this.errorMessage.set(msg);
+        }
+      })
+      .finally(() => this.biometricLoading.set(false));
   }
 }

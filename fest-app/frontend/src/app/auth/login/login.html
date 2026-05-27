@@ -1,39 +1,45 @@
 <main class="login-page">
   <section class="login-card">
+
+    <!-- ── Cabecera ── -->
     <header class="login-header">
       <img class="logo" src="../logo.png" alt="Festiva" loading="lazy" />
+      <h1 class="login-title">Bienvenido/a</h1>
+      <p class="login-subtitle">Accede a tu entidad festiva</p>
     </header>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" novalidate aria-describedby="login-help">
+    <!-- ── Formulario ── -->
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate aria-describedby="login-help" class="login-form">
+
       <div class="field-group">
-        <label for="identificador">Email / DNI / NIE</label>
         <input
           id="identificador"
           type="text"
           formControlName="identificador"
           autocomplete="username"
-          placeholder="Ej: 12345678A o email@dominio.com"
+          placeholder="Email / DNI / NIE"
         />
-
         @if (hasError('identificador', 'required')) {
           <small class="error">El identificador es obligatorio.</small>
         }
-
         @if (hasError('identificador', 'identificador')) {
           <small class="error">Ingresa un email o documento válido.</small>
         }
       </div>
 
       <div class="field-group">
-        <label for="password">Contraseña</label>
         <div class="password-wrapper">
           <input
             id="password"
             [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
             autocomplete="current-password"
-            placeholder="••••••••"
+            placeholder="Contraseña"
           />
+          <a routerLink="/auth/forgot-password"
+             class="forgot-icon"
+             [attr.title]="'Recuperar contraseña'"
+             [attr.aria-label]="'Recuperar contraseña'">?</a>
           <button
             type="button"
             class="toggle-password"
@@ -42,13 +48,12 @@
             tabindex="-1"
           >
             @if (showPassword()) {
-              <span aria-hidden="true">🙈</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             } @else {
-              <span aria-hidden="true">👁️</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             }
           </button>
         </div>
-
         @if (hasError('password', 'required')) {
           <small class="error">La contraseña es obligatoria.</small>
         }
@@ -70,12 +75,47 @@
           ariaLabel="Ingresar a la aplicación"
         />
       </div>
+
     </form>
 
-    <p id="login-help" class="help-text">
-      Si no puedes acceder, contacta con el administrador de tu entidad.
-    </p>
+    <!-- ── Biometría ── -->
+    @if (biometricService.isPlatformAvailable()) {
+      <div class="biometric-section">
+        <div class="divider"><span>o continúa con</span></div>
+        <button
+          type="button"
+          class="biometric-btn"
+          [class.loading]="biometricLoading()"
+          [disabled]="biometricLoading()"
+          (click)="loginWithBiometric()"
+          aria-label="Iniciar sesión con huella o Face ID"
+        >
+          @if (biometricLoading()) {
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Verificando…</span>
+          } @else {
+            <span class="biometric-icon" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M17.81 4.47c-.08 0-.16-.02-.23-.06C15.66 3.42 14 3 12.01 3c-1.98 0-3.86.47-5.57 1.41-.24.13-.54.04-.68-.2-.13-.24-.04-.55.2-.68C7.82 2.52 9.86 2 12.01 2c2.13 0 3.99.47 6.03 1.52.25.13.34.43.21.67-.09.18-.28.28-.44.28z" fill="currentColor"/>
+                <path d="M3.5 9.72a.495.495 0 0 1-.44-.73C4.41 6.91 5.97 5.46 7.8 4.5c3.89-2.02 8.51-2.03 12.4-.02 1.84.97 3.4 2.42 4.74 4.49.13.2.07.49-.13.62-.2.13-.49.07-.62-.13C22.93 7.4 21.5 6.07 19.82 5.18c-3.61-1.9-7.9-1.89-11.51.01C6.63 6.07 5.2 7.4 3.94 9.36c-.09.13-.23.21-.38.21l-.06-.05z" fill="currentColor" opacity=".9"/>
+                <path d="M12 23.24c-1.86 0-3.6-.46-5.07-1.33-.22-.13-.3-.42-.17-.64s.42-.3.64-.17C8.75 21.99 10.32 22.5 12 22.5c1.69 0 3.28-.51 4.61-1.4.22-.14.51-.08.65.14.14.22.08.51-.14.65C15.6 22.78 13.86 23.24 12 23.24z" fill="currentColor" opacity=".85"/>
+                <path d="M12 5.29C8.3 5.29 5.29 8.3 5.29 12c0 2.11.98 4 2.49 5.26.17.14.2.39.06.57s-.39.2-.57.06C5.56 16.4 4.5 14.32 4.5 12 4.5 7.86 7.86 4.5 12 4.5c4.14 0 7.5 3.36 7.5 7.5 0 2.32-1.06 4.4-2.77 5.89-.17.15-.43.13-.57-.04s-.13-.43.04-.57C17.69 16.13 18.5 14.15 18.5 12c0-3.59-2.91-6.71-6.5-6.71z" fill="currentColor"/>
+                <path d="M12 8.92c-1.69 0-3.08 1.39-3.08 3.08 0 2.46 1.16 3.44 1.91 4.1.1.09.19.17.26.25.14.14.14.37 0 .51-.14.14-.37.14-.51 0-.08-.08-.19-.18-.3-.29-.77-.67-2.04-1.78-2.04-4.6C8.24 9.83 9.97 8.1 12 8.1c2.04 0 3.76 1.73 3.76 3.9 0 .63-.12 1.25-.34 1.84-.09.24-.36.36-.6.27s-.36-.36-.27-.6c.18-.48.28-.99.28-1.51C14.83 10.31 13.56 8.92 12 8.92z" fill="currentColor"/>
+                <path d="M12 12.5c-.28 0-.5-.22-.5-.5 0-.79.66-1.4 1.47-1.4.28 0 .5.22.5.5s-.22.5-.5.5c-.28 0-.47.19-.47.4 0 .28-.22.5-.5.5z" fill="currentColor"/>
+              </svg>
+            </span>
+            <span>Huella / Face ID</span>
+          }
+        </button>
+      </div>
+    }
 
-    <a routerLink="/auth/login" class="help-link">Recargar formulario</a>
+    <!-- ── Footer ── -->
+    <footer class="login-footer">
+      <p id="login-help" class="help-text">
+        ¿Problemas para acceder? Contacta con el administrador de tu entidad.
+      </p>
+    </footer>
+
   </section>
 </main>

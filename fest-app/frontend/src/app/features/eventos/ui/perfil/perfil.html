@@ -1,4 +1,4 @@
-<section class="screen perfil-screen">
+<main class="perfil-container">
   <app-mobile-header
     title="Mi perfil"
     subtitle=""
@@ -8,244 +8,393 @@
     (actionPressed)="logout()"
   />
 
-  <div class="content">
-    @if (loading()) {
-      <article class="panel loading-card">
-        <p class="eyebrow">Cargando</p>
-        <h2>Preparando tu perfil</h2>
-      </article>
-       } @else {
-      <article class="panel form-card">
-        <div class="panel-header">
-          <h2>Datos personales</h2>
-          @if (editingChildId()) {
-            <button
-              type="button"
-              class="mis-datos-icon"
-              aria-label="Volver a mis datos"
-              (click)="cancelEditChild()"
-            >
-              <!-- user icon -->
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5z" fill="currentColor"/>
-                <path d="M4 20c0-2.761 4.477-5 8-5s8 2.239 8 5v1H4v-1z" fill="currentColor"/>
-              </svg>
-            </button>
-          }
-        </div>
-        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-          <div class="field">
-            <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
-            <label for="nombre">{{ 'usuario.nombre' | translate }}</label>
-          </div>
+  <div class="perfil-wrapper">
 
-          <div class="field">
-            <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
-            <label for="apellidos">{{ 'usuario.apellidos' | translate }}</label>
-          </div>
-
-          <div class="field field--full">
-            <input id="direccion" type="email" formControlName="direccion" placeholder=" " />
-            <label for="direccion">{{ 'usuario.direccion' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
-            <label for="telefono">{{ 'usuario.telefono' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
-            <label for="fechaNacimiento">{{ 'usuario.fechaNacimiento' | translate }}</label>
-          </div>
-
-          <div class="field">
-            <select id="formaPagoPreferida" formControlName="formaPagoPreferida">
-              <option value="efectivo">Efectivo</option>
-              <option value="tarjeta">Tarjeta</option>
-              <option value="transferencia">Transferencia</option>
-            </select>
-            <label for="formaPagoPreferida">{{ 'usuario.formaPagoPreferida' | translate }}</label>
-          </div>
-
-          @if (profileMessage()) {
-            <p class="feedback feedback--{{ profileMessage()!.type }}">{{ profileMessage()!.text }}</p>
-          }
-
-          <div class="form-actions">
-            <app-cta-button
-              type="submit"
-              [label]="savingProfile() ? 'Guardando...' : 'Guardar perfil'"
-              [disabled]="!canSaveProfile()"
-              [loading]="savingProfile()"
-            />
-          </div>
-        </form>
-      </article>
-
-      <!-- ── Sección: Relaciones ── -->
-      <article class="panel relations-card">
-        <h2>Relaciones de amistad/familia</h2>
-
-        @if (loadingRelaciones()) {
+    <!-- MAIN CARD WITH TABS -->
+    <section class="perfil-card">
+      @if (loading()) {
+        <article class="block-loading">
           <p class="eyebrow">Cargando</p>
-        } @else if (relaciones().length === 0) {
-          <p class="supporting-copy">No tienes relaciones registradas.</p>
-        } @else {
-          <div class="relations-list">
-            @for (relacion of relaciones(); track relacion.id) {
-              <div class="relation-item">
-                <div class="relation-header">
-                  <div
-                    class="relation-info"
-                    [class.relation-info--clickable]="isRelacionInfantil(relacion)"
-                    (click)="isRelacionInfantil(relacion) && editRelacionIfInfantil(relacion)"
-                  >
-                    <span class="relation-name">{{ getRelacionadoNombre(relacion) }}</span>
-                    <span class="relation-type">{{ relacion.tipoRelacion }}</span>
+          <h2>Preparando tu perfil</h2>
+        </article>
+      } @else {
+        <!-- TAB NAVIGATION -->
+        <nav class="tab-nav" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'identidad'"
+            [class.active]="activeTab() === 'identidad'"
+            (click)="setTab('identidad')"
+            class="tab-button"
+          >
+            Identidad
+          </button>
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'seguridad'"
+            [class.active]="activeTab() === 'seguridad'"
+            (click)="setTab('seguridad')"
+            class="tab-button"
+          >
+            Seguridad
+          </button>
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'familia'"
+            [class.active]="activeTab() === 'familia'"
+            (click)="setTab('familia')"
+            class="tab-button"
+          >
+            Familia
+          </button>
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'pago'"
+            [class.active]="activeTab() === 'pago'"
+            (click)="setTab('pago')"
+            class="tab-button"
+          >
+            Pago & Cuenta
+          </button>
+        </nav>
+
+        <!-- TAB CONTENT -->
+        <div class="tab-content">
+        @switch (activeTab()) {
+
+          <!-- TAB 1: IDENTIDAD -->
+          @case ('identidad') {
+            <!-- BLOQUE 1: IDENTIDAD -->
+            <section class="perfil-block perfil-block--primary" role="tabpanel">
+
+              <!-- Sub-sección: Información Personal -->
+              <article class="block-section">
+                <h3 class="section-title">Información Personal</h3>
+                <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+                  <div class="field">
+                    <input id="nombre" type="text" formControlName="nombre" placeholder=" " />
+                    <label for="nombre">{{ 'usuario.nombre' | translate }}</label>
                   </div>
 
-                  <button
-                    class="delete-btn"
-                    type="button"
-                    (click)="deleteRelacion(relacion)"
-                    [disabled]="deletingRelacionId() === relacion.id"
-                    aria-label="Eliminar relación"
-                  >
-                    {{ deletingRelacionId() === relacion.id ? 'Eliminando...' : 'X' }}
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-        }
+                  <div class="field">
+                    <input id="apellidos" type="text" formControlName="apellidos" placeholder=" " />
+                    <label for="apellidos">{{ 'usuario.apellidos' | translate }}</label>
+                  </div>
 
-        @if (errorRelaciones()) {
-          <p class="feedback feedback--error">{{ errorRelaciones() }}</p>
-        }
+                  <div class="field field--full">
+                    <input id="direccion" type="email" formControlName="direccion" placeholder=" " />
+                    <label for="direccion">{{ 'usuario.direccion' | translate }}</label>
+                  </div>
 
-        @if (deleteRelacionMessage()) {
-          <p class="feedback feedback--{{ deleteRelacionMessage()!.type }}">{{ deleteRelacionMessage()!.text }}</p>
-        }
-      </article>
+                  <div class="field">
+                    <input id="telefono" type="text" formControlName="telefono" placeholder=" " />
+                    <label for="telefono">{{ 'usuario.telefono' | translate }}</label>
+                  </div>
 
-      @if (!showPasswordCard()) {
-        <article class="panel panel--action-only">
-          <app-cta-button
-            type="button"
-            [label]="'Cambiar contraseña'"
-            (pressed)="showPasswordCard.set(true)"
-          />
-        </article>
-      }
+                  <div class="field">
+                    <input id="fechaNacimiento" type="date" formControlName="fechaNacimiento" />
+                    <label for="fechaNacimiento">{{ 'usuario.fechaNacimiento' | translate }}</label>
+                  </div>
 
-      @if (showPasswordCard()) {
-        <article class="panel form-card">
-          <h2>Cambiar contraseña</h2>
-          <form [formGroup]="passwordForm" (ngSubmit)="savePassword()">
-            <div class="field">
-              <input id="password" type="password" formControlName="currentPassword" />
-              <label for="password">Contraseña actual</label>
-            </div>
-            <div class="field">
-              <input id="newPassword" type="password" formControlName="newPassword" />
-              <label for="newPassword">Nueva contraseña</label>
-            </div>
-            <div class="field">
-              <input id="confirmPassword" type="password" formControlName="confirmPassword" />
-              <label for="confirmPassword">Confirmar contraseña</label>
-            </div>
-            @if (passwordMessage()) {
-              <p class="feedback feedback--{{ passwordMessage()!.type }}">{{ passwordMessage()!.text }}</p>
-            }
+                  @if (profileMessage()) {
+                    <p class="feedback feedback--{{ profileMessage()!.type }}">{{ profileMessage()!.text }}</p>
+                  }
 
-            <div class="form-actions">
-              <app-cta-button
-                type="submit"
-                [label]="savingPassword() ? 'Actualizando...' : 'Actualizar contraseña'"
-                [disabled]="!canSavePassword()"
-                [loading]="savingPassword()"
-                [fullWidth]="false"
-              />
-              <app-cta-button
-                type="button"
-                [label]="'Cancelar'"
-                (pressed)="showPasswordCard.set(false)"
-                [fullWidth]="false"
-              />
-            </div>
-          </form>
-        </article>
-      }
-
-      @if (!showUnsubscribeForm()) {
-        <article class="panel panel--action-only panel--danger">
-          <app-cta-button
-            type="button"
-            [label]="'Darse de baja de la asociación'"
-            (pressed)="showUnsubscribeForm.set(true)"
-          />
-        </article>
-      }
-
-      @if (showUnsubscribeForm()) {
-        <article class="panel form-card panel--danger">
-          <h2>Solicitar baja</h2>
-          <p class="eyebrow">Selecciona los miembros a dar de baja</p>
-
-          <div class="member-pills">
-            @if (userSignal()) {
-              <label class="member-pill" [class.selected]="unsubscribeSelected().has(userSignal()?.id ?? '')">
-                <input
-                  type="checkbox"
-                  [checked]="unsubscribeSelected().has(userSignal()?.id ?? '')"
-                  (change)="toggleUnsubscribeMember(userSignal()?.id ?? '')"
-                />
-                <span class="pill-name">{{ userFullName() }}</span>
-              </label>
-            }
-
-            @for (member of eventosStore.members(); track member.id) {
-              <label class="member-pill" [class.selected]="unsubscribeSelected().has(member.id)">
-                <input
-                  type="checkbox"
-                  [checked]="unsubscribeSelected().has(member.id)"
-                  (change)="toggleUnsubscribeMember(member.id)"
-                />
-                <span class="pill-name">{{ member.name }}</span>
-              </label>
-            }
-          </div>
-
-          <label>
-            Motivo (opcional)
-            <textarea rows="4" [value]="unsubscribeReason()" (input)="unsubscribeReason.set($any($event.target).value)"></textarea>
-          </label>
-
-          @if (unsubscribeMessage()) {
-            <p class="feedback feedback--{{ unsubscribeMessage()!.type }}">{{ unsubscribeMessage()!.text }}</p>
+                  <div class="form-actions">
+                    <app-cta-button
+                      type="submit"
+                      [label]="savingProfile() ? 'Guardando...' : 'Guardar perfil'"
+                      [disabled]="!canSaveProfile()"
+                      [loading]="savingProfile()"
+                    />
+                  </div>
+                </form>
+              </article>
+            </section>
           }
 
-          <div class="form-actions">
-            <app-cta-button
-              type="button"
-              [label]="'Enviar solicitud'"
-              (pressed)="submitUnsubscribe()"
-              [disabled]="unsubmitting()"
-              [fullWidth]="false"
-            />
-            <app-cta-button
-              type="button"
-              [label]="'Cancelar'"
-              (pressed)="showUnsubscribeForm.set(false)"
-              [fullWidth]="false"
-            />
-          </div>
-        </article>
+          <!-- TAB 2: SEGURIDAD & BIOMETRÍA -->
+          @case ('seguridad') {
+            <!-- BLOQUE: SEGURIDAD -->
+            <section class="perfil-block perfil-block--security" role="tabpanel">
+
+              <!-- Sub-sección: Cambiar Contraseña -->
+              <article class="block-section">
+                <h3 class="section-title">Contraseña</h3>
+
+                @if (!showPasswordCard()) {
+                  <app-cta-button
+                    type="button"
+                    label="Cambiar contraseña"
+                    (click)="showPasswordCard.set(true)"
+                  />
+                }
+
+                @if (showPasswordCard()) {
+                  <form [formGroup]="passwordForm" (ngSubmit)="savePassword()" class="nested-form">
+                    <div class="field">
+                      <input id="password" type="password" formControlName="currentPassword" placeholder=" " />
+                      <label for="password">Contraseña actual</label>
+                    </div>
+                    <div class="field">
+                      <input id="newPassword" type="password" formControlName="newPassword" placeholder=" " />
+                      <label for="newPassword">Nueva contraseña</label>
+                    </div>
+                    <div class="field">
+                      <input id="confirmPassword" type="password" formControlName="confirmPassword" placeholder=" " />
+                      <label for="confirmPassword">Confirmar contraseña</label>
+                    </div>
+                    @if (passwordMessage()) {
+                      <p class="feedback feedback--{{ passwordMessage()!.type }}">{{ passwordMessage()!.text }}</p>
+                    }
+
+                    <div class="form-actions">
+                      <app-cta-button
+                        type="submit"
+                        [label]="savingPassword() ? 'Actualizando...' : 'Actualizar contraseña'"
+                        [disabled]="!canSavePassword()"
+                        [loading]="savingPassword()"
+                      />
+                      <app-cta-button
+                        type="button"
+                        label="Cancelar"
+                        (click)="showPasswordCard.set(false)"
+                        [fullWidth]="false"
+                      />
+                    </div>
+                  </form>
+                }
+              </article>
+
+              <!-- Divider sutil -->
+              <div class="block-divider"></div>
+
+              <!-- Sub-sección: Biometría & Dispositivos -->
+              @if (biometricService.isSupported()) {
+                <article class="block-section">
+                  <h3 class="section-title">Biometría & Dispositivos</h3>
+
+                  <p class="section-description">
+                    Inicia sesión con tu huella dactilar o Face ID en lugar de escribir tu contraseña.
+                  </p>
+
+                  @if (loadingBiometric()) {
+                    <p class="loading-text">Cargando…</p>
+                  } @else {
+                    @for (cred of biometricCredentials(); track cred.id) {
+                      <div class="biometric-credential">
+                        <span class="biometric-icon">🔑</span>
+                        <div class="biometric-info">
+                          <strong>{{ cred.deviceName }}</strong>
+                          <small>Registrado {{ cred.createdAt | date:'dd/MM/yyyy' }}</small>
+                        </div>
+                        <button
+                          type="button"
+                          class="delete-icon"
+                          [disabled]="deletingBiometricId() === cred.id"
+                          (click)="deletePasskey(cred.id)"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    } @empty {
+                      <p class="empty-text">No tienes dispositivos biométricos registrados.</p>
+                    }
+                  }
+
+                  @if (biometricMessage()) {
+                    <p class="feedback feedback--{{ biometricMessage()!.type }}">{{ biometricMessage()!.text }}</p>
+                  }
+
+                  <app-cta-button
+                    type="button"
+                    [label]="registeringBiometric() ? 'Registrando…' : '+ Registrar este dispositivo'"
+                    [disabled]="registeringBiometric()"
+                    [loading]="registeringBiometric()"
+                    (click)="registerPasskey()"
+                  />
+                </article>
+              }
+            </section>
+          }
+
+          <!-- TAB 3: FAMILIA & RELACIONES -->
+          @case ('familia') {
+            <!-- BLOQUE 2: FAMILIA & RELACIONES -->
+            <section class="perfil-block perfil-block--secondary">
+
+              <!-- Sub-sección: Relaciones -->
+              <article class="block-section">
+                <h3 class="section-title">Mis Relaciones</h3>
+
+                @if (loadingRelaciones()) {
+                  <p class="loading-text">Cargando…</p>
+                } @else if (relaciones().length === 0) {
+                  <p class="empty-text">No tienes relaciones registradas.</p>
+                } @else {
+                  <div class="relations-list">
+                    @for (relacion of relaciones(); track relacion.id) {
+                      <div class="relation-item">
+                        <div class="relation-header">
+                          <div
+                            class="relation-info"
+                            [class.relation-info--clickable]="isRelacionInfantil(relacion)"
+                            (click)="isRelacionInfantil(relacion) && editRelacionIfInfantil(relacion)"
+                          >
+                            <span class="relation-name">{{ getRelacionadoNombre(relacion) }}</span>
+                            <span class="relation-type">{{ relacion.tipoRelacion }}</span>
+                          </div>
+
+                          <button
+                            class="delete-btn"
+                            type="button"
+                            (click)="deleteRelacion(relacion)"
+                            [disabled]="deletingRelacionId() === relacion.id"
+                            aria-label="Eliminar relación"
+                          >
+                            {{ deletingRelacionId() === relacion.id ? 'Eliminando...' : 'X' }}
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (errorRelaciones()) {
+                  <p class="feedback feedback--error">{{ errorRelaciones() }}</p>
+                }
+
+                @if (deleteRelacionMessage()) {
+                  <p class="feedback feedback--{{ deleteRelacionMessage()!.type }}">{{ deleteRelacionMessage()!.text }}</p>
+                }
+              </article>
+            </section>
+          }
+
+          <!-- TAB 4: FORMA DE PAGO & CUENTA -->
+          @case ('pago') {
+            <!-- BLOQUE 3: FORMA DE PAGO & CUENTA -->
+            <section class="perfil-block perfil-block--tertiary">
+
+              <article class="block-section">
+                <h3 class="section-title">Método Preferido</h3>
+                <form [formGroup]="profileForm" (ngSubmit)="savePaymentMethod()" class="payment-form" novalidate>
+                  <div class="field">
+                    <select id="formaPagoPreferida" formControlName="formaPagoPreferida">
+                      <option value="">— Selecciona método —</option>
+                      @for (option of metodosPago; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                    <label for="formaPagoPreferida">{{ 'usuario.formaPagoPreferida' | translate }}</label>
+                  </div>
+                  @if (profileMessage()) {
+                    <p class="feedback feedback--{{ profileMessage()!.type }}">{{ profileMessage()!.text }}</p>
+                  }
+                  <app-cta-button
+                    type="submit"
+                    [label]="savingProfile() ? 'Guardando...' : 'Guardar cambios'"
+                    [disabled]="!profileForm.get('formaPagoPreferida')?.dirty || savingProfile()"
+                    [loading]="savingProfile()"
+                  />
+                </form>
+              </article>
+
+              <!-- Divider sutil -->
+              <div class="block-divider"></div>
+
+               <!-- Sub-sección: Peligroso - Dar de Baja -->
+               <article class="block-section block-section--danger">
+                 <h3 class="section-title section-title--danger">⚠️ Dar de Baja</h3>
+
+                 <p class="section-description">
+                   Solicita la baja de ti y/o tus dependientes de la asociación.
+                 </p>
+
+                 @if (unsubscribeMessage()) {
+                   <p class="feedback feedback--{{ unsubscribeMessage()!.type }}">{{ unsubscribeMessage()!.text }}</p>
+                 }
+
+                 @if (!showUnsubscribeForm()) {
+                   <app-cta-button
+                     type="button"
+                     label="Solicitar baja"
+                     (click)="showUnsubscribeForm.set(true)"
+                   />
+                 }
+
+                 @if (showUnsubscribeForm()) {
+                   <form class="unsubscribe-form" novalidate>
+                    <p class="subtitle">Selecciona los miembros a dar de baja</p>
+
+                    <div class="member-pills">
+                      @if (userSignal()) {
+                        <label class="member-pill" [class.selected]="unsubscribeSelected().has(userSignal()?.id ?? '')">
+                          <input
+                            type="checkbox"
+                            [checked]="unsubscribeSelected().has(userSignal()?.id ?? '')"
+                            (change)="toggleUnsubscribeMember(userSignal()?.id ?? '')"
+                          />
+                          <span class="pill-name">{{ userFullName() }}</span>
+                        </label>
+                      }
+
+                      @for (member of eventosStore.members(); track member.id) {
+                        <label class="member-pill" [class.selected]="unsubscribeSelected().has(member.id)">
+                          <input
+                            type="checkbox"
+                            [checked]="unsubscribeSelected().has(member.id)"
+                            (change)="toggleUnsubscribeMember(member.id)"
+                          />
+                          <span class="pill-name">{{ member.name }}</span>
+                        </label>
+                      }
+                    </div>
+
+                    <div class="field">
+                      <textarea
+                        id="unsubscribe-reason"
+                        rows="3"
+                        placeholder="Motivo (opcional) - Cuéntanos por qué deseas dar de baja..."
+                        [value]="unsubscribeReason()"
+                        (input)="unsubscribeReason.set($any($event.target).value)"
+                      ></textarea>
+                    </div>
+
+                    @if (unsubscribeMessage()) {
+                      <p class="feedback feedback--{{ unsubscribeMessage()!.type }}">{{ unsubscribeMessage()!.text }}</p>
+                    }
+
+                    <div class="form-actions">
+                      <app-cta-button
+                        type="button"
+                        label="Enviar solicitud"
+                        [disabled]="unsubscribeSelected().size === 0 || unsubmitting()"
+                        [loading]="unsubmitting()"
+                        (click)="submitUnsubscribe()"
+                      />
+                      <app-cta-button
+                        type="button"
+                        label="Cancelar"
+                        (click)="showUnsubscribeForm.set(false)"
+                        [fullWidth]="false"
+                      />
+                    </div>
+                  </form>
+                }
+              </article>
+            </section>
+          }
+        }
+      </div>
       }
-    }
+    </section>
   </div>
-</section>
+</main>
 
 @if (showDeleteRelacionModal()) {
   <app-confirm-modal

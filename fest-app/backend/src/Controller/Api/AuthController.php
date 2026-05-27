@@ -47,6 +47,30 @@ class AuthController extends AbstractController
 
         $payload = $request->toArray();
 
+        if (array_key_exists('nombre', $payload)) {
+            $nombre = $payload['nombre'];
+            if ($nombre !== null && !is_string($nombre)) {
+                throw new BadRequestHttpException('El campo nombre debe ser string o null.');
+            }
+            $user->setNombre(is_string($nombre) ? trim($nombre) ?: null : null);
+        }
+
+        if (array_key_exists('apellidos', $payload)) {
+            $apellidos = $payload['apellidos'];
+            if ($apellidos !== null && !is_string($apellidos)) {
+                throw new BadRequestHttpException('El campo apellidos debe ser string o null.');
+            }
+            $user->setApellidos(is_string($apellidos) ? trim($apellidos) ?: null : null);
+        }
+
+        if (array_key_exists('direccion', $payload)) {
+            $direccion = $payload['direccion'];
+            if ($direccion !== null && !is_string($direccion)) {
+                throw new BadRequestHttpException('El campo direccion debe ser string o null.');
+            }
+            $user->setDireccion(is_string($direccion) ? trim($direccion) ?: null : null);
+        }
+
         if (array_key_exists('telefono', $payload)) {
             $telefono = $payload['telefono'];
             if ($telefono !== null && !is_string($telefono)) {
@@ -133,8 +157,7 @@ class AuthController extends AbstractController
     /**
      * Normaliza la respuesta del usuario para los endpoints /api/me.
      * FIX: incluidos todos los campos que el frontend (AuthStore) espera encontrar,
-     * especialmente roles, nombreEntidad, tipoEntidad y aceptoLopd que faltaban
-     * y se perdían al hacer getMe() → merge en el store.
+     * especialmente aceptoLopd que faltaba y se perdía al hacer getMe() → merge en el store.
      *
      * @return array<string, mixed>
      */
@@ -152,6 +175,7 @@ class AuthController extends AbstractController
             'formaPagoPreferida'  => $user->getFormaPagoPreferida()?->value,
             'nombreEntidad'       => $user->getEntidad()->getNombre(),
             'tipoEntidad'         => mb_strtolower($user->getEntidad()->getTipoEntidad()?->getNombre() ?? ''),
+            'aceptoLopd'          => $user->isAceptoLopd(),
         ];
     }
 }

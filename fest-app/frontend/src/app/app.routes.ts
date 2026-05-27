@@ -8,6 +8,16 @@ export const routes: Routes = [
       import('./auth/login/login').then((m) => m.Login),
   },
   {
+    path: 'auth/forgot-password',
+    loadComponent: () =>
+      import('./auth/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'auth/reset-password',
+    loadComponent: () =>
+      import('./auth/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
     path: 'lopd',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -53,6 +63,11 @@ export const routes: Routes = [
         path: 'perfil',
         loadComponent: () =>
           import('./features/eventos/ui/perfil/perfil').then((m) => m.Perfil),
+      },
+      {
+        path: 'seguridad',
+        loadComponent: () =>
+          import('./features/settings/biometric-settings/biometric-settings').then((m) => m.BiometricSettings),
       },
       {
         path: ':id/detalle',

@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { finalize, Observable } from 'rxjs';
+import {finalize, Observable} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CommonModule, DatePipe } from '@angular/common';
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { CtaButton } from '../../../shared/components/cta-button/cta-button';
 import { ConfirmModal } from '../../../shared/components/confirm-modal/confirm-modal';
@@ -11,6 +12,7 @@ import { EventosStore } from '../../store/eventos.store';
 import { EventosApi } from '../../data/eventos.api';
 import { METODOS_PAGO_OPTIONS, MetodoPago, RelacionUsuario } from '../../domain/eventos.models';
 import { TranslatePipe } from '@ngx-translate/core';
+import { BiometricService, PasskeyCredentialInfo } from '../../../../core/services/biometric.service';
 
 interface Feedback {
   text: string;
@@ -20,7 +22,7 @@ interface Feedback {
 @Component({
   selector: 'app-perfil',
   standalone: true,
-  imports: [ReactiveFormsModule, MobileHeader, CtaButton, TranslatePipe, ConfirmModal],
+  imports: [CommonModule, ReactiveFormsModule, MobileHeader, CtaButton, TranslatePipe, ConfirmModal, DatePipe],
   templateUrl: './perfil.html',
   styleUrl: './perfil.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +33,23 @@ export class Perfil {
   protected readonly eventosStore = inject(EventosStore);
   private readonly eventosApi = inject(EventosApi);
   protected readonly userSignal = this.authService.userSignal;
+  protected readonly biometricService = inject(BiometricService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
+  // ── Tab Navigation ────────────────────────────────────────────────────
+  protected readonly activeTab = signal<'identidad' | 'seguridad' | 'familia' | 'pago'>('identidad');
+
+  protected setTab(tab: 'identidad' | 'seguridad' | 'familia' | 'pago'): void {
+    this.activeTab.set(tab);
+  }
+
+  // ── Biometric state ─────────────��──────────────────────────────────────
+  protected readonly biometricCredentials = signal<PasskeyCredentialInfo[]>([]);
+  protected readonly loadingBiometric = signal(false);
+  protected readonly registeringBiometric = signal(false);
+  protected readonly deletingBiometricId = signal<string | null>(null);
+  protected readonly biometricMessage = signal<Feedback | null>(null);
 
   protected userFullName(): string {
     const u = this.userSignal();
@@ -42,13 +61,10 @@ export class Perfil {
     const apellidos = typeof anyU.apellidos === 'string' ? anyU.apellidos.trim() : '';
     const combined = [nombre, apellidos].filter(Boolean).join(' ');
     if (combined) return combined;
-    return String(u.email ?? '');
-  }
+     return String(u.email ?? '');
+   }
 
-  private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
-
-  protected readonly loading = signal(true);
+   protected readonly loading = signal(true);
   protected readonly savingProfile = signal(false);
   protected readonly savingPassword = signal(false);
   protected readonly profileMessage = signal<Feedback | null>(null);
@@ -97,10 +113,12 @@ export class Perfil {
     return this.passwordForm.valid && !this.savingPassword();
   }
 
-  constructor() {
-    this.loadProfile();
-    this.loadRelaciones();
-  }
+   constructor() {
+     this.loadProfile();
+     this.loadRelaciones();
+     this.loadBiometricCredentials();
+     this.loadFamilyMembers();
+   }
 
   protected goBack(): void {
     void this.router.navigateByUrl('/eventos/inicio');
@@ -111,81 +129,128 @@ export class Perfil {
     void this.router.navigateByUrl('/auth/login');
   }
 
-  protected saveProfile(): void {
-    if (!this.canSaveProfile()) return;
+   protected saveProfile(): void {
+     if (!this.canSaveProfile()) return;
 
-    this.profileMessage.set(null);
-    this.savingProfile.set(true);
+     this.profileMessage.set(null);
+     this.savingProfile.set(true);
 
-    const {
-      nombre,
-      apellidos,
-      direccion,
-      telefono,
-      fechaNacimiento,
-      formaPagoPreferida,
-    } = this.profileForm.getRawValue();
+     const {
+       nombre,
+       apellidos,
+       direccion,
+       telefono,
+       fechaNacimiento,
+       formaPagoPreferida,
+     } = this.profileForm.getRawValue();
 
-    const payload = {
-      nombre: nombre.trim() || undefined,
-      apellidos: apellidos.trim() || undefined,
-      direccion: direccion.trim() || undefined,
-      telefono: telefono.trim() || undefined,
-      fechaNacimiento: fechaNacimiento || undefined,
-      formaPagoPreferida: formaPagoPreferida || undefined,
-    };
+     const payload = {
+       nombre: nombre.trim() || undefined,
+       apellidos: apellidos.trim() || undefined,
+       direccion: direccion.trim() || undefined,
+       telefono: telefono.trim() || undefined,
+       fechaNacimiento: fechaNacimiento || undefined,
+       formaPagoPreferida: formaPagoPreferida || undefined,
+     };
 
-    const childId = this.editingChildId();
+     const childId = this.editingChildId();
 
-    const saveRequest$: Observable<any> = childId
-      ? this.eventosApi.updateUsuario(childId, payload)
-      : this.authService.updateMe(payload);
+     const saveRequest$: Observable<any> = childId
+       ? this.eventosApi.updateUsuario(childId, payload)
+       : this.authService.updateMe(payload);
 
-    saveRequest$
-      .pipe(
-        finalize(() => this.savingProfile.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: () => {
-          this.profileForm.markAsPristine();
+     saveRequest$
+       .pipe(
+         finalize(() => this.savingProfile.set(false)),
+         takeUntilDestroyed(this.destroyRef),
+       )
+       .subscribe({
+         next: (updatedUser) => {
+           this.profileForm.markAsPristine();
 
-          if (childId) {
-            this.editingChildId.set(null);
+           if (childId) {
+             this.editingChildId.set(null);
+
+             this.profileMessage.set({
+               text: 'Datos del hijo/a actualizados correctamente.',
+               type: 'success',
+             });
+
+             this.loadRelaciones();
+
+             this.authService.getMe()
+               .pipe(takeUntilDestroyed(this.destroyRef))
+               .subscribe({
+                 next: (user) => this.patchProfileForm(user),
+                 error: () => {
+                   const fallback = this.authService.getUser();
+                   this.patchProfileForm(fallback);
+                 },
+               });
+
+             return;
+           }
+
+           // Actualizar el formulario con los datos del servidor
+           if (updatedUser) {
+             this.patchProfileForm(updatedUser);
+           }
+
+           this.profileMessage.set({
+             text: 'Perfil actualizado correctamente.',
+             type: 'success',
+           });
+         },
+         error: (error: any) => {
+           this.profileMessage.set({
+             text: this.resolveApiError(error) ?? 'No se pudo actualizar el perfil.',
+             type: 'error',
+           });
+         },
+       });
+   }
+
+   protected savePaymentMethod(): void {
+     if (!this.canSaveProfile()) return;
+
+     this.profileMessage.set(null);
+     this.savingProfile.set(true);
+
+     const { formaPagoPreferida } = this.profileForm.getRawValue();
+
+     const payload = {
+       formaPagoPreferida: formaPagoPreferida || undefined,
+     };
+
+     this.authService.updateMe(payload)
+       .pipe(
+         finalize(() => this.savingProfile.set(false)),
+         takeUntilDestroyed(this.destroyRef),
+       )
+        .subscribe({
+          next: (updatedUser) => {
+            this.profileForm.get('formaPagoPreferida')?.markAsPristine();
+
+            // Actualizar el campo en el formulario
+            if (updatedUser) {
+              this.profileForm.patchValue({
+                formaPagoPreferida: this.normalizeMetodoPago(updatedUser.formaPagoPreferida),
+              });
+            }
 
             this.profileMessage.set({
-              text: 'Datos del hijo/a actualizados correctamente.',
+              text: 'Forma de pago actualizada correctamente.',
               type: 'success',
             });
-
-            this.loadRelaciones();
-
-            this.authService.getMe()
-              .pipe(takeUntilDestroyed(this.destroyRef))
-              .subscribe({
-                next: (user) => this.patchProfileForm(user),
-                error: () => {
-                  const fallback = this.authService.getUser();
-                  this.patchProfileForm(fallback);
-                },
-              });
-
-            return;
-          }
-
-          this.profileMessage.set({
-            text: 'Perfil actualizado correctamente.',
-            type: 'success',
-          });
-        },
-        error: (error: any) => {
-          this.profileMessage.set({
-            text: this.resolveApiError(error) ?? 'No se pudo actualizar el perfil.',
-            type: 'error',
-          });
-        },
-      });
-  }
+          },
+          error: (error: any) => {
+            this.profileMessage.set({
+              text: this.resolveApiError(error) ?? 'No se pudo actualizar la forma de pago.',
+              type: 'error',
+            });
+          },
+        });
+   }
 
   protected savePassword(): void {
     if (!this.passwordForm.valid) {
@@ -229,35 +294,42 @@ export class Perfil {
     this.unsubscribeSelected.set(set);
   }
 
-  protected submitUnsubscribe(): void {
-    if (this.unsubmitting()) return;
-    const memberIds = Array.from(this.unsubscribeSelected());
-    if (memberIds.length === 0) {
-      this.unsubscribeMessage.set({ text: 'Selecciona al menos un miembro para continuar.', type: 'error' });
-      return;
-    }
+   protected submitUnsubscribe(): void {
+     if (this.unsubmitting()) return;
+     const memberIds = Array.from(this.unsubscribeSelected());
+     if (memberIds.length === 0) {
+       this.unsubscribeMessage.set({ text: 'Selecciona al menos un miembro para continuar.', type: 'error' });
+       return;
+     }
 
-    this.unsubscribeMessage.set(null);
-    this.unsubmitting.set(true);
+     this.unsubscribeMessage.set(null);
+     this.unsubmitting.set(true);
 
-    this.eventosApi.requestUserUnsubscribe({ memberIds, reason: this.unsubscribeReason() }).pipe(
-      finalize(() => this.unsubmitting.set(false)),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe({
-      next: () => {
-        this.unsubscribeMessage.set({ text: 'Solicitud enviada correctamente. Recibirás noticias por correo.', type: 'success' });
-        this.showUnsubscribeForm.set(false);
-        this.unsubscribeSelected.set(new Set());
-        this.unsubscribeReason.set('');
-      },
-      error: (err) => {
-        this.unsubscribeMessage.set({
-          text: this.resolveApiError(err) ?? 'No se pudo enviar la solicitud.',
-          type: 'error',
-        });
-      },
-    });
-  }
+     this.eventosApi.requestUserUnsubscribe({ memberIds, reason: this.unsubscribeReason() }).pipe(
+       finalize(() => this.unsubmitting.set(false)),
+       takeUntilDestroyed(this.destroyRef),
+     ).subscribe({
+       next: () => {
+         // Cerrar el formulario primero
+         this.showUnsubscribeForm.set(false);
+         // Mostrar el mensaje de éxito
+         this.unsubscribeMessage.set({ text: '✅ Solicitud enviada correctamente. Recibirás noticias por correo.', type: 'success' });
+         // Limpiar datos después de un tiempo
+         setTimeout(() => {
+           this.unsubscribeSelected.set(new Set());
+           this.unsubscribeReason.set('');
+         }, 300);
+         // Limpiar el mensaje después de 8 segundos para que sea visible más tiempo
+         setTimeout(() => this.unsubscribeMessage.set(null), 8000);
+       },
+       error: (err) => {
+         this.unsubscribeMessage.set({
+           text: this.resolveApiError(err) ?? 'No se pudo enviar la solicitud.',
+           type: 'error',
+         });
+       },
+     });
+   }
 
   // ── Relaciones ────────────────────────────────────────────────────────
 
@@ -404,25 +476,25 @@ export class Perfil {
     });
   }
 
-  private loadProfile(): void {
-    this.loading.set(true);
+   private loadProfile(): void {
+     const fallback = this.authService.getUser();
+     this.patchProfileForm(fallback);
+     this.loading.set(false);
 
-    this.authService
-      .getMe()
-      .pipe(
-        finalize(() => this.loading.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: (user) => {
-          this.patchProfileForm(user);
-        },
-        error: () => {
-          const fallback = this.authService.getUser();
-          this.patchProfileForm(fallback);
-        },
-      });
-  }
+     this.authService
+       .getMe()
+       .pipe(
+         takeUntilDestroyed(this.destroyRef),
+       )
+       .subscribe({
+         next: (user) => {
+           this.patchProfileForm(user);
+         },
+         error: () => {
+           // Mantener el fallback
+         },
+       });
+   }
 
   private patchProfileForm(user: any): void {
     this.profileForm.setValue({
@@ -477,5 +549,71 @@ export class Perfil {
     }
 
     return null;
+  }
+
+  // ── Biometric methods ──────────────────────────────────────────────────
+
+   private loadBiometricCredentials(): void {
+     if (!this.biometricService.isSupported()) return;
+
+     this.loadingBiometric.set(true);
+     this.biometricService.listCredentials()
+       .pipe(
+         finalize(() => this.loadingBiometric.set(false)),
+         takeUntilDestroyed(this.destroyRef),
+       )
+       .subscribe({
+         next: (creds) => this.biometricCredentials.set(creds),
+         error: () => this.biometricCredentials.set([]),
+       });
+   }
+
+   private loadFamilyMembers(): void {
+     this.eventosStore.loadPersonasMias()
+       .pipe(takeUntilDestroyed(this.destroyRef))
+       .subscribe();
+   }
+
+  protected registerPasskey(): void {
+    if (this.registeringBiometric()) return;
+
+    this.registeringBiometric.set(true);
+    this.biometricMessage.set(null);
+
+    this.biometricService.registerPasskey()
+      .then((cred) => {
+        this.biometricCredentials.update((list) => [cred, ...list]);
+        this.biometricMessage.set({
+          text: `✅ Dispositivo "${cred.deviceName}" registrado. Ya puedes usar la huella para entrar.`,
+          type: 'success',
+        });
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : 'No se pudo registrar el dispositivo.';
+        if (!msg.toLowerCase().includes('cancel')) {
+          this.biometricMessage.set({ text: msg, type: 'error' });
+        }
+      })
+      .finally(() => this.registeringBiometric.set(false));
+  }
+
+  protected deletePasskey(id: string): void {
+    this.deletingBiometricId.set(id);
+    this.biometricMessage.set(null);
+
+    this.biometricService.deleteCredential(id)
+      .pipe(
+        finalize(() => this.deletingBiometricId.set(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.biometricCredentials.update((list) => list.filter((c) => c.id !== id));
+          this.biometricMessage.set({ text: 'Credencial eliminada correctamente.', type: 'success' });
+        },
+        error: () => {
+          this.biometricMessage.set({ text: 'No se pudo eliminar la credencial.', type: 'error' });
+        },
+      });
   }
 }

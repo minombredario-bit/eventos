@@ -2,9 +2,12 @@
 
 namespace App\Controller;
 
+use App\Dto\PasswordResetRequestInput;
 use App\Entity\Usuario;
 use App\Enum\MetodoPagoEnum;
+use App\Repository\EntidadRepository;
 use App\Repository\UsuarioRepository;
+use App\Service\PasswordResetService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -12,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api')]
 class RegistroController extends AbstractController
@@ -20,6 +24,9 @@ class RegistroController extends AbstractController
         private readonly UsuarioRepository $usuarioRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly PasswordResetService $passwordResetService,
+        private readonly EntidadRepository $entidadRepository,
+        private readonly ValidatorInterface $validator,
     ) {}
 
     /**
@@ -108,6 +115,31 @@ class RegistroController extends AbstractController
             'email' => $user->getEmail(),
             'telefono' => $user->getTelefono(),
             'formaPagoPreferida' => $user->getFormaPagoPreferida()?->value,
+        ]);
+    }
+
+    /**
+     * Request password reset by email or document (DNI/CIF).
+     * Always returns 200 OK for security (to avoid user enumeration).
+     * If user has email: sends recovery link to user
+     * If user has no email: notifies entity admins
+     */
+    #[Route('/password/reset-request', name: 'api_password_reset_request', methods: ['POST'])]
+    public function requestPasswordReset(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $identifier = trim((string) ($data['identifier'] ?? ''));
+
+        if ($identifier === '') {
+            return $this->json(['ok' => false, 'message' => 'Datos inválidos'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $this->passwordResetService->requestResetByEmailOrDocument($identifier);
+
+        // Siempre 200 para evitar user enumeration
+        return $this->json([
+            'ok' => true,
+            'message' => 'Si el usuario existe, recibirá un email con instrucciones.',
         ]);
     }
 }
