@@ -66,7 +66,7 @@ export class AdminEntidadForm {
   });
 
   protected readonly pageTitle = computed(() =>
-    this.translate.instant('admin.entidad.title'),
+    this.translate.instant('asociacion.title'),
   );
 
   protected readonly canSelectEntidad = computed(() =>
