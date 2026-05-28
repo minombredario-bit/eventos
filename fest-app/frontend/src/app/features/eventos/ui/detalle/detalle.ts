@@ -113,7 +113,7 @@ export class Detalle {
     const nombre = user.nombre ?? '';
     const apellidos = user.apellidos ?? '';
     const email = typeof user.email === 'string' ? user.email : '';
-console.log(user);
+
     return {
       id: String(user.id ?? ''),
       name: `${nombre} ${apellidos}`.trim() || email,

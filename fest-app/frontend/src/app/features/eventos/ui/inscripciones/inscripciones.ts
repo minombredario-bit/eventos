@@ -136,7 +136,6 @@ export class Inscripciones {
   }
 
   lineasLabel(inscripcion: Inscripcion): string {
-    console.log(inscripcion);
     const n = inscripcion.totalLineas ?? 0;
     if (n === 0) return 'Sin personas apuntadas';
     if (n === 1) return 'Has apuntado 1 persona';
