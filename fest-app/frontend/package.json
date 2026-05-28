@@ -6,7 +6,9 @@
     "start": "ng serve --port 4250 --host localhost --proxy-config proxy.conf.json",
     "start:local": "ng serve --port 4250 --host localhost --proxy-config proxy.conf.json",
     "start:net": "ng serve --port 4250 --host 0.0.0.0 --proxy-config proxy.conf.json",
-    "build": "ng build",
+    "build": "ng build --configuration production",
+    "build:dev": "ng build --configuration development",
+    "serve:prod": "http-server dist/frontend -p 8080 -c-1",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "extract-translations": "ngx-translate-extract --input ./src --output ./src/assets/i18n/es.json ./src/assets/i18n/en.json --sort --format namespaced-json --marker marker"
