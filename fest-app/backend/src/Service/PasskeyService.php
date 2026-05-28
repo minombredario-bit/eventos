@@ -151,8 +151,6 @@ class PasskeyService
         $allowCredentials = [];
 
         if ($email !== null) {
-            // Pre-load credential IDs for this email (optional, for non-discoverable flow)
-            /** @noinspection PhpUnhandledExceptionInspection */
             $credentials = $this->em->createQuery(
                 'SELECT pc.credentialId FROM App\Entity\PasskeyCredential pc
                  JOIN pc.usuario u WHERE u.email = :email'
@@ -173,7 +171,7 @@ class PasskeyService
             'rpId'             => $this->resolveRpId(),
             'allowCredentials' => $allowCredentials,
             'userVerification' => 'preferred',
-            '_cacheKey'        => $cacheKey, // client must echo this back or use email
+            '_cacheKey'        => $cacheKey,
         ];
     }
 
@@ -222,7 +220,7 @@ class PasskeyService
             throw new BadRequestHttpException('rpId hash inválido.');
         }
 
-        // 5. Verify signature: ECDSA over (authData || SHA256(clientDataJSON))
+        // 5. Verify signature
         $signatureBase = $authDataBin . hash('sha256', $clientDataJson, true);
         $signatureDer = $this->b64uDecode($signatureB64);
 
@@ -274,7 +272,6 @@ class PasskeyService
     // HELPERS — AuthData parsing
     // ──────────────────────────────────────────────────────────────────────
 
-    /** Parse full authData (with attested credential data) from registration */
     private function parseAuthData(string $authDataBin): array
     {
         if (strlen($authDataBin) < 37) {
@@ -284,26 +281,20 @@ class PasskeyService
         $base = $this->parseAuthDataBase($authDataBin);
         $flags = $base['flags'];
 
-        // Bit 6 (AT): attested credential data included
         if (!($flags & 0x40)) {
             throw new BadRequestHttpException('authData no contiene credencial certificada.');
         }
 
         $offset = 37;
-        // AAGUID (16 bytes)
-        $offset += 16;
+        $offset += 16; // AAGUID
 
-        // Credential ID length (2 bytes, big-endian)
         if (strlen($authDataBin) < $offset + 2) {
             throw new BadRequestHttpException('authData truncado al leer credentialIdLength.');
         }
         $credIdLen = unpack('n', substr($authDataBin, $offset, 2))[1];
         $offset += 2;
-
-        // Credential ID
         $offset += $credIdLen;
 
-        // COSE key (rest of authData)
         $coseKeyBin = substr($authDataBin, $offset);
         if ($coseKeyBin === false || strlen($coseKeyBin) === 0) {
             throw new BadRequestHttpException('authData sin clave pública COSE.');
@@ -314,7 +305,6 @@ class PasskeyService
         ]);
     }
 
-    /** Parse the base 37 bytes present in both registration and authentication authData */
     private function parseAuthDataBase(string $authDataBin): array
     {
         if (strlen($authDataBin) < 37) {
@@ -333,20 +323,13 @@ class PasskeyService
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // HELPERS — CBOR minimal decoder (WebAuthn attestation object only)
+    // HELPERS — CBOR minimal decoder
     // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Decodes the top-level CBOR map of the attestation object.
-     * Only handles the specific structures produced by WebAuthn attestation.
-     */
     private function cborDecodeMap(string $data): array
     {
         $offset = 0;
         $result = $this->cborDecode($data, $offset);
-        if (!is_array($result) || !array_is_list($result) === false) {
-            // treat as map
-        }
         return is_array($result) ? $result : [];
     }
 
@@ -363,13 +346,13 @@ class PasskeyService
         $value = $this->cborGetLength($data, $offset, $additionalInfo);
 
         return match ($majorType) {
-            0 => $value,                                                           // uint
-            1 => -1 - $value,                                                      // nint
-            2 => $this->cborReadBytes($data, $offset, (int) $value),              // bstr
-            3 => $this->cborReadText($data, $offset, (int) $value),               // tstr
-            4 => $this->cborReadArray($data, $offset, (int) $value),              // array
-            5 => $this->cborReadMapAsArray($data, $offset, (int) $value),         // map
-            7 => $this->cborSimple($additionalInfo, $data, $offset),              // simple/float
+            0 => $value,
+            1 => -1 - $value,
+            2 => $this->cborReadBytes($data, $offset, (int) $value),
+            3 => $this->cborReadText($data, $offset, (int) $value),
+            4 => $this->cborReadArray($data, $offset, (int) $value),
+            5 => $this->cborReadMapAsArray($data, $offset, (int) $value),
+            7 => $this->cborSimple($additionalInfo, $data, $offset),
             default => throw new \RuntimeException('Unsupported CBOR major type ' . $majorType),
         };
     }
@@ -431,11 +414,6 @@ class PasskeyService
     // HELPERS — COSE key → PEM
     // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Converts a CBOR-encoded COSE key (EC P-256) to PEM format for OpenSSL.
-     *
-     * COSE map keys: 1=kty, 3=alg, -1=crv, -2=x, -3=y
-     */
     private function coseKeyToPem(string $coseKeyBin): string
     {
         $offset = 0;
@@ -445,14 +423,11 @@ class PasskeyService
             throw new BadRequestHttpException('COSE key inválida.');
         }
 
-        // Key type 2 = EC
         $kty = $coseKey[1] ?? null;
         if ($kty !== 2) {
             throw new BadRequestHttpException('Solo se soportan claves EC (tipo 2). Recibido: ' . $kty);
         }
 
-        // Algorithm -7 = ES256
-        // Curve -1 = 1 (P-256)
         $x = $coseKey[-2] ?? null;
         $y = $coseKey[-3] ?? null;
 
@@ -463,29 +438,15 @@ class PasskeyService
         return $this->ecP256XYToPem($x, $y);
     }
 
-    /**
-     * Builds a DER-encoded SubjectPublicKeyInfo for P-256 and wraps it in PEM.
-     *
-     * Structure:
-     *   SEQUENCE {
-     *     SEQUENCE {
-     *       OID id-ecPublicKey (1.2.840.10045.2.1)
-     *       OID prime256v1    (1.2.840.10045.3.1.7)
-     *     }
-     *     BIT STRING { 0x00 0x04 || x || y }
-     *   }
-     */
     private function ecP256XYToPem(string $x, string $y): string
     {
-        // OID id-ecPublicKey: 1.2.840.10045.2.1
         $oidEcPublicKey = "\x06\x07\x2a\x86\x48\xce\x3d\x02\x01";
-        // OID prime256v1: 1.2.840.10045.3.1.7
-        $oidPrime256v1 = "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07";
+        $oidPrime256v1  = "\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07";
 
         $algorithmSeq = "\x30" . chr(strlen($oidEcPublicKey) + strlen($oidPrime256v1))
             . $oidEcPublicKey . $oidPrime256v1;
 
-        $point = "\x04" . $x . $y;                  // uncompressed EC point
+        $point     = "\x04" . $x . $y;
         $bitString = "\x03" . chr(strlen($point) + 1) . "\x00" . $point;
 
         $spki = "\x30" . chr(strlen($algorithmSeq) + strlen($bitString))
@@ -510,14 +471,21 @@ class PasskeyService
     {
         $appOrigin = rtrim($this->appUri, '/');
 
-        // Allow localhost variations during development
         if (str_contains($appOrigin, 'localhost') || str_contains($appOrigin, '127.0.0.1')) {
             return;
         }
 
-        if (!hash_equals(strtolower($appOrigin), strtolower($origin))) {
+        $parsed = parse_url($appOrigin);
+        $scheme = $parsed['scheme'] ?? 'https';
+        $host   = preg_replace('#^www\.#i', '', $parsed['host'] ?? '');
+
+        $allowedOrigins = [
+            strtolower("{$scheme}://{$host}"),
+            strtolower("{$scheme}://www.{$host}"),
+        ];
+
+        if (!in_array(strtolower($origin), $allowedOrigins, true)) {
             throw new BadRequestHttpException('Origen WebAuthn no permitido: ' . $origin);
         }
     }
 }
-
