@@ -12,12 +12,14 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth';
 import { AuthStore } from '../../core/auth/auth-store';
 import { BiometricService } from '../../core/services/biometric.service';
+import { PushNotificationService } from '../../core/services/push-notification.service';
 import { CtaButton } from '../../features/shared/components/cta-button/cta-button';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, CtaButton],
+  imports: [ReactiveFormsModule, RouterLink, CtaButton, CommonModule],
   templateUrl: './login.html',
   styleUrl: './login.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

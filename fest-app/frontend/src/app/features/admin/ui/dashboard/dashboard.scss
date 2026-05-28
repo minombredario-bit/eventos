@@ -4,56 +4,21 @@
 
 :host { display: block; }
 
-// ─── Screen background ────────────────────────────────────────────────────────
-
 .admin-dashboard-screen {
   position: relative;
-
   &::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto;
-    height: 260px;
-    background: radial-gradient(
-      130% 100% at 50% 0%,
-      rgba(232, 82, 10, 0.14),
-      rgba(253, 243, 231, 0)
-    );
-    pointer-events: none;
-    z-index: 0;
+    content: ''; position: absolute; inset: 0 0 auto; height: 260px;
+    background: radial-gradient(130% 100% at 50% 0%, rgba(232, 82, 10, 0.14), rgba(253, 243, 231, 0));
+    pointer-events: none; z-index: 0;
   }
 }
 
-// ─── Eyebrow ──────────────────────────────────────────────────────────────────
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--brand-primary);
-}
-
-// ─── KPI Stats grid ───────────────────────────────────────────────────────────
+.eyebrow { margin: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.11em; text-transform: uppercase; color: var(--brand-primary); }
 
 .stats-grid {
-  display: grid;
-  gap: 0.7rem;
-
-  // default: 2 cols en mobile, 4 en desktop (si se usan 4 cards)
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  @media (min-width: 600px) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  // variante 3 cards: 3 columnas en desktop
-  &--3 {
-    @media (min-width: 600px) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
+  display: grid; gap: 0.7rem; grid-template-columns: repeat(2, minmax(0, 1fr));
+  @media (min-width: 600px) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  &--3 { @media (min-width: 600px) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 }
 
 .stat-card {
@@ -72,67 +37,21 @@
   position: relative;
   overflow: hidden;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 28px rgba(90, 30, 0, 0.15);
-  }
+  &:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(90, 30, 0, 0.15); }
+  &:active { transform: translateY(0); }
 
-  &:active {
-    transform: translateY(0);
-  }
-
-  // La card "Próximo evento" ocupa 2 columnas en mobile y es normal en desktop
   &--wide {
     grid-column: span 2;
-
-    .stat-card__value {
-      font-size: 1rem;
-      font-family: var(--font-body);
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-    }
-
-    @media (min-width: 600px) {
-      grid-column: span 1;
-    }
+    .stat-card__value { font-size: 1rem; font-family: var(--font-body); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    @media (min-width: 600px) { grid-column: span 1; }
   }
 
-  &--alert {
-    border-color: rgba(245, 158, 11, 0.5);
-    background: color-mix(in srgb, var(--surface) 95%, #f59e0b 5%);
-  }
+  &--alert { border-color: rgba(245, 158, 11, 0.5); background: color-mix(in srgb, var(--surface) 95%, #f59e0b 5%); }
 
-  &__icon {
-    font-size: 1.45rem;
-    line-height: 1;
-    margin-bottom: 0.35rem;
-  }
-
-  &__value {
-    font-size: 1.75rem;
-    font-family: var(--font-display);
-    font-weight: 800;
-    color: var(--text-primary);
-    line-height: 1.1;
-  }
-
-  &__label {
-    font-size: 0.73rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  &__date {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--brand-primary);
-    margin-top: 0.15rem;
-  }
+  &__icon { font-size: 1.45rem; line-height: 1; margin-bottom: 0.35rem; }
+  &__value { font-size: 1.75rem; font-family: var(--font-display); font-weight: 800; color: var(--text-primary); line-height: 1.1; }
+  &__label { font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  &__date { font-size: 0.78rem; font-weight: 600; color: var(--brand-primary); margin-top: 0.15rem; }
 
   &__badge {
     position: absolute;
@@ -149,11 +68,7 @@
     border: 1px solid rgba(245, 158, 11, 0.3);
   }
 
-  &--skeleton {
-    cursor: default;
-    &:hover { transform: none; }
-    pointer-events: none;
-  }
+  &--skeleton { cursor: default; pointer-events: none; &:hover { transform: none; } }
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -189,11 +104,7 @@
   gap: 0.7rem;
   margin-top: 0.65rem;
 
-  // En pantallas grandes: 3 tarjetas en fila
-  @media (min-width: 720px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.65rem;
-  }
+  @media (min-width: 720px) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; }
 }
 
 .event-row-skeleton {
@@ -204,15 +115,8 @@
   border-radius: 1.25rem;
   background: var(--surface);
 
-  .skeleton-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    justify-content: center;
-  }
+  .skeleton-body { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; }
 
-  // En desktop los skeletons también en columna
   @media (min-width: 720px) {
     flex-direction: column;
     padding: 0.75rem;
@@ -229,24 +133,16 @@
   overflow: hidden;
   transition: background 0.15s ease, box-shadow 0.15s ease;
 
-  // En desktop: flex-column para que el botón quede abajo pegado
-  @media (min-width: 720px) {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
+  @media (min-width: 720px) { display: flex; flex-direction: column; height: 100%; }
 
-  &:hover {
-    background: #fffaf4;
-    box-shadow: 0 2px 12px rgba(232, 82, 10, 0.08);
-  }
+  &:hover { background: #fffaf4; box-shadow: 0 2px 12px rgba(232, 82, 10, 0.08); }
 
-  &.is-open      { border-left: 3px solid #22c55e; }
+  &.is-open { border-left: 3px solid #22c55e; }
   &.is-published { border-left: 3px solid #3b82f6; }
-  &.is-closed    { border-left: 3px solid #f59e0b; }
-  &.is-finished  { border-left: 3px solid #94a3b8; }
+  &.is-closed { border-left: 3px solid #f59e0b; }
+  &.is-finished { border-left: 3px solid #94a3b8; }
   &.is-cancelled,
-  &.is-draft     { border-left: 3px solid #cbd5e1; }
+  &.is-draft { border-left: 3px solid #cbd5e1; }
 
   &__main {
     width: 100%;
@@ -260,13 +156,7 @@
     cursor: pointer;
     align-items: start;
 
-    // En desktop: fecha arriba a la izquierda, texto debajo (una sola columna)
-    @media (min-width: 720px) {
-      grid-template-columns: 1fr;
-      gap: 0.5rem;
-      padding: 0.75rem 0.75rem 0.5rem;
-      flex: 1;                  // empuja las acciones al fondo
-    }
+    @media (min-width: 720px) { grid-template-columns: 1fr; gap: 0.5rem; padding: 0.75rem 0.75rem 0.5rem; flex: 1; }
   }
 
   &__date {
@@ -276,11 +166,7 @@
     min-width: 2.75rem;
     padding: 0.34rem 0.22rem;
     border-radius: 1rem;
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--brand-primary) 16%, var(--surface)) 0%,
-      color-mix(in srgb, var(--brand-primary-strong) 10%, var(--surface)) 100%
-    );
+    background: linear-gradient(180deg, color-mix(in srgb, var(--brand-primary) 16%, var(--surface)) 0%, color-mix(in srgb, var(--brand-primary-strong) 10%, var(--surface)) 100%);
     text-align: center;
     color: var(--brand-ink);
     display: inline-flex;
@@ -288,39 +174,21 @@
     align-items: center;
     justify-content: center;
 
-    .month {
-      display: block;
-      font-size: 0.62rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-    }
+    .month { display: block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+    strong { display: block; font-size: 1.08rem; line-height: 1.1; }
 
-    strong {
-      display: block;
-      font-size: 1.08rem;
-      line-height: 1.1;
-    }
-
-    // En desktop: mostrar en horizontal compacto (día · mes)
     @media (min-width: 720px) {
       flex-direction: row;
       gap: 0.25rem;
       min-width: unset;
       padding: 0.2rem 0.55rem;
       border-radius: 999px;
-
       .month { font-size: 0.65rem; }
       strong { font-size: 0.85rem; line-height: 1; }
     }
   }
 
-  &__body {
-    display: grid;
-    gap: 0.6rem;
-
-    @media (min-width: 720px) { gap: 0.4rem; }
-  }
+  &__body { display: grid; gap: 0.6rem; @media (min-width: 720px) { gap: 0.4rem; } }
 
   &__top {
     display: grid;
@@ -329,21 +197,12 @@
     gap: 0.8rem;
 
     h3 { margin: 0; font-size: 0.96rem; color: var(--text-primary); }
-    p  { margin: 0.18rem 0 0; color: var(--text-secondary); font-size: 0.82rem; }
+    p { margin: 0.18rem 0 0; color: var(--text-secondary); font-size: 0.82rem; }
 
-    // En desktop: título más pequeño para compactar
-    @media (min-width: 720px) {
-      gap: 0.4rem;
-      h3 { font-size: 0.88rem; }
-      p  { font-size: 0.76rem; }
-    }
+    @media (min-width: 720px) { gap: 0.4rem; h3 { font-size: 0.88rem; } p { font-size: 0.76rem; } }
   }
 
-  &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
+  &__meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
   &__actions {
     display: flex;
@@ -351,15 +210,7 @@
     flex-wrap: wrap;
     padding: 0 0.85rem 0.85rem;
 
-    // En desktop: padding reducido y botón ocupa todo el ancho
-    @media (min-width: 720px) {
-      padding: 0 0.75rem 0.75rem;
-
-      .action-button {
-        flex: 1;
-        justify-content: center;
-      }
-    }
+    @media (min-width: 720px) { padding: 0 0.75rem 0.75rem; .action-button { flex: 1; justify-content: center; } }
   }
 }
 
@@ -375,12 +226,9 @@
   font-size: 0.8rem;
   color: var(--text-secondary);
   font-weight: 600;
-
-  &--persons {
-    background: color-mix(in srgb, var(--brand-primary) 10%, var(--surface));
-    color: var(--brand-ink);
-  }
 }
+
+.meta-chip--persons { background: color-mix(in srgb, var(--brand-primary) 10%, var(--surface)); color: var(--brand-ink); }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -392,14 +240,14 @@
   font-size: 0.76rem;
   font-weight: 700;
   white-space: nowrap;
-
-  &.is-open      { background: rgba(34,  197,  94, 0.10); color: #15803d; }
-  &.is-published { background: rgba(59,  130, 246, 0.10); color: #1d4ed8; }
-  &.is-closed    { background: rgba(245, 158,  11, 0.12); color: #b45309; }
-  &.is-finished  { background: rgba(100, 116, 139, 0.12); color: #475569; }
-  &.is-cancelled,
-  &.is-draft     { background: rgba(148, 163, 184, 0.16); color: #475569; }
 }
+
+.status-badge.is-open { background: rgba(34, 197, 94, 0.10); color: #15803d; }
+.status-badge.is-published { background: rgba(59, 130, 246, 0.10); color: #1d4ed8; }
+.status-badge.is-closed { background: rgba(245, 158, 11, 0.12); color: #b45309; }
+.status-badge.is-finished { background: rgba(100, 116, 139, 0.12); color: #475569; }
+.status-badge.is-cancelled,
+.status-badge.is-draft { background: rgba(148, 163, 184, 0.16); color: #475569; }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
@@ -410,18 +258,10 @@
   gap: 0.75rem;
   padding: 2rem 1rem;
   text-align: center;
-
-  &__icon {
-    font-size: 2.5rem;
-    opacity: 0.5;
-  }
-
-  p {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin: 0;
-  }
 }
+
+.empty-state__icon { font-size: 2.5rem; opacity: 0.5; }
+.empty-state p { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
 
 // ─── Head row para el panel ───────────────────────────────────────────────────
 
@@ -469,35 +309,19 @@
   }
 
   &--skeleton { pointer-events: none; }
-
-  &__value {
-    font-size: 1.35rem;
-    font-family: var(--font-display);
-    font-weight: 800;
-    color: var(--text-primary);
-    line-height: 1.1;
-  }
-
-  &__label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
+  &__value { font-size: 1.35rem; font-family: var(--font-display); font-weight: 800; color: var(--text-primary); line-height: 1.1; }
+  &__label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 }
 
 
-// ─── Gráficos de asistencia ───────────────────────────────────────────────────
+// ─── Charts grid ──────────────────────────────────────────────────
 
 .charts-grid {
   display: grid;
   gap: 1rem;
   grid-template-columns: 1fr;
 
-  @media (min-width: 720px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  @media (min-width: 720px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .chart-card {
@@ -506,38 +330,16 @@
   border-radius: var(--radius-lg);
   padding: 1rem;
 
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  &__title {
-    margin: 0;
-    font-size: 0.8rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: var(--text-secondary);
-  }
-
-  &__wrap {
-    position: relative;
-
-    &--bar   { height: 220px; }
-    &--donut { height: 220px; }
-  }
+  &__header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+  &__title { margin: 0; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-secondary); }
+  &__wrap { position: relative; }
+  &__wrap--bar,
+  &__wrap--donut { height: 220px; }
 }
 
 // ─── Selector de tipo de chart ────────────────────────────────────────────────
 
-.chart-mode-selector {
-  display: flex;
-  gap: 0.2rem;
-  flex-shrink: 0;
-}
+.chart-mode-selector { display: flex; gap: 0.2rem; flex-shrink: 0; }
 
 .chart-mode-btn {
   padding: 0.18rem 0.45rem;
@@ -551,16 +353,8 @@
   white-space: nowrap;
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 
-  &:hover:not(.is-active) {
-    background: var(--surface-muted);
-    color: var(--text-secondary);
-  }
-
-  &.is-active {
-    background: var(--brand-primary);
-    color: #fff;
-    border-color: var(--brand-primary);
-  }
+  &:hover:not(.is-active) { background: var(--surface-muted); color: var(--text-secondary); }
+  &.is-active { background: var(--brand-primary); color: #fff; border-color: var(--brand-primary); }
 }
 
 // ─── Empty state dentro del chart card ───────────────────────────────────────
@@ -574,10 +368,10 @@
   gap: 0.5rem;
   color: var(--text-muted);
   font-size: 0.85rem;
-
-  span { font-size: 2rem; opacity: 0.45; }
-  p   { margin: 0; }
 }
+
+.chart-no-data span { font-size: 2rem; opacity: 0.45; }
+.chart-no-data p { margin: 0; }
 
 // Skeleton extras para la sección asistencia
 .skeleton {

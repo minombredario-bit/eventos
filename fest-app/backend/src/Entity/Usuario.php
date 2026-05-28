@@ -340,6 +340,7 @@ class Usuario implements UserInterface, PasswordAuthenticatedUserInterface
     ])]
     private ?\DateTimeImmutable $aceptoLopdAt = null;
 
+
     /** @var Collection<int, RelacionUsuario> */
     #[ORM\OneToMany(targetEntity: RelacionUsuario::class, mappedBy: 'usuarioOrigen', cascade: ['persist', 'remove'])]
     private Collection $relacionesOrigen;

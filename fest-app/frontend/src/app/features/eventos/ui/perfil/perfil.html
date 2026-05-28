@@ -219,6 +219,52 @@
                   />
                 </article>
               }
+
+              <!-- Divider sutil -->
+              <div class="block-divider"></div>
+
+              <!-- Sub-sección: Notificaciones Push -->
+              @if (pushNotificationService.isSupported()) {
+                <article class="block-section">
+                  <h3 class="section-title">🔔 Notificaciones Push</h3>
+
+                  <p class="section-description">
+                    Recibe notificaciones sobre nuevos eventos y actualizaciones.
+                  </p>
+
+                  @if (notificationMessage()) {
+                    <p class="feedback feedback--{{ notificationMessage()!.type }}">{{ notificationMessage()!.text }}</p>
+                  }
+
+                   <button
+                     type="button"
+                     class="notification-button"
+                     [class.notification-button--active]="pushNotificationsEnabled()"
+                     [disabled]="togglingNotifications()"
+                     (click)="togglePushNotifications()"
+                   >
+                     <span class="notification-icon">
+                       {{ pushNotificationsEnabled() ? '✓' : '🔔' }}
+                     </span>
+                     <span class="notification-text">
+                       {{ pushNotificationsEnabled() ? 'Notificaciones activas' : 'Activar notificaciones' }}
+                     </span>
+                     @if (togglingNotifications()) {
+                       <span class="notification-spinner"></span>
+                     }
+                   </button>
+
+                  @if (pushNotificationsEnabled()) {
+                    <app-cta-button
+                      type="button"
+                      label="📬 Enviar notificación de prueba"
+                      [disabled]="testingNotification()"
+                      [loading]="testingNotification()"
+                      (click)="sendTestNotification()"
+                    />
+                  }
+                </article>
+              }
             </section>
           }
 
@@ -406,4 +452,3 @@
     (cancel)="cancelDeleteRelacion()"
   />
 }
-

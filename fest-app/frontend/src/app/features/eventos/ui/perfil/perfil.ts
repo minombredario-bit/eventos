@@ -13,6 +13,7 @@ import { EventosApi } from '../../data/eventos.api';
 import { METODOS_PAGO_OPTIONS, MetodoPago, RelacionUsuario } from '../../domain/eventos.models';
 import { TranslatePipe } from '@ngx-translate/core';
 import { BiometricService, PasskeyCredentialInfo } from '../../../../core/services/biometric.service';
+import { PushNotificationService } from '../../../../core/services/push-notification.service';
 
 interface Feedback {
   text: string;
@@ -118,6 +119,7 @@ export class Perfil {
      this.loadRelaciones();
      this.loadBiometricCredentials();
      this.loadFamilyMembers();
+     this.loadPushNotificationStatus();
    }
 
   protected goBack(): void {
@@ -613,6 +615,136 @@ export class Perfil {
         },
         error: () => {
           this.biometricMessage.set({ text: 'No se pudo eliminar la credencial.', type: 'error' });
+        },
+      });
+  }
+
+  // ── Push Notifications ─────────────────────────────────────────────────
+
+  protected readonly pushNotificationsEnabled = signal(false);
+  protected readonly togglingNotifications = signal(false);
+  protected readonly testingNotification = signal(false);
+  protected readonly notificationMessage = signal<Feedback | null>(null);
+
+  public readonly pushNotificationService = inject(PushNotificationService);
+
+
+  private loadPushNotificationStatus(): void {
+    if (!this.pushNotificationService.isSupported()) {
+      return;
+    }
+
+    this.pushNotificationService.checkIfEnabled()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (enabled) => {
+          this.pushNotificationsEnabled.set(enabled);
+        },
+        error: () => {
+          this.pushNotificationsEnabled.set(false);
+        },
+      });
+  }
+
+  protected togglePushNotifications(): void {
+    console.log('🔔 togglePushNotifications called');
+    console.log('togglingNotifications:', this.togglingNotifications());
+    console.log('isSupported:', this.pushNotificationService.isSupported());
+    if (this.togglingNotifications()) return;
+
+    this.togglingNotifications.set(true);
+    this.notificationMessage.set(null);
+
+    const shouldEnable = !this.pushNotificationsEnabled();
+    console.log('shouldEnable:', shouldEnable);
+    if (shouldEnable) {
+      console.log('🔔 Calling requestPermissionAndEnable()');
+      this.pushNotificationService.requestPermissionAndEnable()
+        .pipe(
+          finalize(() => {
+            console.log('🔔 finalize: resetting togglingNotifications');
+            this.togglingNotifications.set(false);
+          }),
+          takeUntilDestroyed(this.destroyRef)
+        )
+      .subscribe({
+          next: (success) => {
+            console.log('✅ requestPermissionAndEnable result:', success);
+            if (success) {
+              this.pushNotificationsEnabled.set(true);
+              this.notificationMessage.set({
+                text: '✅ Notificaciones push habilitadas correctamente.',
+                type: 'success',
+              });
+            } else {
+              this.notificationMessage.set({
+                text: 'Permiso de notificaciones rechazado. Por favor, revisa tu configuración del navegador.',
+                type: 'error',
+              });
+            }
+          },
+          error: (err) => {
+            console.error('❌ requestPermissionAndEnable error:', err);
+            this.notificationMessage.set({
+              text: 'Error al habilitar las notificaciones.',
+              type: 'error',
+            });
+          },
+          complete: () => {
+            console.log('🔔 Observable completed');
+          }
+        });
+    } else {
+      this.pushNotificationService.disablePushNotifications()
+        .pipe(finalize(() => this.togglingNotifications.set(false)), takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (success) => {
+            if (success) {
+              this.pushNotificationsEnabled.set(false);
+              this.notificationMessage.set({
+                text: '✅ Notificaciones push deshabilitadas.',
+                type: 'success',
+              });
+            } else {
+              this.notificationMessage.set({
+                text: 'No se pudo deshabilitar las notificaciones.',
+                type: 'error',
+              });
+            }
+          },
+          error: () => {
+            this.notificationMessage.set({
+              text: 'Error al deshabilitar las notificaciones.',
+              type: 'error',
+            });
+          },
+        });
+    }
+  }
+
+  protected sendTestNotification(): void {
+    if (this.testingNotification()) return;
+
+    this.testingNotification.set(true);
+    this.notificationMessage.set(null);
+
+    this.pushNotificationService.sendTestNotification()
+      .pipe(
+        finalize(() => this.testingNotification.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.notificationMessage.set({
+            text: '�� Notificación de prueba enviada.',
+            type: 'success',
+          });
+        },
+        error: () => {
+          this.notificationMessage.set({
+            text: 'No se pudo enviar la notificación de prueba.',
+            type: 'error',
+          });
         },
       });
   }
