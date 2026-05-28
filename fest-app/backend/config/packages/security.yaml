@@ -45,6 +45,7 @@ security:
         - { path: ^/api/password/forgot-password, roles: PUBLIC_ACCESS }
         - { path: ^/api/password/reset-password, roles: PUBLIC_ACCESS }
         - { path: ^/api/password/passkey/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/passkey/login/options, roles: PUBLIC_ACCESS }
         - { path: ^/api/registro, roles: ROLE_ADMIN_ENTIDAD }
         - { path: ^/api/superadmin, roles: ROLE_SUPERADMIN }
         # ROLE_EVENTO puede acceder a rutas de eventos/actividades del área admin
