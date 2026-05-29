@@ -7,6 +7,7 @@ namespace App\Command;
 use App\Entity\Evento;
 use App\Enum\EstadoEventoEnum;
 use App\Repository\EventoRepository;
+use App\Service\EventoPushNotifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -24,6 +25,7 @@ class UpdateEventoEstadosCommand extends Command
     public function __construct(
         private readonly EventoRepository $eventoRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly EventoPushNotifier $eventoPushNotifier,
     ) {
         parent::__construct();
     }
@@ -42,6 +44,7 @@ class UpdateEventoEstadosCommand extends Command
 
         $eventos = $this->eventoRepository->findForEstadoAutomation();
         $cambios = 0;
+        $notificaciones = [];
 
         foreach ($eventos as $evento) {
             $estadoActual = $evento->getEstado();
@@ -62,11 +65,25 @@ class UpdateEventoEstadosCommand extends Command
 
             if (!$dryRun) {
                 $evento->setEstado($estadoNuevo);
+                // Recopilar notificaciones para enviar después de flush
+                $notificaciones[] = ['evento' => $evento, 'nuevoEstado' => $estadoNuevo, 'estadoAnterior' => $estadoActual];
             }
         }
 
         if (!$dryRun && $cambios > 0) {
             $this->entityManager->flush();
+
+            // Enviar notificaciones DESPUÉS del flush
+            foreach ($notificaciones as $data) {
+                $evento = $data['evento'];
+                $estadoNuevo = $data['nuevoEstado'];
+
+                if ($estadoNuevo === EstadoEventoEnum::PUBLICADO) {
+                    $this->eventoPushNotifier->notifyInscripcionesAbiertas($evento);
+                } elseif ($estadoNuevo === EstadoEventoEnum::CERRADO) {
+                    $this->eventoPushNotifier->notifyInscripcionesCerradas($evento);
+                }
+            }
         }
 
         if ($dryRun) {
@@ -99,4 +116,6 @@ class UpdateEventoEstadosCommand extends Command
         return EstadoEventoEnum::BORRADOR;
     }
 }
+
+
 
