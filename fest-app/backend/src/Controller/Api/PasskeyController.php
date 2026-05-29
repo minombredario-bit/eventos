@@ -153,6 +153,8 @@ class PasskeyController extends AbstractController
                 $challengeCacheKey,
             );
         } catch (\JsonException $e) {
+            error_log('❌ Passkey login error: ' . $e->getMessage());
+            error_log('❌ ' . $e->getTraceAsString());
             throw new BadRequestHttpException('Datos JSON inválidos: ' . $e->getMessage());
         }
 
