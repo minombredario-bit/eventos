@@ -6,8 +6,10 @@ use App\Entity\ColaCorreo;
 use App\Entity\Entidad;
 use App\Entity\Evento;
 use App\Entity\Inscripcion;
+use App\Entity\InscripcionLinea;
 use App\Entity\Usuario;
 use App\Repository\ColaCorreoRepository;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
@@ -25,13 +27,18 @@ class EmailQueueService
     ) {}
 
     public function enqueue(
-        string $destinatario,
+        ?string $destinatario,
         string $asunto,
         string $plantilla,
         array $contexto = [],
         ?Entidad $entidad = null,
         ?Usuario $usuario = null,
-    ): ColaCorreo {
+    ): ?ColaCorreo {
+        $destinatario = $this->normalizeRecipient($destinatario);
+        if ($destinatario === null) {
+            return null;
+        }
+
         $plantilla = $this->normalizeTemplateName($plantilla);
 
         $item = new ColaCorreo();
@@ -49,17 +56,18 @@ class EmailQueueService
 
     public function enqueueUserWelcome(Usuario $usuario, string $plainPassword, string $appUri): void
     {
-        if (!$usuario->getEmail()) {
+        $destinatario = $this->normalizeRecipient($usuario->getEmail());
+        if ($destinatario === null) {
             return;
         }
 
         $this->enqueue(
-            $usuario->getEmail(),
+            $destinatario,
             'Alta de usuario en la aplicación',
             'email/user_welcome.html.twig',
             [
                 'nombre' => $usuario->getNombre(),
-                'email' => $usuario->getEmail(),
+                'email' => $destinatario,
                 'password' => $plainPassword,
                 'appUri' => $appUri,
             ],
@@ -77,8 +85,8 @@ class EmailQueueService
         $destinatarios = [];
 
         foreach ([$emailAnterior, $emailNuevo, $usuario->getEmail()] as $destinatario) {
-            $normalizado = strtolower(trim($destinatario));
-            if ($normalizado === '') {
+            $normalizado = $this->normalizeRecipient($destinatario);
+            if ($normalizado === null) {
                 continue;
             }
 
@@ -106,17 +114,18 @@ class EmailQueueService
 
     public function enqueuePasswordChanged(Usuario $usuario, string $plainPassword, string $appUri): void
     {
-        if (!$usuario->getEmail()) {
+        $destinatario = $this->normalizeRecipient($usuario->getEmail());
+        if ($destinatario === null) {
             return;
         }
 
         $this->enqueue(
-            $usuario->getEmail(),
+            $destinatario,
             'Tu contraseña ha sido restablecida',
             'email/password_changed.html.twig',
             [
                 'nombre' => $usuario->getNombre(),
-                'email' => $usuario->getEmail(),
+                'email' => $destinatario,
                 'password' => $plainPassword,
                 'appUri' => $appUri,
             ],
@@ -132,8 +141,13 @@ class EmailQueueService
                 continue;
             }
 
+            $destinatario = $this->normalizeRecipient($usuario->getEmail());
+            if ($destinatario === null) {
+                continue;
+            }
+
             $this->enqueue(
-                $usuario->getEmail(),
+                $destinatario,
                 'Nuevo evento disponible: ' . $evento->getTitulo(),
                 'email/evento_creado.html.twig',
                 [
@@ -151,20 +165,34 @@ class EmailQueueService
     public function enqueueInscripcionCambio(Inscripcion $inscripcion, string $accion): void
     {
         $usuario = $inscripcion->getUsuario();
+        $destinatario = $this->normalizeRecipient($usuario->getEmail());
+
+        if ($destinatario === null) {
+            return;
+        }
+
         $evento = $inscripcion->getEvento();
+        $accionLabel = $this->resolveInscripcionActionLabel($accion);
+        $lineasResumen = $this->buildInscripcionLineSummary($inscripcion);
+        $isResumen = $accion === 'apuntado';
 
         $this->enqueue(
-            $usuario->getEmail(),
-            'Actualización de inscripción: ' . $evento->getTitulo(),
+            $destinatario,
+            ($isResumen ? 'Resumen de tu inscripción: ' : 'Actualización de inscripción: ') . $evento->getTitulo(),
             'email/inscripcion_cambio.html.twig',
             [
                 'nombre' => $usuario->getNombre(),
                 'accion' => $accion,
+                'accionLabel' => $accionLabel,
                 'evento' => $evento->getTitulo(),
+                'codigoInscripcion' => $inscripcion->getCodigo(),
                 'estadoInscripcion' => $inscripcion->getEstadoInscripcion()->value,
                 'estadoPago' => $inscripcion->getEstadoPago()->value,
                 'importeTotal' => $inscripcion->getImporteTotal(),
                 'importePagado' => $inscripcion->getImportePagado(),
+                'moneda' => $inscripcion->getMoneda(),
+                'resumenLineas' => $lineasResumen,
+                'totalLineas' => count($lineasResumen),
             ],
             $usuario->getEntidad(),
             $usuario,
@@ -198,6 +226,14 @@ class EmailQueueService
 
         foreach ($pendientes as $item) {
             try {
+                $destinatario = $this->normalizeRecipient($item->getDestinatario());
+                if ($destinatario === null) {
+                    $item->incrementarIntentos();
+                    $item->setEstado(ColaCorreo::ESTADO_ERROR);
+                    $item->setUltimoError('Destinatario vacío o no válido para el envío.');
+                    continue;
+                }
+
                 $plantilla = $this->normalizeTemplateName($item->getPlantilla());
                 // Se añade contexto visual común para que todos los correos compartan marca,
                 // y el logo de la entidad solo se use cuando exista y sea resoluble.
@@ -208,7 +244,7 @@ class EmailQueueService
 
                 $email = (new Email())
                     ->from($this->mailerFrom)
-                    ->to($item->getDestinatario())
+                    ->to($destinatario)
                     ->subject($item->getAsunto())
                     ->html($html);
 
@@ -247,6 +283,66 @@ class EmailQueueService
         }
 
         return $plantilla;
+    }
+
+    private function normalizeRecipient(?string $destinatario): ?string
+    {
+        if ($destinatario === null) {
+            return null;
+        }
+
+        $destinatario = strtolower(trim($destinatario));
+
+        return $destinatario === '' ? null : $destinatario;
+    }
+
+    private function resolveInscripcionActionLabel(string $accion): string
+    {
+        return match ($accion) {
+            'apuntado' => 'Te has apuntado a nuevas actividades',
+            'actualizado' => 'Tu inscripción se ha actualizado',
+            'pago' => 'Se ha registrado un pago en tu inscripción',
+            'borrado' => 'Se han eliminado actividades de tu inscripción',
+            default => 'Tu inscripción ha cambiado',
+        };
+    }
+
+    /**
+     * @return list<array{persona: string, actividad: string, franja: string, precioUnitario: float}>
+     */
+    private function buildInscripcionLineSummary(Inscripcion $inscripcion): array
+    {
+        $lineas = $inscripcion->getLineas();
+        if (!$lineas instanceof Collection || $lineas->isEmpty()) {
+            return [];
+        }
+
+        $summary = [];
+
+        foreach ($lineas as $linea) {
+            if (!$linea instanceof InscripcionLinea) {
+                continue;
+            }
+
+            if ($linea->getEstadoLinea()->value === 'cancelada') {
+                continue;
+            }
+
+            $summary[] = [
+                'persona' => $linea->getNombrePersonaSnapshot(),
+                'actividad' => $linea->getNombreActividadSnapshot(),
+                'franja' => $linea->getFranjaComidaSnapshot(),
+                'precioUnitario' => $linea->getPrecioUnitario(),
+            ];
+        }
+
+        usort(
+            $summary,
+            static fn(array $left, array $right): int => [$left['franja'], $left['persona'], $left['actividad']]
+                <=> [$right['franja'], $right['persona'], $right['actividad']]
+        );
+
+        return $summary;
     }
 
     /**

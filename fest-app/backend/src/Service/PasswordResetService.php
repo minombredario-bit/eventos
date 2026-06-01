@@ -128,15 +128,25 @@ class PasswordResetService
 
         // Get all users with ROLE_ADMIN_ENTIDAD from the same entity
         foreach ($entidad->getUsuarios() as $usuarioEntidad) {
-            if ($usuarioEntidad->getEmail() && in_array('ROLE_ADMIN_ENTIDAD', $usuarioEntidad->getRoles())) {
-                $adminEmails[] = $usuarioEntidad->getEmail();
+            $adminEmail = is_string($usuarioEntidad->getEmail())
+                ? strtolower(trim($usuarioEntidad->getEmail()))
+                : '';
+
+            if ($adminEmail !== '' && in_array('ROLE_ADMIN_ENTIDAD', $usuarioEntidad->getRoles(), true)) {
+                $adminEmails[] = $adminEmail;
             }
         }
 
+        $adminEmails = array_values(array_unique($adminEmails));
+
         if (empty($adminEmails)) {
             // If no admin emails found, use the entity contact email
-            if ($entidad->getEmailContacto()) {
-                $adminEmails[] = $entidad->getEmailContacto();
+            $contactEmail = is_string($entidad->getEmailContacto())
+                ? strtolower(trim($entidad->getEmailContacto()))
+                : '';
+
+            if ($contactEmail !== '') {
+                $adminEmails[] = $contactEmail;
             } else {
                 // If no contact email either, silently return
                 return;

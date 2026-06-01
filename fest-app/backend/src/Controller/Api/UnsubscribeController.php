@@ -127,7 +127,10 @@ class UnsubscribeController extends AbstractController
 
             $roles = $u->getRoles();
             if (in_array('ROLE_ADMIN_ENTIDAD', $roles, true) || in_array('ROLE_ADMIN', $roles, true) || in_array('ROLE_SUPERADMIN', $roles, true)) {
-                $recipients[] = $u->getEmail();
+                $email = is_string($u->getEmail()) ? strtolower(trim($u->getEmail())) : '';
+                if ($email !== '') {
+                    $recipients[] = $email;
+                }
             }
         }
 

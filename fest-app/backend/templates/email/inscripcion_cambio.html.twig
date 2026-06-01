@@ -1,23 +1,50 @@
 {% extends 'email/base.html.twig' %}
 
-{% block email_title %}Actualización de inscripción{% endblock %}
-{% block email_preheader %}Tu inscripción para {{ evento }} ha cambiado de estado{% endblock %}
-{% block email_heading %}Actualización de tu inscripción{% endblock %}
+{% set accionLabel = accionLabel|default('Tu inscripción ha cambiado') %}
+{% set moneda = moneda|default('EUR') %}
+{% set resumenLineas = resumenLineas|default([]) %}
+{% block email_title %}{{ accion == 'apuntado' ? 'Resumen de inscripción' : 'Actualización de inscripción' }}{% endblock %}
+{% block email_preheader %}{{ accionLabel }} para {{ evento }}{% endblock %}
+{% block email_heading %}{{ accion == 'apuntado' ? 'Resumen de tu inscripción' : 'Actualización de tu inscripción' }}{% endblock %}
 
 {% block content %}
-    <p style="margin:0 0 18px;">Hola {{ nombre }}, se ha registrado un cambio en tu inscripción para <strong>{{ evento }}</strong>.</p>
+    <p style="margin:0 0 18px;">Hola {{ nombre }}, <strong>{{ accionLabel|lower }}</strong> para <strong>{{ evento }}</strong>.</p>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px; border-collapse:separate; border-spacing:0; background:#f8fafc; border:1px solid #e5e7eb; border-radius:18px; overflow:hidden;">
         <tr>
             <td style="padding:18px 20px; font-size:14px; line-height:1.75; color:#334155;">
-                <div style="margin-bottom:8px;"><strong>Acción:</strong> {{ accion }}</div>
+                {% if codigoInscripcion %}
+                    <div style="margin-bottom:8px;"><strong>Código:</strong> {{ codigoInscripcion }}</div>
+                {% endif %}
+                <div style="margin-bottom:8px;"><strong>Acción:</strong> {{ accionLabel }}</div>
                 <div style="margin-bottom:8px;"><strong>Estado inscripción:</strong> {{ estadoInscripcion }}</div>
                 <div style="margin-bottom:8px;"><strong>Estado pago:</strong> {{ estadoPago }}</div>
-                <div style="margin-bottom:8px;"><strong>Total:</strong> {{ importeTotal }}</div>
-                <div><strong>Pagado:</strong> {{ importePagado }}</div>
+                <div style="margin-bottom:8px;"><strong>Total:</strong> {{ importeTotal }} {{ moneda }}</div>
+                <div><strong>Pagado:</strong> {{ importePagado }} {{ moneda }}</div>
             </td>
         </tr>
     </table>
+
+    {% if resumenLineas is not empty %}
+        <p style="margin:0 0 12px;"><strong>Resumen actual de actividades ({{ totalLineas|default(resumenLineas|length) }})</strong></p>
+
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 24px; border-collapse:collapse; background:#ffffff; border:1px solid #e5e7eb; border-radius:18px; overflow:hidden;">
+            <tr style="background:#eef2ff; color:#312e81;">
+                <th align="left" style="padding:12px 14px; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">Persona</th>
+                <th align="left" style="padding:12px 14px; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">Franja</th>
+                <th align="left" style="padding:12px 14px; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">Actividad</th>
+                <th align="right" style="padding:12px 14px; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">Precio</th>
+            </tr>
+            {% for linea in resumenLineas %}
+                <tr>
+                    <td style="padding:12px 14px; border-top:1px solid #e5e7eb;">{{ linea.persona }}</td>
+                    <td style="padding:12px 14px; border-top:1px solid #e5e7eb; text-transform:capitalize;">{{ linea.franja|replace({'_': ' '}) }}</td>
+                    <td style="padding:12px 14px; border-top:1px solid #e5e7eb;">{{ linea.actividad }}</td>
+                    <td align="right" style="padding:12px 14px; border-top:1px solid #e5e7eb; white-space:nowrap;">{{ linea.precioUnitario }} {{ moneda }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
 
     {% if appUri %}
         <table role="presentation" cellspacing="0" cellpadding="0" border="0">
