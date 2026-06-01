@@ -4,6 +4,8 @@
 
 .screen {
   position: relative;
+  overflow-x: hidden;
+  width: 100%;
 
   &::before {
     content: '';
@@ -26,6 +28,7 @@ h2 {
   line-height: 1.23;
   letter-spacing: -0.01em;
   font-family: var(--font-display);
+  word-break: break-word;
 }
 
 // ─── Hero del evento ──────────────────────────────────────────────────────────
@@ -34,6 +37,7 @@ h2 {
   background: color-mix(in srgb, var(--brand-primary) 9%, var(--surface));
   border-color: var(--border-strong);
   box-shadow: var(--shadow-elevated), 0 1px 0 rgba(255, 255, 255, 0.65) inset;
+  word-break: break-word;
 
   h2 { font-size: 1.22rem; line-height: 1.25; color: var(--text-primary); }
 
@@ -41,10 +45,10 @@ h2 {
     margin-top: 0.62rem;
     display: grid;
     gap: 0.28rem;
-    p { margin: 0; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.38; }
+    p { margin: 0; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.38; word-break: break-word; }
   }
 
-  .description { margin: 0.9rem 0 0; color: var(--text-secondary); line-height: 1.45; font-size: 0.9rem; }
+  .description { margin: 0.9rem 0 0; color: var(--text-secondary); line-height: 1.45; font-size: 0.9rem; word-break: break-word; }
 }
 
 // ─── Status chip ──────────────────────────────────────────────────────────────
@@ -110,6 +114,10 @@ h2 {
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
   width: fit-content;
+  max-width: 100%;
+  display: inline-block;
+  word-break: break-word;
+  overflow-wrap: break-word;
   font-family: var(--font-body);
 }
 
@@ -146,6 +154,7 @@ h2 {
     font-size: 0.92rem;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
     transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
 
     &:focus-visible {
       border-color: var(--brand-primary);
@@ -163,6 +172,15 @@ h2 {
 app-member-row { display: block; }
 
 // ─── Responsive ───────────────────────────────────────────────────────────────
+
+.content {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 
 @media (min-width: 768px) {
   .content { max-width: 980px; margin: 0 auto; }
