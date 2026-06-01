@@ -119,7 +119,7 @@ export class Inscripciones {
   }
 
   protected estadoInscripcionEventoLabel(inscripcion: Inscripcion): string {
-    return this.isEventoCerrado(inscripcion) ? 'Cerrada (caducada)' : 'Abierta';
+    return this.isEventoCerrado(inscripcion) ? 'Cerrada' : 'Abierta';
   }
 
   protected cierreEventoHint(inscripcion: Inscripcion): string {
