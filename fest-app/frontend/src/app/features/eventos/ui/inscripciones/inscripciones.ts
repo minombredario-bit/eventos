@@ -39,11 +39,14 @@ export class Inscripciones {
   });
 
   protected readonly loading = signal(true);
+  protected readonly transitioning = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+
   protected readonly inscripciones = computed<Inscripcion[]>(() => this.inscripcionesPage().items);
   protected readonly searchTerm = signal<string>('');
   protected readonly totalItems = computed<number>(() => this.inscripcionesPage().totalItems);
   protected readonly currentPage = computed<number>(() => this.inscripcionesPage().page);
+  protected readonly totalPages      = computed<number>(() => this.inscripcionesPage().totalPages);
   protected readonly hasNextPage = computed<boolean>(() => this.inscripcionesPage().hasNext);
   protected readonly hasPreviousPage = computed<boolean>(() => this.inscripcionesPage().hasPrevious);
 
@@ -57,7 +60,7 @@ export class Inscripciones {
       this.loadInscripciones(1);
     });
 
-    this.loadInscripciones();
+    this.loadInscripciones(1, true);
   }
 
   protected logout(): void {
@@ -164,8 +167,8 @@ export class Inscripciones {
     return labels[estado] ?? 'Pago desconocido';
   }
 
-  private loadInscripciones(page = 1): void {
-    this.loading.set(true);
+  private loadInscripciones(page = 1, isInitial = false): void {
+    isInitial ? this.loading.set(true) : this.transitioning.set(true);
     this.errorMessage.set(null);
 
     this.eventosApi
@@ -175,7 +178,10 @@ export class Inscripciones {
         itemsPerPage: Inscripciones.PAGE_SIZE,
       })
       .pipe(
-        finalize(() => this.loading.set(false)),
+        finalize(() => {
+          this.loading.set(false);
+          this.transitioning.set(false);
+        }),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({

@@ -2,7 +2,6 @@
 
 namespace App\Service;
 
-use ApiPlatform\Metadata\IriConverterInterface;
 use App\Entity\Inscripcion;
 use App\Entity\InscripcionLinea;
 use App\Entity\Evento;
@@ -16,8 +15,8 @@ use App\Repository\InvitadoRepository;
 use App\Repository\RelacionUsuarioRepository;
 use App\Repository\ActividadEventoRepository;
 use App\Repository\UsuarioRepository;
-use App\Enum\FranjaComidaEnum;
 use App\Enum\EstadoInscripcionEnum;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -186,7 +185,15 @@ class InscripcionService
         $inscripcion->actualizarEstadoPago();
         $this->actualizarEstadoInscripcionSegunImporte($inscripcion);
 
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->flush();
+        } catch (UniqueConstraintViolationException $e) {
+            if (str_contains($e->getMessage(), 'uniq_inscripcion_usuario_evento')) {
+                throw new BadRequestHttpException('Ya existe una inscripción para este usuario en este evento. No puedes crear otra.');
+            }
+            throw $e;
+        }
+
         $this->emailQueueService->enqueueInscripcionCambio($inscripcion, 'apuntado');
 
         return $inscripcion;

@@ -25,7 +25,12 @@ use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 
 #[ORM\Entity(repositoryClass: InscripcionRepository::class)]
-#[ORM\Table(name: 'inscripcion')]
+#[ORM\Table(
+    name: 'inscripcion',
+    uniqueConstraints: [
+        new ORM\UniqueConstraint(name: 'uniq_inscripcion_usuario_evento', columns: ['usuario_id', 'evento_id']),
+    ],
+)]
 #[ORM\HasLifecycleCallbacks]
 #[ApiResource(
     operations: [
