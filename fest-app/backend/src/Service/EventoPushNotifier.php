@@ -4,14 +4,12 @@ namespace App\Service;
 
 use App\Entity\Evento;
 use App\Repository\PushSubscriptionRepository;
-use Symfony\Bundle\SecurityBundle\Security;
 
 final class EventoPushNotifier
 {
     public function __construct(
         private readonly PushSubscriptionRepository $pushSubscriptionRepository,
         private readonly PushNotificationService $pushNotificationService,
-        private readonly Security $security,
     ) {
     }
 
