@@ -43,6 +43,8 @@ final class EventoWriteProcessor implements ProcessorInterface
         $user  = $this->security->getUser();
         $isNew = $operation instanceof Post;
 
+        $snapshot = !$isNew ? $this->snapshotFecha($data) : null;
+
         $data->setEntidad($user->getEntidad());
         $this->syncSlug($data, $operation);
         $this->syncActividades($data);
@@ -50,17 +52,69 @@ final class EventoWriteProcessor implements ProcessorInterface
         /** @var Evento $saved */
         $saved = $this->persistProcessor->process($data, $operation, $uriVariables, $context);
 
-        // Notificar solo si el evento es visible y NO está en borrador
-        if ($saved->isVisible() && $saved->getEstado() !== EstadoEventoEnum::BORRADOR) {
-            // Usar EventoPushNotifier con el método específico para eventos creados
-            $this->eventoPushNotifier->notifyEventoCreado($saved);
-        }
+        $this->dispatchNotifications($saved, $isNew, $snapshot);
 
         return $saved;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * @return array{fechaEvento: \DateTimeImmutable, horaInicio: ?\DateTimeImmutable, horaFin: ?\DateTimeImmutable}
+     */
+    private function snapshotFecha(Evento $evento): array
+    {
+        $original = $this->em->getUnitOfWork()->getOriginalEntityData($evento);
+
+        return [
+            'fechaEvento' => $original['fechaEvento'] ?? $evento->getFechaEvento(),
+            'horaInicio'  => $original['horaInicio']  ?? $evento->getHoraInicio(),
+            'horaFin'     => $original['horaFin']      ?? $evento->getHoraFin(),
+        ];
+    }
+
+    /**
+     * @param array{fechaEvento: \DateTimeImmutable, horaInicio: ?\DateTimeImmutable, horaFin: ?\DateTimeImmutable}|null $snapshot
+     */
+    private function dispatchNotifications(Evento $saved, bool $isNew, ?array $snapshot): void
+    {
+        if (!$saved->isVisible() || $saved->getEstado() === EstadoEventoEnum::BORRADOR) {
+            return;
+        }
+
+        if ($isNew) {
+            $this->eventoPushNotifier->notifyEventoCreado($saved);
+            return;
+        }
+
+        if ($snapshot !== null && $this->fechaHaCambiado($saved, $snapshot)) {
+            $this->eventoPushNotifier->notifyHoraCambiada($saved);
+        }
+    }
+
+    /**
+     * @param array{fechaEvento: \DateTimeImmutable, horaInicio: ?\DateTimeImmutable, horaFin: ?\DateTimeImmutable} $snapshot
+     */
+    private function fechaHaCambiado(Evento $saved, array $snapshot): bool
+    {
+        if ($saved->getFechaEvento()->format('Y-m-d') !== $snapshot['fechaEvento']->format('Y-m-d')) {
+            return true;
+        }
+
+        $fmtHora = fn(?\DateTimeImmutable $d): string => $d?->format('H:i') ?? '';
+
+        if ($fmtHora($saved->getHoraInicio()) !== $fmtHora($snapshot['horaInicio'])) {
+            return true;
+        }
+
+        if ($fmtHora($saved->getHoraFin()) !== $fmtHora($snapshot['horaFin'])) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     private function syncSlug(Evento $evento, Operation $operation): void
     {
@@ -77,15 +131,6 @@ final class EventoWriteProcessor implements ProcessorInterface
         }
     }
 
-    /**
-     * Lee las actividades directamente del JSON del request.
-     * API Platform NO deserializa la colección (actividades no está en evento:write),
-     * por lo que Doctrine nunca ve entidades con UUIDs falsos.
-     *
-     * - Con @id  → cargar por UUID, actualizar campos si los envía.
-     * - Sin @id  → nueva actividad, persistir.
-     * - Ausente del payload → no se toca (no hay borrado silencioso).
-     */
     private function syncActividades(Evento $evento): void
     {
         $request = $this->requestStack->getCurrentRequest();
