@@ -150,14 +150,25 @@ final class ApuntadosProvider implements ProviderInterface
                 $inscripcion = $this->inscripcionRepository
                     ->findOneByUsuarioParticipanteAndEvento($participanteId, $evento->getId());
 
-                if ($inscripcion !== null) {
-                    $inscripcionId = (string)$inscripcion->getId();
-                    $opciones = $this->extractUniqueActividadOptionsByUsuario(
-                        $inscripcion->getLineas()->toArray(),
-                        $participanteId,
-                        null
-                    );
+                // Solo incluir si tiene inscripción con líneas
+                if ($inscripcion === null) {
+                    continue;
                 }
+
+                $lineas = $inscripcion->getLineas()->toArray();
+                $lineasNoAnuladas = array_filter($lineas, fn($l) => $l->getEstadoLinea()->value !== 'cancelada');
+
+                // Solo incluir si tiene al menos una línea no anulada
+                if (empty($lineasNoAnuladas)) {
+                    continue;
+                }
+
+                $inscripcionId = (string)$inscripcion->getId();
+                $opciones = $this->extractUniqueActividadOptionsByUsuario(
+                    $lineas,
+                    $participanteId,
+                    null
+                );
             } else {
                 $invitado = $this->invitadoRepository->find($participanteId);
 
@@ -172,14 +183,25 @@ final class ApuntadosProvider implements ProviderInterface
                 $inscripcion = $this->inscripcionRepository
                     ->findOneByInvitadoAndEvento($participanteId, $evento->getId());
 
-                if ($inscripcion !== null) {
-                    $inscripcionId = (string)$inscripcion->getId();
-                    $opciones = $this->extractUniqueActividadOptionsByUsuario(
-                        $inscripcion->getLineas()->toArray(),
-                        null,
-                        $participanteId
-                    );
+                // Solo incluir si tiene inscripción con líneas
+                if ($inscripcion === null) {
+                    continue;
                 }
+
+                $lineas = $inscripcion->getLineas()->toArray();
+                $lineasNoAnuladas = array_filter($lineas, fn($l) => $l->getEstadoLinea()->value !== 'cancelada');
+
+                // Solo incluir si tiene al menos una línea no anulada
+                if (empty($lineasNoAnuladas)) {
+                    continue;
+                }
+
+                $inscripcionId = (string)$inscripcion->getId();
+                $opciones = $this->extractUniqueActividadOptionsByUsuario(
+                    $lineas,
+                    null,
+                    $participanteId
+                );
             }
 
             if ($nombreCompleto === '') {
