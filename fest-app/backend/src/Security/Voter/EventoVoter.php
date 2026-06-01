@@ -53,24 +53,45 @@ class EventoVoter extends Voter
 
     /**
      * Puede ver el evento si:
-     * - Está publicado y el usuario tiene ROLE_USER
-     * - Es admin de la entidad (ve todos, publicados y no)
-     * - Es gestor de eventos de la entidad (ROLE_EVENTO)
-     * - Es superadmin
+     * - Está en estado visible (PUBLICADO, CERRADO, FINALIZADO, CANCELADO), es visible y el usuario tiene ROLE_USER
+     * - Es admin de la entidad (ve todos, excepto si es borrador o no visible)
+     * - Es gestor de eventos de la entidad (ROLE_EVENTO, ve todos excepto si es borrador o no visible)
+     * - Es superadmin (ve todos, incluso borrador)
+     *
+     * Deniega acceso (403) solo si:
+     * - El evento es BORRADOR
+     * - O el evento tiene visible = false
      */
     private function canView(Evento $evento, Usuario $user): bool
     {
-        // Eventos publicados visibles para cualquier usuario autenticado
-        if ($evento->getEstado() === EstadoEventoEnum::PUBLICADO) {
+        // Los eventos borrador no son visibles para nadie excepto superadmins
+        if ($evento->getEstado() === EstadoEventoEnum::BORRADOR) {
+            return $this->isSuperadmin($user);
+        }
+
+        // Los eventos con visible = false no son visibles para nadie excepto superadmins
+        if (!$evento->isVisible()) {
+            return $this->isSuperadmin($user);
+        }
+
+        // Estados visibles para cualquier usuario autenticado
+        $estadosVisibles = [
+            EstadoEventoEnum::PUBLICADO,
+            EstadoEventoEnum::CERRADO,
+            EstadoEventoEnum::FINALIZADO,
+            EstadoEventoEnum::CANCELADO,
+        ];
+
+        if (in_array($evento->getEstado(), $estadosVisibles, true)) {
             return true;
         }
 
-        // Admins y superadmins ven todos los eventos de su entidad
+        // Admins y superadmins ven todos los eventos de su entidad (que no sean borrador/invisible)
         if ($this->isAdminOfEntidad($user, $evento->getEntidad()->getId())) {
             return true;
         }
 
-        // Gestores de eventos ven todos los eventos (publicados y no) de su entidad
+        // Gestores de eventos ven todos los eventos (publicados y no) de su entidad (que no sean borrador/invisible)
         if ($this->isEventoManagerOfEntidad($user, $evento->getEntidad()->getId())) {
             return true;
         }
