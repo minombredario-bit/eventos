@@ -84,6 +84,7 @@ export interface InscripcionCollectionItem {
   estadoPago?: string;
   importeTotal?: number | string | null;
   importePagado?: number | string | null;
+  totalLineas?: number | string | null;
   lineas?: InscripcionLineaCollectionItem[];
 }
 

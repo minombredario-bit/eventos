@@ -15,6 +15,8 @@ use ApiPlatform\Metadata\Patch;
 use App\Enum\EstadoInscripcionEnum;
 use App\Enum\EstadoPagoEnum;
 use App\Enum\MetodoPagoEnum;
+use App\Dto\InscripcionCollectionOutput;
+use App\State\InscripcionCollectionProvider;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Attribute\SerializedName;
@@ -37,7 +39,9 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
         new Get(security: "is_granted('INSCRIPCION_VIEW', object)"),
         new GetCollection(
             normalizationContext: ['groups' => ['inscripcion:collection']],
-            security: "is_granted('ROLE_USER')"
+            security: "is_granted('ROLE_USER')",
+            output: InscripcionCollectionOutput::class,
+            provider: InscripcionCollectionProvider::class,
             ),
         new Patch(security: "is_granted('INSCRIPCION_EDIT', object) and object.getEvento().estaInscripcionAbierta()"),
     ],
@@ -50,6 +54,7 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
     'usuario.id' => 'exact',
     'evento' => 'exact',
     'evento.id' => 'exact',
+    'evento.titulo' => 'partial',
     'entidad' => 'exact',
     'entidad.id' => 'exact',
     'estadoInscripcion' => 'exact',
@@ -59,7 +64,7 @@ use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 #[ApiFilter(DateFilter::class, properties: ['createdAt', 'updatedAt', 'fechaPago'])]
 #[ApiFilter(
     OrderFilter::class,
-    properties: ['createdAt', 'updatedAt', 'importeTotal', 'importePagado'],
+    properties: ['createdAt', 'updatedAt', 'importeTotal', 'importePagado', 'evento.fechaEvento', 'evento.horaInicio'],
     arguments: ['orderParameterName' => 'order']
 )]
 

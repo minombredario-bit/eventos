@@ -292,21 +292,25 @@ export class EventosApi {
     params = params
       .set('page', page)
       .set('itemsPerPage', itemsPerPage)
-      .set('order[fechaEvento]', 'desc');
+      .set('order[evento.fechaEvento]', 'desc')
+      .set('order[evento.horaInicio]', 'desc');
 
-    if (search?.trim() && search.length >= 3) {
-      params = params.set('titulo', search.trim());
+    if (search.length >= 3) {
+      params = params.set('evento.titulo', search);
     }
 
     return this.http
-      .get<ApiCollection<Inscripcion>>(`${environment.apiUrl}/inscripcions`, { params })
+      .get<ApiCollection<InscripcionCollectionItem>>(`${environment.apiUrl}/inscripcions`, { params })
       .pipe(
         map((response) => {
-          const parsed = parsePaginatedCollection<Inscripcion>(response as unknown);
+          const parsed = parsePaginatedCollection<InscripcionCollectionItem>(response as unknown);
+          const items = parsed.items
+            .map((item) => this.toInscripcionCollection(item))
+            .filter((item): item is Inscripcion => item !== null);
           const totalPages = Math.ceil(parsed.totalItems / itemsPerPage);
 
           return {
-            items: parsed.items,
+            items,
             totalItems: parsed.totalItems,
             totalPages,
             page,
@@ -686,11 +690,13 @@ export class EventosApi {
       estadoPago: String(item.estadoPago ?? ''),
       importeTotal: this.toNumber(item.importeTotal),
       importePagado: this.toNumber(item.importePagado),
+      totalLineas: this.toNumber(item.totalLineas),
       lineas: Array.isArray(item.lineas)
         ? item.lineas.map((linea) => this.mapInscripcionLinea(linea))
         : [],
     };
   }
+
 
   private mapInscripcionLinea(linea: any): InscripcionLinea {
     return {
