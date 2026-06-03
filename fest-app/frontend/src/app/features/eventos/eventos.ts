@@ -40,7 +40,7 @@ export class Eventos {
       { key: 'eventos',    label: 'Eventos',     icon: '🎫',  route: '/eventos/inscripciones' },
       // { key: 'detalle',    label: 'Detalle',     icon: '📅',  route: eventId ? `/eventos/${eventId}/detalle`    : '/eventos/inicio' },
       // { key: 'actividades', label: 'Actividades', icon: '🎉', route: eventId ? `/eventos/${eventId}/actividades` : '/eventos/inicio' },
-      { key: 'credencial', label: 'Credencial',  icon: '🎟️', route: eventId ? `/eventos/${eventId}/credencial` : '/eventos/inicio' },
+      { key: 'credencial', label: 'Credencial',  icon: '🎟️', route: `/eventos/${eventId}/credencial` },
     ];
 
     // const roles = this.authService.userSignal()?.roles ?? [];
