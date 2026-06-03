@@ -35,46 +35,55 @@
   min-height: 0;
 
   .lopd-body {
-    flex: 1;
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.75;
 
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    max-width: 100%;
-    min-height: 0;
-
-    padding-right: 0.5rem;
-
-    font-size: 0.9rem;
-    line-height: 1.7;
-    opacity: 0.85;
-
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    /* Evita cortes raros de palabras */
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
     white-space: normal;
+
+    /* Asegura que ningún elemento desborde */
+    * {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
 
     p,
     div,
     span,
-    li {
+    li,
+    td,
+    th {
       max-width: 100%;
-      overflow-wrap: anywhere;
-      word-break: break-word;
+      overflow-wrap: break-word;
+      word-break: normal;
+      hyphens: auto;
       white-space: normal;
-    }
-
-    p {
-      margin-bottom: 0.75rem;
-    }
-
-    h3 {
-      margin: 1rem 0 0.5rem;
     }
 
     ul,
     ol {
       padding-left: 1.25rem;
-      margin-bottom: 0.75rem;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    table {
+      width: 100%;
+      display: block;
+      overflow-x: auto;
+      border-collapse: collapse;
+    }
+
+    iframe,
+    video {
+      max-width: 100%;
     }
   }
 }

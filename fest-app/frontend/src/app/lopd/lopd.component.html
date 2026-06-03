@@ -24,7 +24,7 @@
 
       <article class="panel lopd-text">
         @if (textoLopd(); as texto) {
-          <div class="lopd-body" [innerHTML]="texto"></div>
+          <div class="lopd-body" lang="es" [innerHTML]="texto"></div>
         } @else {
           <p class="lopd-empty">No se ha definido texto legal para la entidad. Contacta con tu administrador si crees que es un error.</p>
         }
