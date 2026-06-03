@@ -65,7 +65,7 @@
                     {{ estadoInscripcionEventoLabel(inscripcion) }}
                   </span>
                   <p>{{ eventDate(inscripcion) }} · {{ eventTime(inscripcion) }} · {{ eventLocation(inscripcion) }}</p>
-                  <p class="description" [innerHtml]="eventDescription(inscripcion)"></p>
+                  <p class="description" lang="es" [innerHtml]="eventDescription(inscripcion)"></p>
                   <p class="status-hint" [class.closed]="isEventoCerrado(inscripcion)">{{ cierreEventoHint(inscripcion) }}</p>
                 </div>
 

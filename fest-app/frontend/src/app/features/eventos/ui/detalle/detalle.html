@@ -18,7 +18,7 @@
             <p>{{ eventSummary()?.date }} · {{ eventSummary()?.time }}</p>
             <p>{{ eventSummary()?.location }}</p>
           </div>
-          <div class="description" [innerHTML]="eventSummary()?.description"></div>
+          <div class="description" lang="es" [innerHTML]="eventSummary()?.description"></div>
           <span class="status-chip" [class]="'status-chip ' + eventSummary()?.status">{{ eventStatusLabel() }}</span>
         </article>
       } @else if (loading()) {

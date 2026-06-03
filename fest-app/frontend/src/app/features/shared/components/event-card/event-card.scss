@@ -93,6 +93,21 @@ h3 {
   color: var(--text-secondary);
   font-size: 0.86rem;
   line-height: 1.45;
+
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  white-space: normal;
+
+  p,
+  div,
+  span,
+  li {
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: auto;
+    white-space: normal;
+  }
 }
 
 .description {
