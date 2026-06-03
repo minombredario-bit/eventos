@@ -9,7 +9,8 @@
     0 -6px 20px rgba(0,0,0,.08),
     0 -1px 0 color-mix(in srgb, var(--border-soft) 60%, transparent);
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 

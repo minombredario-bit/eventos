@@ -38,8 +38,8 @@ export class Eventos {
     const baseItems: NavItem[] = [
       { key: 'inicio',     label: 'Inicio',     icon: '🏠',  route: '/eventos/inicio' },
       { key: 'eventos',    label: 'Eventos',     icon: '🎫',  route: '/eventos/inscripciones' },
-      { key: 'detalle',    label: 'Detalle',     icon: '📅',  route: eventId ? `/eventos/${eventId}/detalle`    : '/eventos/inicio' },
-      { key: 'actividades', label: 'Actividades', icon: '🎉', route: eventId ? `/eventos/${eventId}/actividades` : '/eventos/inicio' },
+      // { key: 'detalle',    label: 'Detalle',     icon: '📅',  route: eventId ? `/eventos/${eventId}/detalle`    : '/eventos/inicio' },
+      // { key: 'actividades', label: 'Actividades', icon: '🎉', route: eventId ? `/eventos/${eventId}/actividades` : '/eventos/inicio' },
       { key: 'credencial', label: 'Credencial',  icon: '🎟️', route: eventId ? `/eventos/${eventId}/credencial` : '/eventos/inicio' },
     ];
 
