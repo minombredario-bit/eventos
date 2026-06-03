@@ -3,9 +3,11 @@ import {
   Component,
   computed,
   DestroyRef,
+  ElementRef,
   inject,
   OnInit,
   signal,
+  ViewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
@@ -48,6 +50,9 @@ export class Inicio implements OnInit {
   );
 
   protected readonly selectedDateKey = signal(formatDateKey(this.today));
+
+  @ViewChild('selectedDayPanel')
+  private selectedDayPanel?: ElementRef<HTMLElement>;
 
   ngOnInit(): void {
     forkJoin([
@@ -135,6 +140,14 @@ export class Inicio implements OnInit {
 
   protected pickDate(cell: CalendarCell): void {
     this.selectedDateKey.set(cell.key);
+
+    window.setTimeout(() => {
+      this.selectedDayPanel?.nativeElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest',
+      });
+    }, 0);
   }
 
   protected isSelected(key: string): boolean {

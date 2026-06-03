@@ -12,6 +12,7 @@ import {
   RelacionUsuario,
   InvitadoDelete, MealSlot,
 } from '../domain/eventos.models';
+import {normalizeHtmlText} from '../../../core/helpers/helpers';
 
 @Injectable({ providedIn: 'root' })
 export class EventosMapper {
@@ -23,7 +24,7 @@ export class EventosMapper {
       time: this.extractHour(evento.horaInicio) ?? 'Sin hora',
       location: evento.lugar ?? 'Lugar por confirmar',
       status: this.toUiStatus(evento),
-      description: evento.descripcion ?? 'Sin descripción disponible.',
+      description: normalizeHtmlText(evento.descripcion) ?? 'Sin descripción disponible.',
       fechaLimiteInscripcion: evento.fechaLimiteInscripcion ?? null,
       fechaFinInscripcion: evento.fechaFinInscripcion ?? null,
     };

@@ -378,3 +378,99 @@
   // ...existing skeleton styles above...
   &--chart { width: 100%; height: 220px; border-radius: var(--radius-lg); }
 }
+
+/* ─── Fix charts en móvil ───────────────────────────────────────────── */
+
+.admin-dashboard-screen,
+.admin-dashboard-screen .content,
+.asistencia-panel,
+.charts-grid,
+.chart-card,
+.chart-card__wrap {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.charts-grid {
+  width: 100%;
+  overflow: hidden;
+}
+
+.chart-card {
+  width: 100%;
+  overflow: hidden;
+}
+
+.chart-card__header {
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.chart-card__title {
+  min-width: 0;
+  flex: 1 1 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.chart-mode-selector {
+  max-width: 100%;
+  min-width: 0;
+  flex: 1 1 100%;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+}
+
+.chart-mode-btn {
+  flex: 0 0 auto;
+}
+
+.chart-card__wrap {
+  width: 100%;
+  overflow: hidden;
+}
+
+.chart-card__wrap canvas {
+  max-width: 100% !important;
+}
+
+@media (max-width: 480px) {
+  .asistencia-panel {
+    padding-inline: 0.85rem;
+  }
+
+  .asistencia-totales {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-card {
+    padding: 0.75rem;
+    border-radius: 1rem;
+  }
+
+  .chart-card__wrap--bar,
+  .chart-card__wrap--donut,
+  .chart-no-data,
+  .skeleton--chart {
+    height: 190px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid--3 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.9rem;
+  }
+
+  .stats-grid--3 .stat-card:nth-child(1) {
+    grid-column: span 2;
+  }
+
+  .stats-grid--3 .stat-card:nth-child(2),
+  .stats-grid--3 .stat-card:nth-child(3) {
+    grid-column: span 1;
+  }
+}

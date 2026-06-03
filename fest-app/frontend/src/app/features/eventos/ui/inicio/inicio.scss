@@ -29,7 +29,7 @@
 
   .eyebrow { margin: 0; color: var(--brand-accent); }
 
-  h2 { margin: 0.45rem 0 0; font-size: 1.18rem; line-height: 1.28; color: var(--brand-ink); }
+  h2 { margin: 0.45rem 0 0; font-size: 1.18rem; line-height: 1.28; color: var(--brand-ink); font-family: var(--font-display), serif; }
 
   .supporting-copy { margin: 0.62rem 0 0; font-size: 0.86rem; }
 }
@@ -54,7 +54,7 @@
     font-size: 1rem;
     color: var(--brand-accent);
     font-weight: 800;
-    font-family: var(--font-display);
+    font-family: var(--font-display), serif;
   }
 
   .month-nav {
@@ -88,7 +88,7 @@
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-family: var(--font-body);
+  font-family: var(--font-body), sans-serif;
 }
 
 .grid button {
@@ -102,7 +102,7 @@
   color: var(--text-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  font-family: var(--font-body);
+   font-family: var(--font-body), sans-serif;
   transition: transform 0.14s, box-shadow 0.14s;
 
   &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
@@ -136,6 +136,10 @@
 .upcoming,
 .selected-day { display: grid; gap: 0.68rem; align-items: start; }
 
+.selected-day {
+  scroll-margin-top: 1rem;
+}
+
 .selected-day h2 { margin: 0; }
 
 .selected-header {
@@ -156,7 +160,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   border: 1px solid transparent;
-  font-family: var(--font-body);
+  font-family: var(--font-body), sans-serif;
 
   &.abierto        { color: #064e35; background: #c6f6d5; border-color: #38a169; }
   &.ultimas_plazas { color: #7b3a10; background: #fef3c7; border-color: #f59e0b; }

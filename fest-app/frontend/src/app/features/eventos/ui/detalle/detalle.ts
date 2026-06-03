@@ -27,6 +27,7 @@ import {
   uniqueParticipantsByKey
 } from '../../domain/detalle.utils';
 import { SelectionSaveRequest } from '../../domain/detalle.models';
+import {normalizeHtmlText} from '../../../../core/helpers/helpers';
 
 type EnrollmentStatusValue = 'enrolling' | 'removing' | 'enrolled' | 'error';
 
@@ -229,7 +230,7 @@ export class Detalle {
       time: formatTime(event.horaInicio),
       location: event.lugar ?? 'Lugar por confirmar',
       status,
-      description: event.descripcion ?? 'Sin descripción disponible.',
+      description: normalizeHtmlText(event.descripcion) ?? 'Sin descripción disponible.',
       fechaLimiteInscripcion: event.fechaLimiteInscripcion ?? null,
     };
   });

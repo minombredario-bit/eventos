@@ -48,27 +48,7 @@ h2 {
     p { margin: 0; color: var(--text-secondary); font-size: 0.88rem; line-height: 1.38; word-break: break-word; }
   }
 
-  .description {
-    margin: 0.9rem 0 0;
-    color: var(--text-secondary);
-    line-height: 1.45;
-    font-size: 0.9rem;
-
-    overflow-wrap: break-word;
-    word-break: normal;
-    hyphens: auto;
-    white-space: normal;
-
-    p,
-    div,
-    span,
-    li {
-      overflow-wrap: break-word;
-      word-break: normal;
-      hyphens: auto;
-      white-space: normal;
-    }
-  }
+  .description { margin: 0.9rem 0 0; color: var(--text-secondary); line-height: 1.45; font-size: 0.9rem; word-break: break-word; }
 }
 
 // ─── Status chip ──────────────────────────────────────────────────────────────
