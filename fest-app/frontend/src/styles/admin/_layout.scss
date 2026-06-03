@@ -33,7 +33,7 @@
 .content {
   width: min(100%, 720px);
   margin: 0 auto;
-  padding: 1rem 1rem calc(var(--bottom-nav-height, 68px) + 2.5rem);
+  padding: 1rem 1rem 1.5rem;
   position: relative;
   z-index: 1;
   display: grid;

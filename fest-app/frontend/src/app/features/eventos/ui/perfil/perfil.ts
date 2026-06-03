@@ -434,9 +434,12 @@ export class Perfil {
       return;
     }
 
-    this.authService.getUsuario(usuarioId).subscribe({
+    this.authService.getUsuario(usuarioId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (usuarioCompleto) => {
         this.editingChildId.set(usuarioId);
+        this.activeTab.set('identidad');
 
         this.profileForm.patchValue({
           nombre: usuarioCompleto.nombre?.trim() ?? '',

@@ -1,5 +1,7 @@
 .eventos-shell {
-  min-height: 100dvh;
+  height: calc(100dvh - var(--bottom-nav-height) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   background: var(--page-bg);
-  padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
 }

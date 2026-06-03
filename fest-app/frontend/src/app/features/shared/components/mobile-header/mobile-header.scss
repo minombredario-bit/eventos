@@ -1,3 +1,12 @@
+:host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  z-index: 1000;
+}
+
 .mobile-header {
   background: var(--header-gradient);
   color: #ffffff;
@@ -8,8 +17,9 @@
     0 12px 30px rgba(0,0,0,.38),
     inset 0 1px 0 rgba(255,255,255,.12);
   position: relative;
+  width: 100%;
   overflow: visible;
-  z-index: 1000;
+  z-index: 1;
 
   &::after {
     content: '';

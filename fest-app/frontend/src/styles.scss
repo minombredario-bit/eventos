@@ -67,6 +67,7 @@
   --radius-lg:           1.2rem;
   --radius-xl:           1.5rem;
   --bottom-nav-height:   68px;
+  --header-height:       72px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -134,6 +135,7 @@
   --radius-lg:           1.0rem;
   --radius-xl:           1.25rem;
   --bottom-nav-height:   68px;
+  --header-height:       72px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -171,7 +173,10 @@ a:focus-visible {
   box-shadow: var(--focus-ring);
 }
 
-.screen { min-height: 100%; }
+.screen {
+  min-height: calc(100% - var(--header-height, 72px));
+  padding-top: var(--header-height, 72px);
+}
 
 /* Transición suave al cambiar de tema */
 :root { transition: background-color 0.3s ease; }

@@ -2,5 +2,9 @@
 // Solo necesita definir el mínimo de altura del shell contenedor.
 
 .admin-shell-screen {
-  min-height: 100%;
+  height: calc(100dvh - var(--bottom-nav-height) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background: var(--page-bg);
 }
