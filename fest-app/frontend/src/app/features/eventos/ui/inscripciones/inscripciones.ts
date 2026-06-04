@@ -9,6 +9,7 @@ import { formatLocalDate, formatTime, hasValidTime, normalizeDateKey } from '../
 import { MobileHeader } from '../../../shared/components/mobile-header/mobile-header';
 import { EventosApi } from '../../data/eventos.api';
 import {Inscripcion, InscripcionesPage} from '../../domain/eventos.models';
+import {normalizeHtmlText} from '../../../../core/helpers/helpers';
 
 @Component({
   selector: 'app-inscripciones',
@@ -109,7 +110,7 @@ export class Inscripciones {
   }
 
   protected eventDescription(inscripcion: Inscripcion): string {
-    const description = inscripcion.evento.descripcion?.trim();
+    const description = normalizeHtmlText(inscripcion.evento.descripcion)?.trim();
     if (description?.length) {
       return description;
     }
