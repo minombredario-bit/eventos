@@ -6,10 +6,6 @@
       class="install-banner__icon"
     />
 
-    <button class="icon-btn" type="button" (click)="pwa.dismiss()" aria-label="Cerrar">
-      ✕
-    </button>
-
     <button
       class="icon-btn"
       type="button"
@@ -22,6 +18,10 @@
 
     <button class="icon-btn icon-btn--primary" type="button" (click)="install()" aria-label="Instalar app">
       ⬇
+    </button>
+
+    <button class="icon-btn" type="button" (click)="pwa.dismiss()" aria-label="Cerrar">
+      ✕
     </button>
   </div>
 }
