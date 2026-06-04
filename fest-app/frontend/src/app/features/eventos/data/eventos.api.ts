@@ -281,6 +281,7 @@ export class EventosApi {
     search?: string;
     page?: number;
     itemsPerPage?: number;
+    mostrarTodos?: boolean;
   } = {}): Observable<InscripcionesPage> {
 
     let params = new HttpParams();
@@ -288,12 +289,15 @@ export class EventosApi {
     const search = (options.search ?? '').trim();
     const page = options.page ?? 1;
     const itemsPerPage = options.itemsPerPage ?? 10;
+    const mostrarTodos = options.mostrarTodos ?? false;
 
     params = params
       .set('page', page)
-      .set('itemsPerPage', itemsPerPage)
-      .set('order[evento.fechaEvento]', 'desc')
-      .set('order[evento.horaInicio]', 'desc');
+      .set('itemsPerPage', itemsPerPage);
+
+    if (mostrarTodos) {
+      params = params.set('mostrarTodos', 'true');
+    }
 
     if (search.length >= 3) {
       params = params.set('evento.titulo', search);
@@ -304,9 +308,11 @@ export class EventosApi {
       .pipe(
         map((response) => {
           const parsed = parsePaginatedCollection<InscripcionCollectionItem>(response as unknown);
+
           const items = parsed.items
             .map((item) => this.toInscripcionCollection(item))
             .filter((item): item is Inscripcion => item !== null);
+
           const totalPages = Math.ceil(parsed.totalItems / itemsPerPage);
 
           return {

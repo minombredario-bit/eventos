@@ -35,6 +35,24 @@ final class InscripcionCollectionProvider implements ProviderInterface
             ? iterator_to_array($collection, false)
             : array_values((array) $collection);
 
+        $mostrarTodos = filter_var(
+            $filters['mostrarTodos'] ?? false,
+            FILTER_VALIDATE_BOOL
+        );
+
+        if (!$mostrarTodos) {
+            $today = new \DateTimeImmutable('today');
+
+            $inscripciones = array_filter(
+                $inscripciones,
+                static function (Inscripcion $inscripcion) use ($today): bool {
+                    return $inscripcion->getEvento()->getFechaEvento() >= $today;
+                }
+            );
+
+            $inscripciones = array_values($inscripciones);
+        }
+
         $agrupadas = $this->groupUniqueByEvento($inscripciones);
         $this->sortOutputs($agrupadas, $order);
 
@@ -131,27 +149,46 @@ final class InscripcionCollectionProvider implements ProviderInterface
      */
     private function sortOutputs(array &$items, array $order): void
     {
-        $dateDirection = $this->normalizeSortDirection($order['evento.fechaEvento'] ?? null);
-        $timeDirection = $this->normalizeSortDirection($order['evento.horaInicio'] ?? null);
+        $today = new \DateTimeImmutable('today');
 
-        usort($items, function (array $left, array $right) use ($dateDirection, $timeDirection): int {
-            $leftDate = (string) ($left['evento']['fechaEvento'] ?? '');
-            $rightDate = (string) ($right['evento']['fechaEvento'] ?? '');
+        usort($items, function (array $a, array $b) use ($today): int {
 
-            $dateComparison = $leftDate <=> $rightDate;
-            if ($dateComparison !== 0) {
-                return $dateDirection === 'asc' ? $dateComparison : -$dateComparison;
+            $dateA = new \DateTimeImmutable($a['evento']['fechaEvento']);
+            $dateB = new \DateTimeImmutable($b['evento']['fechaEvento']);
+
+            $isPastA = $dateA < $today;
+            $isPastB = $dateB < $today;
+
+            // Los futuros siempre primero
+            if ($isPastA !== $isPastB) {
+                return $isPastA ? 1 : -1;
             }
 
-            $leftTime = (string) ($left['evento']['horaInicio'] ?? '');
-            $rightTime = (string) ($right['evento']['horaInicio'] ?? '');
+            // Ambos futuros → más cercano primero
+            if (!$isPastA) {
+                $result = $dateA <=> $dateB;
 
-            $timeComparison = $leftTime <=> $rightTime;
-            if ($timeComparison !== 0) {
-                return $timeDirection === 'asc' ? $timeComparison : -$timeComparison;
+                if ($result !== 0) {
+                    return $result;
+                }
+
+                $timeA = (string) ($a['evento']['horaInicio'] ?? '');
+                $timeB = (string) ($b['evento']['horaInicio'] ?? '');
+
+                return $timeA <=> $timeB;
             }
 
-            return strcmp((string) $left['id'], (string) $right['id']);
+            // Ambos pasados → más reciente primero
+            $result = $dateB <=> $dateA;
+
+            if ($result !== 0) {
+                return $result;
+            }
+
+            $timeA = (string) ($a['evento']['horaInicio'] ?? '');
+            $timeB = (string) ($b['evento']['horaInicio'] ?? '');
+
+            return $timeB <=> $timeA;
         });
     }
 

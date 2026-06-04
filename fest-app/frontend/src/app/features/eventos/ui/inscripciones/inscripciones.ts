@@ -45,6 +45,7 @@ export class Inscripciones {
 
   protected readonly inscripciones = computed<Inscripcion[]>(() => this.inscripcionesPage().items);
   protected readonly searchTerm = signal<string>('');
+  protected readonly mostrarHistorico = signal(false);
   protected readonly totalItems = computed<number>(() => this.inscripcionesPage().totalItems);
   protected readonly currentPage = computed<number>(() => this.inscripcionesPage().page);
   protected readonly totalPages      = computed<number>(() => this.inscripcionesPage().totalPages);
@@ -168,6 +169,17 @@ export class Inscripciones {
     return labels[estado] ?? 'Pago desconocido';
   }
 
+  protected clearFilters(): void {
+    this.searchTerm.set('');
+    this.mostrarHistorico.update((v) => false);
+    this.loadInscripciones(1);
+  }
+
+  protected toggleHistorico(): void {
+    this.mostrarHistorico.update(v => !v);
+    this.loadInscripciones(1);
+  }
+
   private loadInscripciones(page = 1, isInitial = false): void {
     isInitial ? this.loading.set(true) : this.transitioning.set(true);
     this.errorMessage.set(null);
@@ -177,6 +189,7 @@ export class Inscripciones {
         search: this.searchTerm(),
         page,
         itemsPerPage: Inscripciones.PAGE_SIZE,
+        mostrarTodos: this.mostrarHistorico(),
       })
       .pipe(
         finalize(() => {

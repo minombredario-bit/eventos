@@ -98,6 +98,12 @@ export class Apuntados {
     void this.router.navigate(['/eventos', eventId, 'detalle']);
   }
 
+  protected goInscripciones(): void {
+
+    void this.router.navigateByUrl('/eventos/inscripciones');
+
+  }
+
   protected logout(): void {
     this.authService.logout();
     void this.router.navigateByUrl('/auth/login');

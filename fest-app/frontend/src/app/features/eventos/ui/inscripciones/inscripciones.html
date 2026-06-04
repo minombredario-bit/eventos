@@ -20,6 +20,20 @@
           (input)="setSearchTerm($any($event.target).value)"
         />
       </div>
+      <div class="filters-row">
+        <button
+          type="button"
+          class="chip-filter"
+          [class.active]="mostrarHistorico()"
+          (click)="toggleHistorico()"
+        >
+          Mostrar histórico
+        </button>
+
+        <button type="button" class="chip-filter chip-filter--clear" (click)="clearFilters()">
+          <span aria-hidden="true">✕</span> Borrar filtros
+        </button>
+      </div>
 
       <div class="filters-row" aria-hidden="true"></div>
     </article>
