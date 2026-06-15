@@ -97,7 +97,11 @@ class UpdateEventoEstadosCommand extends Command
 
     private function resolverEstado(Evento $evento, \DateTimeImmutable $ahora): EstadoEventoEnum
     {
-        $finEvento = $evento->getFechaEvento()->setTime(23, 59, 59, 999999);
+        $fechaEvento = $evento->getFechaEvento();
+
+        $finEvento = \DateTimeImmutable::createFromInterface($fechaEvento)
+            ->setTime(23, 59, 59, 999999);
+
         $finInscripcion = $evento->getFechaFinInscripcion();
         $inicioInscripcion = $evento->getFechaInicioInscripcion();
 
@@ -105,11 +109,13 @@ class UpdateEventoEstadosCommand extends Command
             return EstadoEventoEnum::FINALIZADO;
         }
 
-        if ($finInscripcion !== null && $ahora > $finInscripcion->setTime(23, 59, 59, 999999)) {
+        // Usa la fecha/hora real de cierre de inscripción
+        if ($finInscripcion !== null && $ahora >= \DateTimeImmutable::createFromInterface($finInscripcion)) {
             return EstadoEventoEnum::CERRADO;
         }
 
-        if ($inicioInscripcion !== null && $ahora >= $inicioInscripcion) {
+        // Usa la fecha/hora real de inicio de inscripción
+        if ($inicioInscripcion !== null && $ahora >= \DateTimeImmutable::createFromInterface($inicioInscripcion)) {
             return EstadoEventoEnum::PUBLICADO;
         }
 
